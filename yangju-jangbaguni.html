@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="양주 장바구니 — 시민 영수증·가격표 기반 크라우드 물가지도. 2026 양주시 미래인재 AI 공모전 프로젝트 개요서">
+<title>양주 장바구니 · 프로젝트 개요</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  :root{
+    --ground:#F3F6F2; --canvas:#E9EFE8;
+    --card:#FFFFFF; --card-2:#EEF3ED;
+    --ink:#17241D; --muted:#63746B; --faint:#93A29A;
+    --line:#E1E8E0;
+    --accent:#12885A; --accent-soft:#DBF0E5; --accent-ink:#0B6B45;
+    --sale:#DE4630; --sale-soft:#FBE3DE;
+    --amber:#B9781A; --amber-soft:#F6E9D2;
+    --blue:#2F7BE5; --blue-soft:#E0ECFB;
+    --shadow:0 18px 40px -22px rgba(20,45,33,.45);
+    --radius:18px;
+  }
+  :root:not([data-theme="light"]){
+    @media (prefers-color-scheme: dark){
+      --ground:#0C1210; --canvas:#0A0F0D;
+      --card:#161E1A; --card-2:#111813;
+      --ink:#E8F1EB; --muted:#93A69C; --faint:#5F6F67;
+      --line:#25322C;
+      --accent:#3FBE85; --accent-soft:#152C21; --accent-ink:#7FD9AC;
+      --sale:#FF6F58; --sale-soft:#371914;
+      --amber:#E1A64B; --amber-soft:#2E2413;
+      --blue:#6FA8F2; --blue-soft:#13233B;
+      --shadow:0 18px 44px -22px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0C1210; --canvas:#0A0F0D;
+    --card:#161E1A; --card-2:#111813;
+    --ink:#E8F1EB; --muted:#93A69C; --faint:#5F6F67;
+    --line:#25322C;
+    --accent:#3FBE85; --accent-soft:#152C21; --accent-ink:#7FD9AC;
+    --sale:#FF6F58; --sale-soft:#371914;
+    --amber:#E1A64B; --amber-soft:#2E2413;
+    --blue:#6FA8F2; --blue-soft:#13233B;
+    --shadow:0 18px 44px -22px rgba(0,0,0,.7);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1200px 600px at 12% -8%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 60%),
+      radial-gradient(1000px 500px at 100% 0%, color-mix(in srgb, var(--blue) 10%, transparent), transparent 55%),
+      var(--canvas);
+    color:var(--ink);
+    font-family:"Pretendard","Apple SD Gothic Neo",system-ui,sans-serif;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+  a{color:inherit}
+
+  /* ---- hero ---- */
+  .hero{padding:60px 0 44px}
+  .kicker{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);margin:0 0 14px}
+  .brandrow{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+  .logo{width:56px;height:56px;border-radius:16px;background:linear-gradient(150deg,var(--accent),var(--accent-ink));display:grid;place-items:center;color:#fff;box-shadow:var(--shadow);flex:none}
+  .logo svg{width:30px;height:30px}
+  h1{font-size:clamp(30px,5.2vw,46px);line-height:1.12;margin:0;letter-spacing:-.02em}
+  .lede{max-width:64ch;color:var(--muted);font-size:17px;margin:16px 0 0}
+  .lede b{color:var(--ink);font-weight:600}
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .pill{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 13px;font-size:13px;font-weight:500;box-shadow:var(--shadow)}
+  .pill .dot{width:8px;height:8px;border-radius:50%}
+  .pill.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+
+  /* ---- section ---- */
+  section{padding:30px 0}
+  .shead{display:flex;align-items:baseline;gap:12px;margin:0 0 20px}
+  .snum{font-variant-numeric:tabular-nums;font-weight:800;color:var(--accent);font-size:15px;letter-spacing:.04em}
+  h2{font-size:clamp(21px,3.4vw,27px);margin:0;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:14.5px;margin:4px 0 0}
+
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  @media (max-width:760px){.g2,.g3,.g4{grid-template-columns:1fr}}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+  .card h3{margin:0 0 7px;font-size:16px;letter-spacing:-.01em}
+  .card p{margin:0;color:var(--muted);font-size:14px}
+  .card .big{font-size:30px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+  .card .big small{font-size:14px;font-weight:600;color:var(--muted);margin-left:3px}
+  .eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:0 0 9px}
+
+  /* data layers flow */
+  .flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:10px}
+  .node{flex:1 1 150px;min-width:140px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;box-shadow:var(--shadow)}
+  .node .tag{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  .node .nm{font-weight:700;font-size:15px;margin-top:3px}
+  .node .ds{color:var(--muted);font-size:12.5px;margin-top:4px}
+  .arrow{display:grid;place-items:center;color:var(--faint);font-weight:700;font-size:20px;flex:none}
+  @media (max-width:760px){.arrow{transform:rotate(90deg)}}
+
+  .badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:12.5px;font-weight:600;border:1px solid}
+  .b-rc{background:var(--accent-soft);color:var(--accent-ink);border-color:transparent}
+  .b-tg{background:var(--amber-soft);color:var(--amber);border-color:transparent}
+  .b-fl{background:var(--blue-soft);color:var(--blue);border-color:transparent}
+
+  ul.clean{margin:10px 0 0;padding:0;list-style:none}
+  ul.clean li{position:relative;padding-left:18px;margin:7px 0;color:var(--muted);font-size:14px}
+  ul.clean li::before{content:"";position:absolute;left:2px;top:9px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+  ul.clean li b{color:var(--ink);font-weight:600}
+
+  /* pipeline */
+  .steps{counter-reset:s;display:grid;gap:10px}
+  .step{display:flex;gap:14px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .step .n{counter-increment:s;flex:none;width:30px;height:30px;border-radius:9px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px}
+  .step .n::before{content:counter(s)}
+  .step .t{font-weight:700;font-size:14.5px}
+  .step .d{color:var(--muted);font-size:13.5px;margin-top:2px}
+
+  /* table */
+  .tablecard{overflow:hidden;border-radius:var(--radius);border:1px solid var(--line);box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse;background:var(--card);font-size:14px}
+  th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line)}
+  th{background:var(--card-2);font-weight:700;font-size:12.5px;letter-spacing:.02em;color:var(--muted)}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr:last-child td{border-bottom:0}
+  .hi td{background:color-mix(in srgb,var(--accent) 7%,var(--card))}
+  .tagline{font-weight:700;color:var(--accent-ink)}
+
+  /* bars */
+  .bars{display:grid;gap:9px}
+  .bar{display:grid;grid-template-columns:92px 1fr 64px;align-items:center;gap:10px;font-size:13px}
+  .bar .lab{color:var(--muted);font-weight:600}
+  .bar .track{height:12px;border-radius:999px;background:var(--card-2);overflow:hidden}
+  .bar .fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent-ink))}
+  .bar .val{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600}
+
+  .note{background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:14px;padding:14px 16px;color:var(--accent-ink);font-size:14px;font-weight:500}
+  .foot{color:var(--faint);font-size:12.5px;padding:34px 0 50px;border-top:1px solid var(--line);margin-top:24px}
+  .divider{height:1px;background:var(--line);margin:4px 0}
+  .lead-k{font-size:13px;color:var(--amber);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== HERO ===== -->
+  <header class="hero">
+    <p class="kicker">2026 양주시 미래인재 AI 공모전 · 똑똑하고 편리한 양주</p>
+    <div class="brandrow">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18l-1.6 9.2a2 2 0 0 1-2 1.8H8.2"/><path d="M3 6 2 3H0"/><circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/><path d="M8 6l1 6"/></svg>
+      </div>
+      <div><h1>양주 장바구니</h1></div>
+    </div>
+    <p class="lede"><b>“영수증 한 장이 곧 물가 센서.”</b> 시민이 영수증·매대 가격표·전단을 사진으로 올리면 AI가 품목·가격을 읽어 <b>동네·마트별 실시간 물가</b>를 지도로 보여주는 모바일 앱. 정부 통계의 느린 집계 대신, 시민이 매일 만드는 구매 데이터를 모아 ‘지금 가장 싼 곳’을 알려주고 양주사랑상품권으로 참여를 보상합니다.</p>
+    <div class="pills">
+      <span class="pill"><span class="dot" style="background:var(--amber)"></span>전단 · 예고가</span>
+      <span class="pill"><span class="dot" style="background:var(--blue)"></span>매대 · 현재가</span>
+      <span class="pill"><span class="dot" style="background:var(--accent)"></span>영수증 · 실구매가</span>
+      <span class="pill on">AI OCR + 크라우드소싱</span>
+    </div>
+  </header>
+
+  <!-- ===== 01 문제 ===== -->
+  <section>
+    <div class="shead"><span class="snum">01</span><div><h2>제안 배경 · 문제 현황</h2><p class="sub">양주시 생활권 기준의 실제 공백</p></div></div>
+    <div class="grid g4">
+      <div class="card"><p class="eyebrow">체감 물가</p><h3>어디가 싼지 모른다</h3><p>고물가 장기화에도 ‘지금 우리 동네 어느 마트가 싼지’ 확인할 방법이 없다.</p></div>
+      <div class="card"><p class="eyebrow">공공 데이터 공백</p><h3>소규모 마트 사각</h3><p>공공 물가정보는 대형 품목·거점 위주 → 옥정·회천·덕정 생활권 소규모 마트 가격은 공백.</p></div>
+      <div class="card"><p class="eyebrow">전단 분산</p><h3>비교 불가</h3><p>전단지는 종이·SNS에 흩어져 비교가 어렵고, 할인 주기도 알 수 없다.</p></div>
+      <div class="card"><p class="eyebrow">신도시 특수성</p><h3>동네별 편차 ↑</h3><p>신도시 개발로 인구 급증·생활권 분화 → 동네별 물가 편차 크고 지역화폐 연계 수요도 크다.</p></div>
+    </div>
+  </section>
+
+  <!-- ===== 02 솔루션 · 데이터 4층 ===== -->
+  <section>
+    <div class="shead"><span class="snum">02</span><div><h2>솔루션 — 4층 가격 데이터</h2><p class="sub">‘예고 → 현장 → 실제’의 가격 흐름을 시민 제보로 완성</p></div></div>
+    <div class="flow">
+      <div class="node"><div class="tag">1층 · 예고</div><div class="nm">전단</div><div class="ds">다가올 특가, 할인 기간</div></div>
+      <div class="arrow">→</div>
+      <div class="node"><div class="tag">2층 · 현재</div><div class="nm">매대 가격표</div><div class="ds">지금 진열된 현재가</div></div>
+      <div class="arrow">→</div>
+      <div class="node"><div class="tag">3층 · 실제</div><div class="nm">영수증</div><div class="ds">할인·멤버십 반영 실구매가</div></div>
+      <div class="arrow">→</div>
+      <div class="node" style="border-color:color-mix(in srgb,var(--accent) 45%,var(--line))"><div class="tag" style="color:var(--accent-ink)">4층 · 예측</div><div class="nm">추이 · 특가예측</div><div class="ds">6주 추이로 다음 특가 예상</div></div>
+    </div>
+    <div class="note" style="margin-top:14px">세 입력(전단·매대·영수증)이 <b>상호보완</b>하면서 민간 물가앱이 못 하는 ‘안 산 품목·실시간 현재가·특가 예측’까지 커버합니다.</div>
+  </section>
+
+  <!-- ===== 03 입력 우선순위 ===== -->
+  <section>
+    <div class="shead"><span class="snum">03</span><div><h2>입력 우선순위 · 출처 표기</h2><p class="sub">AI가 올린 사진을 자동 분류하고, 가장 신뢰도 높은 값을 노출</p></div></div>
+    <div class="grid g2">
+      <div class="card">
+        <p class="eyebrow">표시 규칙</p>
+        <h3>품목 × 매장별 ‘최선값’ 1개</h3>
+        <p style="margin-bottom:12px">각 가격에 출처 배지와 갱신 시각을 함께 표기합니다.</p>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;align-items:center;gap:9px"><span class="badge b-rc">🧾 영수증</span><span style="font-size:13px;color:var(--muted)">1순위 · <b style="color:var(--ink)">실구매가</b></span></div>
+          <div style="display:flex;align-items:center;gap:9px"><span class="badge b-fl">🏷️ 가격표</span><span style="font-size:13px;color:var(--muted)">2순위 · 매대 표시가 (영수증 없을 때)</span></div>
+          <div style="display:flex;align-items:center;gap:9px"><span class="badge b-tg">📄 전단</span><span style="font-size:13px;color:var(--muted)">예고가 · 유효기간 관리</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <p class="eyebrow">보정 규칙</p>
+        <h3>최신성 역전 · 의미 구분</h3>
+        <ul class="clean">
+          <li><b>최신성 역전</b> — 2주 전 영수증보다 2시간 전 가격표가 더 정확할 수 있다. 상위 출처가 오래되면 최신 하위 출처에 양보.</li>
+          <li><b>의미 라벨</b> — 영수증 = 실제 낸 값(할인 반영) / 가격표 = 매대 표시가. 혼동 없게 구분 표기.</li>
+          <li><b>교차검증</b> — 단독 1건은 ‘미확정’, 2건 이상 일치 시 ‘확정’ 배지.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 04 핵심 기능 ===== -->
+  <section>
+    <div class="shead"><span class="snum">04</span><div><h2>핵심 기능</h2><p class="sub">업로드 → OCR → 지도 한 줄기가 실제로 도는 앱</p></div></div>
+    <div class="grid g4">
+      <div class="card"><p class="eyebrow">홈</p><h3>물가지도</h3><p>위치 기준 마트별 가격 핀 + 주간 ‘장바구니 지수’. 최저가 초록, 특가 빨강.</p></div>
+      <div class="card"><p class="eyebrow">올리기</p><h3>현장 모드</h3><p>사진을 올리면 영수증/가격표/전단 자동 분류·인식, 개인정보 즉시 마스킹. 매대 가격표 연속 스캔.</p></div>
+      <div class="card"><p class="eyebrow">비교</p><h3>품목 줄세우기</h3><p>한 품목을 동네 마트별 최저가로 정렬 + 6주 추이로 다음 특가 예측.</p></div>
+      <div class="card"><p class="eyebrow">마트 상세</p><h3>가격 3종 분리</h3><p>전단 특가·매대 현재가·영수증 실구매가를 분리 표시, 만료 시 자동 이력화.</p></div>
+    </div>
+  </section>
+
+  <!-- ===== 05 AI 파이프라인 ===== -->
+  <section>
+    <div class="shead"><span class="snum">05</span><div><h2>AI 처리 파이프라인</h2><p class="sub">단순 OCR을 넘어 ‘판단·예측’까지</p></div></div>
+    <div class="steps">
+      <div class="step"><div class="n"></div><div><div class="t">수집</div><div class="d">시민이 영수증·가격표·전단 촬영 업로드 (현장 실시간 카메라 우선).</div></div></div>
+      <div class="step"><div class="n"></div><div><div class="t">입력 자동분류</div><div class="d">올린 사진을 영수증 / 가격표 / 전단으로 판별해 각기 다른 파이프라인으로 분기.</div></div></div>
+      <div class="step"><div class="n"></div><div><div class="t">인식 · 정규화</div><div class="d">OCR+LLM으로 제각각 표기(‘農心신라면멀티5’)를 표준명(‘신라면 5개입’)으로. 바코드로 상품 특정, 단위가격(원/100g) 환산해 공정 비교. 긴 영수증은 분할 촬영 병합 후 소계·할인·결제정보는 걸러 품목만 추출.</div></div></div>
+      <div class="step"><div class="n"></div><div><div class="t">검증 · 보안</div><div class="d">개인정보 즉시 마스킹 + 복수 제보 교차검증으로 허위·이상치 제거. GPS·EXIF·사업자번호 대조.</div></div></div>
+      <div class="step"><div class="n"></div><div><div class="t">집계 · 지도화</div><div class="d">품목×매장 최선값 산출 → 생활권 물가 히트맵·장바구니 지수.</div></div></div>
+      <div class="step"><div class="n"></div><div><div class="t">예측 · 추천</div><div class="d">전단 할인 이력 학습으로 품목별 ‘다음 특가 예상일’ 산출, 최저가 장보기 추천.</div></div></div>
+    </div>
+  </section>
+
+  <!-- ===== 06 AI 엔진 비용 ===== -->
+  <section>
+    <div class="shead"><span class="snum">06</span><div><h2>AI OCR 엔진 · 영수증 1장당 비용</h2><p class="sub">환율 ₩1,400/$ 기준 추정 · 2026년 확인값</p></div></div>
+    <div class="tablecard">
+      <table>
+        <thead><tr><th>엔진</th><th>유형</th><th class="num">1장당</th><th>비고</th></tr></thead>
+        <tbody>
+          <tr class="hi"><td><b>Gemini 2.5 Flash</b></td><td>LLM 비전</td><td class="num">약 2원</td><td>인식+정규화 올인원, 최저가</td></tr>
+          <tr><td>Google Vision / Upstage</td><td>전용 OCR</td><td class="num">약 2원</td><td>텍스트만(정규화 별도), 한글 강함(Upstage)</td></tr>
+          <tr><td>Claude Haiku 4.5</td><td>LLM 비전</td><td class="num">약 6원</td><td>Batch 50% 할인 시 3원</td></tr>
+          <tr><td>Claude Sonnet 5.5 / GPT-4o</td><td>LLM 비전</td><td class="num">약 12~13원</td><td>정확도 ↑</td></tr>
+          <tr><td>CLOVA 영수증 특화</td><td>전용 OCR</td><td class="num">약 50~80원</td><td>한글 영수증 전용·정확도 안정, 고가</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note" style="margin-top:14px"><b>추천 구조</b> — 데모·대량은 <b>Gemini Flash 단독</b>(무료~월 2만원), 한글 정확도 이슈 영수증만 <b>Upstage/CLOVA로 라우팅</b>하는 2단계 하이브리드. 업로드 전 <b>엣지 마스킹</b>으로 프라이버시 확보.</div>
+  </section>
+
+  <!-- ===== 07 양주 인구 기반 시장 ===== -->
+  <section>
+    <div class="shead"><span class="snum">07</span><div><h2>양주 인구 기반 시장 · 비용 시나리오</h2><p class="sub">양주시 약 29.8만 명 · 11.5만 세대 (2026.08)</p></div></div>
+    <div class="grid g2">
+      <div class="card">
+        <p class="eyebrow">생활권별 인구 (행정동)</p>
+        <div class="bars" style="margin-top:4px">
+          <div class="bar"><span class="lab">옥정2동</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">59,281</span></div>
+          <div class="bar"><span class="lab">양주2동</span><span class="track"><span class="fill" style="width:83%"></span></span><span class="val">49,055</span></div>
+          <div class="bar"><span class="lab">회천2동</span><span class="track"><span class="fill" style="width:79%"></span></span><span class="val">46,821</span></div>
+          <div class="bar"><span class="lab">옥정1동</span><span class="track"><span class="fill" style="width:72%"></span></span><span class="val">42,627</span></div>
+          <div class="bar"><span class="lab">회천3동</span><span class="track"><span class="fill" style="width:42%"></span></span><span class="val">24,675</span></div>
+          <div class="bar"><span class="lab">회천1동</span><span class="track"><span class="fill" style="width:18%"></span></span><span class="val">10,600</span></div>
+        </div>
+        <p style="margin-top:12px;font-size:13px;color:var(--muted)">옥정·회천 신도시 생활권만 <b style="color:var(--ink)">~18.4만 명</b>, 마트 밀집·젊은 세대 다수로 앱 타깃 적합.</p>
+      </div>
+      <div class="card">
+        <p class="eyebrow">보급 시나리오별 월 비용 (Gemini Flash 기준)</p>
+        <div class="tablecard" style="box-shadow:none;margin-top:4px">
+          <table>
+            <thead><tr><th>보급</th><th class="num">활성 세대</th><th class="num">월 처리량</th><th class="num">월 비용</th></tr></thead>
+            <tbody>
+              <tr><td>보수 1%</td><td class="num">~1,150</td><td class="num">1만 장</td><td class="num">2만원</td></tr>
+              <tr class="hi"><td>현실 5%</td><td class="num">~5,750</td><td class="num">5만 장</td><td class="num">10만원</td></tr>
+              <tr><td>전시 15%</td><td class="num">~17,250</td><td class="num">15만 장</td><td class="num">30만원</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top:12px;font-size:13px;color:var(--muted)">세대당 주 2장 제보 가정. <b style="color:var(--ink)">전 세대가 써도 월 30만원 이내</b> — 이 서비스의 병목은 비용이 아니라 <span class="lead-k">보급률</span>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 08 고도화 로드맵 ===== -->
+  <section>
+    <div class="shead"><span class="snum">08</span><div><h2>고도화 로드맵</h2><p class="sub">‘물가 앱’에서 ‘지역 물가 플랫폼’으로</p></div></div>
+    <div class="grid g2">
+      <div class="card"><p class="eyebrow">A · AI 판단</p><h3>읽기 → 예측·추천</h3><ul class="clean">
+        <li><b>단위 환산 최저가</b> — 용량 다른 상품도 원/100g로 공정 비교</li>
+        <li><b>특가 예측 캘린더</b> — 품목별 ‘다음 할인 D-day’</li>
+        <li><b>AI 장보기 에이전트</b> — “2만원 3일치 식단” → 최저가 쇼핑리스트</li>
+        <li><b>재구매 주기 예측</b> — 떨어질 때쯤 특가 알림</li>
+      </ul></div>
+      <div class="card"><p class="eyebrow">B · 공공 연계 (가산점)</p><h3>지역 선순환</h3><ul class="clean">
+        <li><b>양주사랑상품권 연계</b> — 최저가+가맹점 우선 추천</li>
+        <li><b>행정 물가 대시보드</b> — 생활권 히트맵을 정책 근거로 제공</li>
+        <li><b>취약계층·전통시장</b> — 물가 부담 지도, 특가 노출</li>
+        <li><b>공공 API 개방</b> — 타 지자체 복제 가능</li>
+      </ul></div>
+      <div class="card"><p class="eyebrow">C · 데이터 신뢰</p><h3>크라우드 품질 관리</h3><ul class="clean">
+        <li>사업자번호·GPS·시간 교차검증, 이상치 자동 제거</li>
+        <li>기여 랭킹·배지·상품권 리워드로 데이터 밀도 확보</li>
+      </ul></div>
+      <div class="card"><p class="eyebrow">D · 기술 완성도</p><h3>비용·프라이버시</h3><ul class="clean">
+        <li>하이브리드 OCR 라우팅(Flash↔Upstage/CLOVA)</li>
+        <li>업로드 전 엣지 마스킹, 상품 매칭 벡터DB/RAG</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- ===== 09 기대효과 ===== -->
+  <section>
+    <div class="shead"><span class="snum">09</span><div><h2>기대효과</h2></div></div>
+    <div class="grid g4">
+      <div class="card"><p class="eyebrow">시민</p><p style="color:var(--ink);font-size:14.5px">최저가 탐색으로 지출 절감, 특가 예측으로 계획 구매.</p></div>
+      <div class="card"><p class="eyebrow">행정</p><p style="color:var(--ink);font-size:14.5px">생활권별 실시간 물가 데이터로 민생·소상공인 정책 근거 확보.</p></div>
+      <div class="card"><p class="eyebrow">지역경제</p><p style="color:var(--ink);font-size:14.5px">양주사랑상품권 사용 유도, 소규모 마트 노출 확대.</p></div>
+      <div class="card"><p class="eyebrow">확장성</p><p style="color:var(--ink);font-size:14.5px">전통시장·공공급식·타 지자체로 복제 가능한 범용 ‘크라우드 물가지도’ 모델.</p></div>
+    </div>
+  </section>
+
+  <!-- ===== 10 실현 계획 ===== -->
+  <section>
+    <div class="shead"><span class="snum">10</span><div><h2>실현 계획 — 1주 데모</h2><p class="sub">핵심 플로우만 실제 구현 + 나머지는 시드데이터·목업</p></div></div>
+    <div class="grid g3">
+      <div class="card"><p class="eyebrow">진짜 구현</p><h3>업로드→OCR→지도</h3><p>Gemini Flash로 영수증·가격표 인식·정규화, 카카오맵 핀. ‘AI로 진짜 만들었다’를 증명하는 한 줄기.</p></div>
+      <div class="card"><p class="eyebrow">시드·목업</p><h3>비교·추이·예측</h3><p>6주 추이·특가 예측·상품권·랭킹은 샘플 데이터로 “이렇게 보인다” 시연.</p></div>
+      <div class="card"><p class="eyebrow">플랫폼</p><h3>모바일 웹(PWA)</h3><p>네이티브 2종 대신 반응형 웹 1개 — 현장 폰 시연 즉시 가능.</p></div>
+    </div>
+    <div class="note" style="margin-top:14px"><b>전체 완성은 1주 불가, 설득력 있는 핵심 프로토타입은 1주 가능.</b> 심사도 보통 후자를 평가합니다.</div>
+  </section>
+
+  <footer class="foot">
+    양주 장바구니 · 2026 양주시 미래인재 AI 공모전 프로젝트 개요서 &nbsp;·&nbsp; 소주제: 똑똑하고 편리한 양주<br>
+    인구·세대 수치: 양주시 2026.08 기준 · 화면 속 가격은 설계 설명용 예시 · 비용은 2026년 공개 단가 기반 추정치.
+  </footer>
+
+</div>
+</body>
+</html>

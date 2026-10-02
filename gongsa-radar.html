@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>공사 레이더 · 양주시 생활 공사 알림</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;600;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF0EA; --paper:#FFFFFF; --ink:#22272A; --sub:#5C6468; --line:#D3D8D0;
+  --asphalt:#2F3437; --amber:#F2A900; --hot:#E4572E; --route:#2F6FDE; --green:#3E8E5E;
+  --map:#E3E7DE; --block:#D2D8CC; --road:#FFFFFF;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#15191B; --paper:#1F2427; --ink:#E6E9E7; --sub:#9AA3A6; --line:#323A3E;
+    --asphalt:#0E1112; --map:#262C2F; --block:#323A3E; --road:#46505A; --route:#6C9BFF;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15191B; --paper:#1F2427; --ink:#E6E9E7; --sub:#9AA3A6; --line:#323A3E;
+  --asphalt:#0E1112; --map:#262C2F; --block:#323A3E; --road:#46505A; --route:#6C9BFF;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Gothic A1","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:17px;line-height:1.7;word-break:keep-all}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+h1,h2,h3{margin:0;line-height:1.25;font-weight:800}
+h2{font-size:clamp(26px,3.8vw,36px);margin-bottom:14px;letter-spacing:-.5px}
+h3{font-size:19px;margin-bottom:6px}
+p{margin:0 0 12px;max-width:66ch}
+.lead{color:var(--sub);font-size:18px}
+section{padding:72px 0}
+section+section{border-top:1px solid var(--line)}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+
+/* hero */
+.hero{background:var(--asphalt);color:#F3F4F2;padding:48px 0 56px;overflow:hidden}
+.hero-grid{display:grid;grid-template-columns:1fr 1.05fr;gap:36px;align-items:center}
+@media (max-width:860px){.hero-grid{grid-template-columns:1fr}}
+.hero .who{font-size:14px;color:#B9C0C3;margin-bottom:22px}
+.hero h1{font-size:clamp(52px,9vw,96px);font-weight:900;letter-spacing:-2px;line-height:1.05}
+.hero h1 .bar{display:block;width:120px;height:12px;margin-top:18px;background:repeating-linear-gradient(-45deg,var(--amber) 0 14px,#2F3437 14px 28px)}
+.hero .say{font-size:clamp(20px,2.4vw,25px);margin:22px 0 10px;font-weight:600;max-width:24ch}
+.hero .sub{color:#B9C0C3;font-size:16px;max-width:40ch}
+.radar{width:100%;max-width:520px;justify-self:center;aspect-ratio:1/1}
+.radar svg{width:100%;height:100%;display:block}
+.sweep{transform-origin:200px 200px;animation:spin 4.5s linear 1 forwards}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.blip{opacity:0;animation:pop .5s ease forwards}
+@keyframes pop{to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.sweep{animation:none;opacity:0}.blip{animation:none;opacity:1}}
+
+/* sources */
+.sources{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:26px}
+@media (max-width:760px){.sources{grid-template-columns:1fr 1fr}}
+.src{background:var(--paper);border:1px solid var(--line);padding:16px;border-radius:4px}
+.src b{display:block;font-size:16px}
+.src span{font-size:14px;color:var(--sub)}
+.gap{margin-top:18px;padding:16px 18px;border-left:6px solid var(--hot);background:var(--paper);font-size:16px}
+
+/* flow */
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:28px;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+@media (max-width:860px){.flow{grid-template-columns:1fr}}
+.fs{background:var(--paper);padding:18px;border-right:1px solid var(--line);position:relative}
+.fs:last-child{border-right:0}
+@media (max-width:860px){.fs{border-right:0;border-bottom:1px solid var(--line)}.fs:last-child{border-bottom:0}}
+.fs .k{display:inline-block;font-weight:900;font-size:14px;color:var(--asphalt);background:var(--amber);padding:1px 8px;border-radius:2px;margin-bottom:10px}
+.fs p{font-size:15px;color:var(--sub);margin:0}
+.fs.ai .k{background:var(--route);color:#fff}
+
+/* demo */
+.demo{display:grid;grid-template-columns:1.1fr 1fr;gap:24px;margin-top:26px;align-items:start}
+@media (max-width:860px){.demo{grid-template-columns:1fr}}
+.mapbox{background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:10px}
+.mapbox svg{width:100%;height:auto;display:block}
+.toggles{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.toggles button{font:inherit;font-size:15px;font-weight:600;padding:8px 14px;border-radius:3px;border:2px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
+.toggles button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.feed h3{font-size:17px;margin:4px 0 10px}
+.alert{background:var(--paper);border:1px solid var(--line);border-left:6px solid var(--amber);border-radius:4px;padding:12px 14px;margin-bottom:10px}
+.alert.hot{border-left-color:var(--hot)}
+.alert .when{font-weight:800}
+.alert .why{font-size:14px;color:var(--sub)}
+.alert .tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 7px;border-radius:2px;background:var(--bg);margin-right:4px}
+.none{color:var(--sub);border:1px dashed var(--line);padding:22px;border-radius:4px;text-align:center}
+.note{font-size:13px;color:var(--sub);margin-top:10px}
+
+/* features */
+.feat{display:grid;grid-template-columns:repeat(2,1fr);gap:28px 36px;margin-top:26px}
+@media (max-width:700px){.feat{grid-template-columns:1fr}}
+.feat div{border-top:4px solid var(--ink);padding-top:12px}
+.feat p{color:var(--sub);font-size:16px}
+
+/* compare */
+.tbl{overflow-x:auto;margin-top:22px;border:1px solid var(--line);border-radius:4px}
+table{border-collapse:collapse;width:100%;min-width:600px;background:var(--paper);font-size:15px}
+th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+thead th{background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td.us{font-weight:700}
+.y{color:var(--green);font-weight:800}.n{color:var(--sub)}
+
+/* metrics + roadmap */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:36px;margin-top:22px}
+@media (max-width:760px){.two{grid-template-columns:1fr}}
+.list{margin:0;padding:0;list-style:none}
+.list li{padding:12px 0;border-bottom:1px solid var(--line);font-size:16px}
+.list li b{display:block}
+.list li span{color:var(--sub);font-size:15px}
+
+footer{padding:40px 0 56px;border-top:1px solid var(--line);font-size:14px;color:var(--sub)}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="who">2026 양주시 미래인재 AI 공모전 · 똑똑하고 편리한 양주 · 팀 이로움</div>
+      <h1>공사 레이더<span class="bar" aria-hidden="true"></span></h1>
+      <p class="say">우리 집 앞 공사, 일어나기 전에 압니다.</p>
+      <p class="sub">신도시 곳곳에서 동시에 벌어지는 철도·도로·아파트·공공시설 공사를 한곳에 모아, 내 집과 아이 통학로 기준으로 발파·소음·차로 통제를 미리 알려줍니다.</p>
+    </div>
+    <div class="radar" aria-label="집을 중심으로 주변 공사를 탐지하는 레이더 그림">
+      <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="sw" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(200 200) scale(190)">
+            <stop offset="0" stop-color="#F2A900" stop-opacity=".0"/>
+            <stop offset="1" stop-color="#F2A900" stop-opacity=".35"/>
+          </radialGradient>
+        </defs>
+        <g fill="none" stroke="#5A6266" stroke-width="1">
+          <circle cx="200" cy="200" r="190"/><circle cx="200" cy="200" r="130"/><circle cx="200" cy="200" r="70"/>
+          <line x1="10" y1="200" x2="390" y2="200"/><line x1="200" y1="10" x2="200" y2="390"/>
+        </g>
+        <path d="M60 330 C140 260 220 250 360 120" fill="none" stroke="#6C9BFF" stroke-width="5" stroke-linecap="round" opacity=".8"/>
+        <g class="sweep"><path d="M200 200 L200 10 A190 190 0 0 1 334 66 Z" fill="url(#sw)"/></g>
+        <circle cx="200" cy="200" r="9" fill="#F3F4F2"/>
+        <text x="200" y="228" text-anchor="middle" font-size="14" fill="#F3F4F2" font-family="Gothic A1, sans-serif" font-weight="700">우리 집</text>
+        <g class="blip" style="animation-delay:.6s"><circle cx="300" cy="120" r="10" fill="#E4572E"/><text x="300" y="98" text-anchor="middle" font-size="13" fill="#F3F4F2" font-family="Gothic A1, sans-serif">발파 목 10시</text></g>
+        <g class="blip" style="animation-delay:1.7s"><circle cx="300" cy="300" r="9" fill="#F2A900"/><text x="300" y="328" text-anchor="middle" font-size="13" fill="#F3F4F2" font-family="Gothic A1, sans-serif">야간 타설</text></g>
+        <g class="blip" style="animation-delay:2.8s"><circle cx="130" cy="285" r="9" fill="#F2A900"/><text x="130" y="313" text-anchor="middle" font-size="13" fill="#F3F4F2" font-family="Gothic A1, sans-serif">1개 차로 통제</text></g>
+        <g class="blip" style="animation-delay:3.7s"><circle cx="110" cy="110" r="9" fill="#F2A900"/><text x="110" y="88" text-anchor="middle" font-size="13" fill="#F3F4F2" font-family="Gothic A1, sans-serif">공사차량 등교시간</text></g>
+      </svg>
+    </div>
+  </div>
+</header>
+
+<main>
+<section>
+  <div class="wrap">
+    <h2>공사는 한 동네에서, 정보는 제각각</h2>
+    <p class="lead">신도시에서는 여러 시행 주체가 같은 시기에 공사를 합니다. 정보도 주체마다 따로 올라옵니다.</p>
+    <div class="sources">
+      <div class="src"><b>국가</b><span>철도, 국도 공사 공고</span></div>
+      <div class="src"><b>경기도</b><span>도로, 광역 시설 공사</span></div>
+      <div class="src"><b>LH·택지 시행사</b><span>택지 조성, 기반 시설</span></div>
+      <div class="src"><b>민간 건설사</b><span>아파트, 상가 신축</span></div>
+    </div>
+    <div class="gap">그래서 시민은 언제, 어디서, 무엇이 일어나는지 모르고, 시도 지역 전체의 공사 현황과 겹치는 곳을 한눈에 보기 어렵습니다.</div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>어떻게 작동하나요</h2>
+    <div class="flow">
+      <div class="fs"><span class="k">모으기</span><h3>흩어진 공사 정보</h3><p>국가·도·LH·민간의 공고문, 작업계획, 교통 통제 고시</p></div>
+      <div class="fs ai"><span class="k">AI</span><h3>문서 정리</h3><p>HWP·PDF·이미지에서 기간, 작업 시간대, 공종, 통제 구간을 뽑아냅니다</p></div>
+      <div class="fs ai"><span class="k">AI</span><h3>생활 영향 판정</h3><p>내가 등록한 집·학교·통근로와 공사 범위가 겹치는지 계산합니다</p></div>
+      <div class="fs"><span class="k">알리기</span><h3>미리 알림·지도</h3><p>발파, 야간작업, 차로 통제, 공사차량 통행을 일어나기 전에</p></div>
+      <div class="fs"><span class="k">조율</span><h3>시 현황판</h3><p>같은 도로에서 공사가 겹치는 곳을 찾아 일정 조율</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="try">
+  <div class="wrap">
+    <h2>내 장소를 켜 보세요</h2>
+    <p class="lead">등록한 장소에 영향을 주는 이번 주 공사만 골라서 보여줍니다.</p>
+    <div class="demo">
+      <div>
+        <div class="toggles" id="tg">
+          <button type="button" data-k="home" aria-pressed="true">우리 집</button>
+          <button type="button" data-k="school" aria-pressed="true">아이 학교·통학로</button>
+          <button type="button" data-k="commute" aria-pressed="false">출근길</button>
+        </div>
+        <div class="mapbox">
+          <svg viewBox="0 0 520 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="가상 동네 지도와 공사 위치">
+            <rect width="520" height="360" style="fill:var(--map)"/>
+            <g style="fill:var(--block)">
+              <rect x="20" y="20" width="140" height="110" rx="4"/><rect x="190" y="20" width="130" height="110" rx="4"/><rect x="350" y="20" width="150" height="110" rx="4"/>
+              <rect x="20" y="170" width="140" height="170" rx="4"/><rect x="190" y="170" width="130" height="170" rx="4"/><rect x="350" y="170" width="150" height="170" rx="4"/>
+            </g>
+            <g style="stroke:var(--road)" stroke-width="22"><line x1="0" y1="150" x2="520" y2="150"/><line x1="175" y1="0" x2="175" y2="360"/><line x1="335" y1="0" x2="335" y2="360"/></g>
+            <g id="lyr-school"><path d="M90 250 L175 250 L175 150 L255 150 L255 80" fill="none" style="stroke:var(--route)" stroke-width="6" stroke-dasharray="2 10" stroke-linecap="round"/>
+              <rect x="235" y="50" width="40" height="30" rx="3" style="fill:var(--route)"/><text x="255" y="70" text-anchor="middle" font-size="12" fill="#fff" font-weight="700">학교</text></g>
+            <g id="lyr-commute"><path d="M90 250 L175 250 L175 150 L520 150" fill="none" style="stroke:var(--green)" stroke-width="6" stroke-linecap="round" opacity=".85"/>
+              <text x="470" y="140" text-anchor="middle" font-size="12" style="fill:var(--ink)" font-weight="700">역 방향</text></g>
+            <g id="lyr-home"><circle cx="90" cy="250" r="12" style="fill:var(--ink)"/><text x="90" y="282" text-anchor="middle" font-size="13" style="fill:var(--ink)" font-weight="800">우리 집</text></g>
+            <g id="pins"></g>
+          </svg>
+        </div>
+        <p class="note">시연용 가상 동네와 가상 일정입니다. 실제 서비스는 양주시 내 공개 공사 공고를 정리해 표시합니다.</p>
+      </div>
+      <div class="feed">
+        <h3 id="cnt">이번 주 알림</h3>
+        <div id="list" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>무엇을 해 주나요</h2>
+    <div class="feat">
+      <div><h3>한 지도에 모든 공사</h3><p>시행 주체와 상관없이 양주 안의 공사를 기간, 공종, 시행사와 함께 한 지도에 보여줍니다.</p></div>
+      <div><h3>내 생활 기준 알림</h3><p>집·학교·통근로를 등록하면 발파, 야간작업, 차로 통제, 단수 일정을 미리 알려줍니다.</p></div>
+      <div><h3>통학로 겹침 표시</h3><p>공사차량 출입 시간과 동선이 등하교 시간과 겹치는 구간을 찾아 학교와 시행사에 공유합니다.</p></div>
+      <div><h3>공사 중첩 조율</h3><p>같은 도로에서 두 공사가 동시에 차로를 막는 경우를 미리 찾아, 시가 시행사 간 일정 조율을 요청합니다.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>비슷한 서비스와 무엇이 다른가요</h2>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>서비스</th><th>범위</th><th>여러 시행 주체 통합</th><th>소음·발파·통학 영향</th><th>내 장소 기준 알림</th></tr></thead>
+        <tbody>
+          <tr><td>서울시 공사장 가림벽 QR</td><td>서울 공공 공사, 현장별</td><td class="n">아니요</td><td class="n">일부</td><td class="n">아니요</td></tr>
+          <tr><td>교통정보센터 도로 통제</td><td>도로 통제 정보</td><td class="n">일부</td><td class="n">아니요</td><td class="n">아니요</td></tr>
+          <tr><td class="us">공사 레이더</td><td>양주시 내 모든 공개 공사</td><td class="y">예</td><td class="y">예</td><td class="y">예</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">민원 내비가 문제가 생긴 뒤 민원을 제대로 넣도록 돕는다면, 공사 레이더는 문제가 생기기 전에 알려 민원 자체를 줄입니다.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>지금 만들 수 있고, 숫자로 확인합니다</h2>
+    <div class="two">
+      <div>
+        <h3>실현 방법</h3>
+        <ul class="list">
+          <li><b>공개 자료만으로 시작</b><span>공개된 공사 공고와 교통 통제 고시만으로 시제품을 만들 수 있습니다.</span></li>
+          <li><b>옥정 실제 공고로 검증</b><span>옥정 일대 실제 공고에서 정보 추출 정확도를 측정합니다.</span></li>
+          <li><b>공공 AI 기반 이용</b><span>운영 단계에서는 범정부 AI 공통기반을 활용해 비용을 낮춥니다.</span></li>
+        </ul>
+      </div>
+      <div>
+        <h3>시범 운영에서 볼 지표</h3>
+        <ul class="list">
+          <li><b>공사 관련 민원 건수</b><span>도입 전 기준선과 비교</span></li>
+          <li><b>알림 구독률</b><span>시민이 실제로 장소를 등록하고 쓰는지</span></li>
+          <li><b>통학로 겹침 해소 건수</b><span>공유 후 공사차량 시간이 조정된 경우</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="gap" style="border-left-color:var(--amber)">택지 개발이 진행 중인 전국 신도시에 그대로 적용할 수 있고, 시행사 공사정보 공개 서식 표준화를 제안해 정책으로 이어갈 수 있습니다.</div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">공사 레이더 · 양주시 생활 공사 알림<br>팀 이로움 — 황상진, 이소미, 이승재 · 2026 양주시 미래인재 AI 공모전</div>
+</footer>
+
+<script>
+(function(){
+  var DATA=[
+    {id:1,x:255,y:115,hot:true,when:'목 10:00–10:30',what:'발파 작업',src:'택지 조성 공사',hits:['school'],why:'학교에서 가까운 공사 구역입니다. 소음과 진동이 예상됩니다.'},
+    {id:2,x:175,y:205,hot:false,when:'화–금 07:30–09:00',what:'공사차량 집중 통행',src:'아파트 신축 공사',hits:['home','school','commute'],why:'등교 시간과 겹칩니다. 통학로 횡단에 주의가 필요합니다.'},
+    {id:3,x:420,y:150,hot:false,when:'화부터 2주',what:'1개 차로 통제',src:'도로 확장 공사',hits:['commute'],why:'출근길 역 방향 도로입니다. 평소보다 일찍 나서는 것이 좋습니다.'},
+    {id:4,x:110,y:300,hot:true,when:'수 22:00–다음 날 04:00',what:'야간 콘크리트 타설',src:'공공시설 신축 공사',hits:['home'],why:'우리 집과 가까운 현장의 야간 작업입니다.'},
+    {id:5,x:420,y:260,hot:false,when:'금 13:00–17:00',what:'단수 예정',src:'상수도 이설 공사',hits:[],why:''}
+  ];
+  var on={home:true,school:true,commute:false};
+  var tg=document.getElementById('tg'), list=document.getElementById('list'), pins=document.getElementById('pins'), cnt=document.getElementById('cnt');
+  var NS='http://www.w3.org/2000/svg';
+  function render(){
+    ['home','school','commute'].forEach(function(k){document.getElementById('lyr-'+k).style.display=on[k]?'':'none';});
+    pins.innerHTML='';
+    var shown=DATA.filter(function(d){return d.hits.some(function(h){return on[h];});});
+    DATA.forEach(function(d){
+      var act=shown.indexOf(d)>-1;
+      var g=document.createElementNS(NS,'g');
+      var c=document.createElementNS(NS,'circle');
+      c.setAttribute('cx',d.x);c.setAttribute('cy',d.y);c.setAttribute('r',act?13:8);
+      c.style.fill=act?(d.hot?'#E4572E':'#F2A900'):'var(--sub)';
+      c.setAttribute('opacity',act?1:.45);
+      var t=document.createElementNS(NS,'text');
+      t.setAttribute('x',d.x);t.setAttribute('y',d.y+4);t.setAttribute('text-anchor','middle');
+      t.setAttribute('font-size','11');t.setAttribute('font-weight','800');t.setAttribute('fill','#22272A');
+      t.textContent=act?d.id:'';
+      g.appendChild(c);g.appendChild(t);pins.appendChild(g);
+    });
+    cnt.textContent='이번 주 알림 '+shown.length+'건';
+    if(!shown.length){list.innerHTML='<div class="none">켜진 장소가 없습니다. 위에서 우리 집, 학교, 출근길 중 하나를 켜 주세요.</div>';return;}
+    var lab={home:'우리 집',school:'통학로',commute:'출근길'};
+    list.innerHTML=shown.map(function(d){
+      var tags=d.hits.filter(function(h){return on[h];}).map(function(h){return '<span class="tag">'+lab[h]+'</span>';}).join('');
+      return '<div class="alert'+(d.hot?' hot':'')+'"><div class="when">'+d.id+'. '+d.when+' · '+d.what+'</div><div>'+tags+'<span class="why">'+d.src+'</span></div><div class="why">'+d.why+'</div></div>';
+    }).join('');
+  }
+  tg.addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    var k=b.dataset.k;on[k]=!on[k];b.setAttribute('aria-pressed',on[k]);render();
+  });
+  render();
+})();
+</script>
+</body>
+</html>

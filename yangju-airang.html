@@ -1,0 +1,333 @@
+<title>양주 아이랑</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+  /* Layout: 단일 컬럼 내러티브 — 따뜻한 off-white 바탕에 코랄/민트 듀얼 악센트, 섹션마다 라벨+카드 */
+  :root{
+    --bg:#FBF7F2; --surface:#FFFFFF; --surface-2:#F6EFE6;
+    --fg:#2A2622; --muted:#6E655C; --line:#ECE3D8;
+    --accent:#F2673E; --accent-2:#1AA088;
+    --accent-soft:#FFE7DE; --accent2-soft:#D9F1EB;
+    --shadow:0 1px 2px rgba(42,38,34,.05),0 10px 30px rgba(42,38,34,.06);
+    --radius:16px;
+    --font-display:"Jua",system-ui,sans-serif;
+    --font-body:"Noto Sans KR",system-ui,-apple-system,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#191512; --surface:#241F1A; --surface-2:#2D261F;
+    --fg:#F3EDE5; --muted:#A89B8D; --line:#352D26;
+    --accent:#FF8A66; --accent-2:#39C2A7;
+    --accent-soft:#3A241C; --accent2-soft:#163029;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.3);
+    color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#191512; --surface:#241F1A; --surface-2:#2D261F;
+    --fg:#F3EDE5; --muted:#A89B8D; --line:#352D26;
+    --accent:#FF8A66; --accent-2:#39C2A7;
+    --accent-soft:#3A241C; --accent2-soft:#163029;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.3);
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--fg);font-family:var(--font-body);line-height:1.65;
+    -webkit-font-smoothing:antialiased;font-weight:400}
+  .wrap{max-width:940px;margin:0 auto;padding-inline:20px}
+  section{padding-block:clamp(40px,7vw,72px)}
+  h1,h2,h3{text-wrap:balance;margin:0}
+  p{margin:0}
+
+  /* top bar */
+  .topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;
+    background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line)}
+  .topbar .wrap{display:flex;align-items:center;justify-content:space-between;padding-block:12px}
+  .brand{display:flex;align-items:center;gap:9px;font-family:var(--font-display);font-size:19px}
+  .brand .dot{width:26px;height:26px;border-radius:9px;background:var(--accent);
+    display:grid;place-items:center;color:#fff;font-size:15px}
+  .themebtn{border:1px solid var(--line);background:var(--surface);color:var(--muted);
+    width:38px;height:38px;border-radius:10px;cursor:pointer;font-size:16px;line-height:1}
+  .themebtn:hover{color:var(--fg)}
+
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--accent);
+    background:var(--accent-soft);padding:6px 12px;border-radius:999px}
+
+  /* hero */
+  .hero{padding-top:clamp(36px,6vw,60px)}
+  .hero h1{font-family:var(--font-display);font-weight:400;
+    font-size:clamp(42px,9vw,78px);line-height:1.02;margin-top:20px;letter-spacing:-.01em}
+  .hero .tag{font-size:clamp(17px,2.6vw,22px);color:var(--fg);max-width:34ch;margin-top:20px;font-weight:500}
+  .hero .sub{color:var(--muted);margin-top:12px;max-width:46ch}
+  .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+  .chip{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:500;
+    background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 14px;
+    box-shadow:var(--shadow)}
+  .chip b{color:var(--accent-2)}
+
+  .lead-strip{display:flex;flex-wrap:wrap;gap:14px;margin-top:30px}
+  .stat{flex:1 1 160px;min-width:0;background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow)}
+  .stat .n{font-family:var(--font-display);font-size:30px;color:var(--accent);line-height:1}
+  .stat .l{font-size:13px;color:var(--muted);margin-top:7px}
+
+  .label{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-2)}
+  h2.t{font-size:clamp(25px,4.5vw,36px);font-weight:900;margin-top:12px;letter-spacing:-.01em}
+  .intro{color:var(--muted);margin-top:14px;max-width:60ch}
+
+  .grid{display:grid;gap:16px;margin-top:28px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:720px){.g3,.g2{grid-template-columns:1fr}}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow)}
+  .card .ico{width:42px;height:42px;border-radius:12px;background:var(--accent-soft);color:var(--accent);
+    display:grid;place-items:center;font-size:21px;margin-bottom:14px}
+  .card.mint .ico{background:var(--accent2-soft);color:var(--accent-2)}
+  .card h3{font-size:17.5px;font-weight:700}
+  .card p{color:var(--muted);font-size:14px;margin-top:8px}
+
+  /* problem */
+  .prob .card h3{display:flex;align-items:baseline;gap:10px}
+  .prob .num{font-family:var(--font-display);color:var(--accent);font-size:20px}
+
+  /* steps */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:28px;counter-reset:s}
+  @media(max-width:720px){.steps{grid-template-columns:1fr}}
+  .step{position:relative;background:var(--surface-2);border:1px solid var(--line);
+    border-radius:var(--radius);padding:22px}
+  .step::before{counter-increment:s;content:counter(s);font-family:var(--font-display);
+    font-size:15px;width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;
+    display:grid;place-items:center;margin-bottom:12px}
+  .step h3{font-size:16.5px;font-weight:700}
+  .step p{color:var(--muted);font-size:13.5px;margin-top:7px}
+
+  /* data table */
+  .tier{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    overflow:hidden;box-shadow:var(--shadow);margin-top:16px}
+  .tier-head{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);
+    background:var(--surface-2)}
+  .tier-head .tg{font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap}
+  .tg.auto{background:var(--accent2-soft);color:var(--accent-2)}
+  .tg.coop{background:var(--accent-soft);color:var(--accent)}
+  .tg.manual{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+  .tier-head h3{font-size:16px;font-weight:700}
+  .tier-head .sub{font-size:12.5px;color:var(--muted);margin-left:auto;text-align:right}
+  .rows{display:flex;flex-direction:column}
+  .row{display:flex;gap:14px;align-items:flex-start;padding:13px 20px;border-top:1px solid var(--line)}
+  .row:first-child{border-top:0}
+  .row .name{font-weight:700;font-size:14.5px;flex:0 0 38%;min-width:0}
+  .row .desc{color:var(--muted);font-size:13.5px;flex:1 1 auto;min-width:0}
+  .row .ok{flex:0 0 auto;font-size:11.5px;font-weight:700;color:var(--accent-2);
+    background:var(--accent2-soft);padding:3px 9px;border-radius:999px;white-space:nowrap}
+  @media(max-width:560px){.row{flex-wrap:wrap;gap:6px}.row .name{flex-basis:100%}}
+
+  /* compare */
+  .cmp{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px}
+  @media(max-width:620px){.cmp{grid-template-columns:1fr}}
+  .cmp .side{border-radius:var(--radius);padding:22px;border:1px solid var(--line)}
+  .cmp .before{background:var(--surface-2)}
+  .cmp .after{background:var(--accent-soft);border-color:transparent}
+  .cmp h3{font-size:15px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .cmp .before h3{color:var(--muted)}
+  .cmp .after h3{color:var(--accent)}
+  .cmp ul{margin:0;padding-left:18px;color:var(--muted);font-size:14px;display:flex;flex-direction:column;gap:7px}
+  .cmp .after ul{color:var(--fg)}
+
+  /* fit map */
+  .fit{display:flex;flex-direction:column;gap:12px;margin-top:24px}
+  .fitrow{display:flex;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);
+    border-radius:14px;padding:14px 18px;box-shadow:var(--shadow)}
+  .fitrow .k{font-weight:700;font-size:14px;flex:0 0 32%;min-width:0;color:var(--accent-2)}
+  .fitrow .v{font-size:14px;color:var(--muted);flex:1 1 auto;min-width:0}
+  @media(max-width:560px){.fitrow{flex-direction:column;align-items:flex-start;gap:5px}.fitrow .k{flex-basis:auto}}
+
+  /* roadmap */
+  .road{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:28px}
+  @media(max-width:720px){.road{grid-template-columns:1fr 1fr}}
+  @media(max-width:440px){.road{grid-template-columns:1fr}}
+  .ph{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+  .ph .s{font-size:12px;font-weight:700;color:var(--accent)}
+  .ph h3{font-size:15px;font-weight:700;margin-top:6px}
+  .ph p{font-size:13px;color:var(--muted);margin-top:7px}
+  .ph.done{border-color:var(--accent-2)}
+  .ph.done .s{color:var(--accent-2)}
+
+  .note{background:var(--surface-2);border:1px dashed var(--line);border-radius:14px;
+    padding:16px 18px;margin-top:26px;font-size:13.5px;color:var(--muted)}
+  .note b{color:var(--fg)}
+
+  footer{border-top:1px solid var(--line);margin-top:20px}
+  footer .wrap{padding-block:30px;color:var(--muted);font-size:12.5px}
+  footer b{color:var(--fg);font-family:var(--font-display);font-weight:400;font-size:15px}
+  footer p{margin-top:8px;max-width:70ch}
+
+  .accent-u{background:linear-gradient(transparent 62%,var(--accent-soft) 0);padding:0 2px}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand"><span class="dot">아</span>양주 아이랑</div>
+    <button class="themebtn" id="themeToggle" aria-label="테마 전환">◐</button>
+  </div>
+</div>
+
+<header class="wrap hero">
+  <span class="eyebrow">경기 양주시 · 함께하는 양주</span>
+  <h1>양주 아이랑</h1>
+  <p class="tag">흩어진 양주의 아이 나들이·돌봄 정보를,<br>아이 <span class="accent-u">나이에 맞춰</span> 지도 한 곳에.</p>
+  <p class="sub">공원·체험강좌·어린이집·돌봄센터가 기관마다 따로 흩어져 있습니다. 부모가 다섯 곳을 돌지 않도록, 공공데이터로 한 지도에 모읍니다.</p>
+
+  <div class="chips">
+    <span class="chip">👪 대상 <b>영유아·초등 부모</b></span>
+    <span class="chip">🏷️ 트랙 <b>함께하는 양주</b></span>
+    <span class="chip">🗂️ 기반 <b>공공데이터</b></span>
+  </div>
+
+  <div class="lead-strip">
+    <div class="stat"><div class="n">5.9만</div><div class="l">옥정2동 거주 인구 — 2년 만의 신도시 (2026.5)</div></div>
+    <div class="stat"><div class="n">3,633</div><div class="l">양주 통합예약 교육·체험 강좌 (수집 확인)</div></div>
+    <div class="stat"><div class="n">실시간</div><div class="l">어린이집 정원·현원 — 아이사랑 API 검증</div></div>
+  </div>
+</header>
+
+<section class="wrap prob">
+  <span class="label">Problem</span>
+  <h2 class="t">정보는 이미 다 있습니다. 흩어져 있을 뿐입니다.</h2>
+  <p class="intro">양주는 공원·체험·돌봄 자원이 적지 않습니다. 문제는 그 정보가 육아종합지원센터, 도시공사, 가족센터, 통합예약, 도서관에 제각각 흩어져 있다는 점입니다.</p>
+  <div class="grid g3">
+    <div class="card"><h3><span class="num">01</span>파편화</h3><p>아이 갈 곳·강좌·돌봄이 기관별로 따로. 부모는 결국 블로그와 맘카페를 뒤져 직접 짜맞춥니다.</p></div>
+    <div class="card"><h3><span class="num">02</span>급성장</h3><p>옥정·회천 신도시로 영유아 수요가 폭증. 어린이집·돌봄 자리가 어디 비는지 실시간으로 알 길이 없습니다.</p></div>
+    <div class="card"><h3><span class="num">03</span>연령 불일치</h3><p>정보는 많아도 "우리 아이 나이에 맞는 것"만 골라 보기가 어렵습니다.</p></div>
+  </div>
+</section>
+
+<section class="wrap" style="background:var(--surface-2);border-radius:24px">
+  <div style="padding-inline:clamp(4px,3vw,28px)">
+    <span class="label">Solution</span>
+    <h2 class="t">아이 나이만 넣으면, 갈 곳·배울 곳·맡길 곳이 한눈에.</h2>
+    <p class="intro">연령을 기준으로 공공데이터를 다시 조합합니다. 지도 위에서 지금 갈 수 있는 곳, 신청 가능한 강좌, 자리 있는 돌봄을 한 번에 보여줍니다.</p>
+    <div class="steps">
+      <div class="step"><h3>나이를 고른다</h3><p>0~2 · 3~5 · 6~9세 슬라이더로 우리 아이에 맞는 것만 필터.</p></div>
+      <div class="step"><h3>지도에서 본다</h3><p>공원·체험·어린이집·돌봄을 아이콘으로. 실내/야외, 편의시설까지 한 화면.</p></div>
+      <div class="step"><h3>바로 연결한다</h3><p>"지금 신청 가능" 강좌와 자리 있는 어린이집을 표시, 신청은 공식 채널로.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <span class="label">Features</span>
+  <h2 class="t">핵심 기능</h2>
+  <div class="grid g3">
+    <div class="card"><div class="ico">🎚️</div><h3>연령 맞춤 필터</h3><p>아이 나이에 맞는 장소·강좌만 골라서. 형제가 여럿이면 연령대를 겹쳐 보기.</p></div>
+    <div class="card mint"><div class="ico">🗺️</div><h3>통합 지도</h3><p>공원·체험·어린이집·돌봄을 한 지도에. 레이어 토글로 보고 싶은 것만.</p></div>
+    <div class="card"><div class="ico">🟢</div><h3>실시간 여석</h3><p>어린이집 정원·현원, 강좌 신청인원을 끌어와 "지금 가능한 곳" 표시.</p></div>
+    <div class="card mint"><div class="ico">☔</div><h3>실내·날씨 필터</h3><p>비 오는 날엔 실내 체험·도서관·키즈 공간만 모아서.</p></div>
+    <div class="card"><div class="ico">🧸</div><h3>돌봄 레이어</h3><p>공동육아나눔터·다함께돌봄·지역아동센터·긴급돌봄을 한 곳에.</p></div>
+    <div class="card mint"><div class="ico">📍</div><h3>생활 편의</h3><p>주차·수유실·화장실·버스정류장까지 — 아이 동반 외출에 필요한 정보.</p></div>
+  </div>
+</section>
+
+<section class="wrap">
+  <span class="label">Data</span>
+  <h2 class="t">공공데이터가 뼈대, 민간은 합법적으로 보강</h2>
+  <p class="intro">수집 방식을 셋으로 나눠 설계했습니다. 공공은 자동으로, 산하기관은 공모전 명분으로 협조 요청, 민간은 긁지 않고 제휴·링크로. 저작권·개인정보 리스크를 처음부터 피했습니다.</p>
+
+  <div class="tier">
+    <div class="tier-head"><span class="tg auto">자동 수집</span><h3>공공 오픈API · 통합예약</h3><span class="sub">검증 완료</span></div>
+    <div class="rows">
+      <div class="row"><span class="name">어린이집 정보</span><span class="desc">아이사랑 OpenAPI — 정원·현원·좌표, 실시간</span><span class="ok">API 확인</span></div>
+      <div class="row"><span class="name">교육·체험 강좌</span><span class="desc">양주 통합예약 — 강좌명·대상연령·접수기간·여석 (3,633건)</span><span class="ok">수집 확인</span></div>
+      <div class="row"><span class="name">공원 현황</span><span class="desc">경기 도시공원 표준데이터 — 위치·보유시설</span><span class="ok">공개</span></div>
+    </div>
+  </div>
+
+  <div class="tier">
+    <div class="tier-head"><span class="tg coop">협조 요청</span><h3>양주시 산하 공공기관</h3><span class="sub">공모전 명분 활용</span></div>
+    <div class="rows">
+      <div class="row"><span class="name">육아종합지원센터</span><span class="desc">오감놀이·창의미술 정기프로그램, 장난감도서관, 시간제보육</span></div>
+      <div class="row"><span class="name">가족센터 / 평생학습</span><span class="desc">공동육아나눔터, 분기별 가족·유아 강좌</span></div>
+      <div class="row"><span class="name">청소년문화의집 / 도서관</span><span class="desc">문화강좌, 독서·체험 프로그램</span></div>
+    </div>
+  </div>
+
+  <div class="tier">
+    <div class="tier-head"><span class="tg manual">수기 · 링크</span><h3>민간 시설</h3><span class="sub">제휴·자율등록으로 확장</span></div>
+    <div class="rows">
+      <div class="row"><span class="name">문화센터·키즈카페</span><span class="desc">대표 시설만 에디터 큐레이션 + 공식 사이트 바로가기 (크롤 없음)</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap" style="background:var(--surface-2);border-radius:24px">
+  <div style="padding-inline:clamp(4px,3vw,28px)">
+    <span class="label">Why it wins</span>
+    <h2 class="t">차별점과 확장성</h2>
+    <div class="cmp">
+      <div class="side before">
+        <h3>지금의 양주</h3>
+        <ul>
+          <li>기관별 목록·PDF가 따로따로</li>
+          <li>부모가 여러 사이트를 직접 순회</li>
+          <li>연령·실시간 자리 정보 없음</li>
+        </ul>
+      </div>
+      <div class="side after">
+        <h3>양주 아이랑</h3>
+        <ul>
+          <li>흩어진 공공데이터를 하나의 지도로</li>
+          <li>나이 기준으로 재조합 — "목록"을 "서비스"로</li>
+          <li>같은 지도에 돌봄·청년·어르신 버전으로 복제 가능</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note"><b>확장 모델.</b> 공공은 자동수집, 민간은 시설이 직접 등록하는 오픈 플랫폼으로 넓힙니다. 단발 서비스가 아니라 양주시가 민간을 끌어들이는 참여형 플랫폼으로 성장합니다.</div>
+  </div>
+</section>
+
+<section class="wrap">
+  <span class="label">Fit</span>
+  <h2 class="t">"함께하는 양주"에 정면으로 맞습니다</h2>
+  <p class="intro">공고에 적힌 돌봄·정보 접근성·사각지대 발굴을 그대로 실현합니다.</p>
+  <div class="fit">
+    <div class="fitrow"><span class="k">돌봄</span><span class="v">공동육아나눔터·다함께돌봄·긴급돌봄을 한 곳에서 찾고 연결</span></div>
+    <div class="fitrow"><span class="k">정보 접근성 개선</span><span class="v">다섯 기관에 흩어진 육아정보를 지도 하나로 통합</span></div>
+    <div class="fitrow"><span class="k">복지 사각지대 발굴</span><span class="v">영유아 인구 대비 시설 밀도로 돌봄 공백 지역 가시화 (고도화)</span></div>
+    <div class="fitrow"><span class="k">시민 참여</span><span class="v">민간·주민이 직접 정보를 올리는 자율등록 구조</span></div>
+  </div>
+</section>
+
+<section class="wrap">
+  <span class="label">Roadmap</span>
+  <h2 class="t">진행 단계</h2>
+  <div class="road">
+    <div class="ph done"><div class="s">1단계 · 검증 완료</div><h3>데이터 확인</h3><p>어린이집 API·통합예약 수집 가능 검증</p></div>
+    <div class="ph"><div class="s">2단계</div><h3>프로토타입</h3><p>연령 슬라이더 + 통합 지도 MVP</p></div>
+    <div class="ph"><div class="s">3단계</div><h3>협조·확장</h3><p>산하기관 협조 + 민간 제휴·자율등록</p></div>
+    <div class="ph"><div class="s">4단계</div><h3>행정 제안</h3><p>돌봄 사각지대 분석 리포트</p></div>
+  </div>
+  <div class="note">※ 프로젝트명 <b>"양주 아이랑"</b>은 가제입니다. 수치는 공개 공공데이터 기준이며, 실시간 여석은 참고용 추정치로 실제 신청은 각 기관에서 확인합니다.</div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <b>양주 아이랑</b>
+    <p>경기 양주시 공모전 · "함께하는 양주" 트랙 제안. 데이터 출처: 공공데이터포털(아이사랑 어린이집 정보), 양주시 통합예약, 경기 도시공원 표준데이터, 양주시육아종합지원센터·가족센터·청소년문화의집·공공도서관 등 양주시 산하 공공기관.</p>
+  </div>
+</footer>
+
+<script>
+  (function(){
+    var root=document.documentElement, btn=document.getElementById('themeToggle');
+    var saved=null; try{saved=localStorage.getItem('yj-theme');}catch(e){}
+    if(saved){root.setAttribute('data-theme',saved);}
+    btn.addEventListener('click',function(){
+      var cur=root.getAttribute('data-theme');
+      var isDark=cur?cur==='dark':window.matchMedia('(prefers-color-scheme:dark)').matches;
+      var next=isDark?'light':'dark';
+      root.setAttribute('data-theme',next);
+      try{localStorage.setItem('yj-theme',next);}catch(e){}
+    });
+  })();
+</script>

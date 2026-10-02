@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="양주 미리살기 — AI 생활권 시뮬레이터. 이사 전, 그 동네에서의 1년 생활비·이동시간·지원을 함께 계산. 2026 양주시 미래인재 AI 공모전 프로젝트 개요서">
+<title>양주 미리살기 · 프로젝트 개요</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  :root{
+    --ground:#F1F3F8; --canvas:#E9EDF5;
+    --card:#FFFFFF; --card-2:#F0F2F8;
+    --ink:#141B2D; --muted:#5E6780; --faint:#959DB3;
+    --line:#DFE3EE;
+    --money:#2F55D4; --money-soft:#E1E8FB; --money-ink:#1F3FA8;
+    --time:#D9822B; --time-soft:#FBEBD8; --time-ink:#A65C12;
+    --real:#0E8A6E; --real-soft:#DBF2EB;
+    --common:#6B7287; --common-soft:#E8EAF0;
+    --input:#2F55D4; --input-soft:#E1E8FB;
+    --policy:#7A4FD0; --policy-soft:#ECE4FA;
+    --warn:#C8432E; --warn-soft:#FAE3DE;
+    --shadow:0 16px 36px -22px rgba(22,32,66,.42);
+    --radius:18px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0D111B; --canvas:#0A0D15;
+      --card:#151B29; --card-2:#111623;
+      --ink:#E7EBF5; --muted:#99A2BA; --faint:#5F6882;
+      --line:#252D40;
+      --money:#7D9BFF; --money-soft:#18213F; --money-ink:#A9BDFF;
+      --time:#F0A65A; --time-soft:#33240F; --time-ink:#F7C48C;
+      --real:#3CC59F; --real-soft:#11291F;
+      --common:#9AA1B5; --common-soft:#1E2433;
+      --input:#7D9BFF; --input-soft:#18213F;
+      --policy:#B293F5; --policy-soft:#241A3A;
+      --warn:#FF7A64; --warn-soft:#38180F;
+      --shadow:0 18px 44px -22px rgba(0,0,0,.75);
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0D111B; --canvas:#0A0D15;
+    --card:#151B29; --card-2:#111623;
+    --ink:#E7EBF5; --muted:#99A2BA; --faint:#5F6882;
+    --line:#252D40;
+    --money:#7D9BFF; --money-soft:#18213F; --money-ink:#A9BDFF;
+    --time:#F0A65A; --time-soft:#33240F; --time-ink:#F7C48C;
+    --real:#3CC59F; --real-soft:#11291F;
+    --common:#9AA1B5; --common-soft:#1E2433;
+    --input:#7D9BFF; --input-soft:#18213F;
+    --policy:#B293F5; --policy-soft:#241A3A;
+    --warn:#FF7A64; --warn-soft:#38180F;
+    --shadow:0 18px 44px -22px rgba(0,0,0,.75);
+    color-scheme:dark;
+  }
+  :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  html{scroll-padding-top:env(safe-area-inset-top,0px)}
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1100px 560px at 8% -10%, color-mix(in srgb, var(--money) 12%, transparent), transparent 60%),
+      radial-gradient(900px 480px at 100% 0%, color-mix(in srgb, var(--time) 12%, transparent), transparent 55%),
+      var(--canvas);
+    color:var(--ink);
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+    word-break:keep-all;overflow-wrap:break-word;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+  a{color:inherit}
+  b{font-weight:650}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  .themebtn{position:fixed;right:16px;top:calc(14px + env(safe-area-inset-top,0px));z-index:10;width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:17px;cursor:pointer;box-shadow:var(--shadow)}
+  .themebtn:hover{color:var(--ink)}
+  .themebtn:focus-visible{outline:2px solid var(--money);outline-offset:2px}
+
+  /* ---- hero ---- */
+  .hero{padding:60px 0 40px}
+  .kicker{font-size:13px;font-weight:700;letter-spacing:.04em;color:var(--money-ink);margin:0 0 14px}
+  .brandrow{display:flex;align-items:center;gap:16px;margin-bottom:6px}
+  .logo{width:56px;height:56px;border-radius:16px;background:linear-gradient(150deg,var(--money),var(--money-ink));display:grid;place-items:center;color:#fff;box-shadow:var(--shadow);flex:none;position:relative;overflow:hidden}
+  .logo::after{content:"";position:absolute;right:-10px;bottom:-10px;width:30px;height:30px;border-radius:50%;background:var(--time);opacity:.9}
+  .logo svg{width:30px;height:30px;position:relative;z-index:1}
+  h1{font-size:clamp(34px,6vw,54px);line-height:1.05;margin:0;letter-spacing:-.03em;font-weight:850}
+  .h1sub{font-size:clamp(16px,2.4vw,20px);color:var(--muted);font-weight:600;margin:4px 0 0}
+  .motto{font-size:clamp(21px,3.6vw,30px);font-weight:750;letter-spacing:-.02em;line-height:1.35;margin:28px 0 0;max-width:22em}
+  .lede{max-width:64ch;color:var(--muted);font-size:16.5px;margin:14px 0 0}
+  .lede b{color:var(--ink)}
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .pill{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 13px;font-size:13px;font-weight:500;box-shadow:var(--shadow)}
+  .pill .dot{width:8px;height:8px;border-radius:50%}
+  .pill.on{background:var(--money);border-color:var(--money);color:#fff;font-weight:600}
+
+  /* hero ledger: one-year receipt */
+  .ledger{margin-top:30px;background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}
+  .ledger-top{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between;padding:16px 22px;border-bottom:1px dashed var(--line);background:var(--card-2)}
+  .ledger-top .q{font-weight:700;font-size:15px}
+  .ledger-top .ex{font-size:12.5px;color:var(--faint)}
+  .ledger-body{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:stretch}
+  .lcell{padding:20px 22px}
+  .lcell .k{font-size:13px;color:var(--muted);font-weight:600}
+  .lcell .v{font-size:clamp(26px,4.4vw,36px);font-weight:850;letter-spacing:-.03em;line-height:1.15;margin-top:4px;font-variant-numeric:tabular-nums}
+  .lcell .v small{font-size:15px;font-weight:650;color:var(--muted);margin-left:2px}
+  .lcell .s{font-size:12.5px;color:var(--faint);margin-top:4px}
+  .lcell.money .v{color:var(--money)}
+  .lcell.time .v{color:var(--time)}
+  .lcell.ratio{background:linear-gradient(135deg,var(--money-soft),var(--time-soft))}
+  .lop{display:grid;place-items:center;font-size:22px;font-weight:800;color:var(--faint);padding:0 4px}
+  @media (max-width:760px){
+    .ledger-body{grid-template-columns:1fr}
+    .lop{padding:0;height:22px;font-size:18px}
+  }
+
+  /* ---- section ---- */
+  section{padding:32px 0}
+  .shead{display:flex;align-items:baseline;gap:12px;margin:0 0 20px}
+  .snum{font-variant-numeric:tabular-nums;font-weight:800;color:var(--money);font-size:15px;letter-spacing:.04em;flex:none}
+  h2{font-size:clamp(21px,3.4vw,27px);margin:0;letter-spacing:-.015em}
+  .sub{color:var(--muted);font-size:14.5px;margin:4px 0 0}
+
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  @media (max-width:760px){.g2,.g3,.g4{grid-template-columns:1fr}}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);min-width:0}
+  .card h3{margin:0 0 7px;font-size:16px;letter-spacing:-.01em}
+  .card p{margin:0;color:var(--muted);font-size:14px}
+  .eyebrow{font-size:12.5px;font-weight:700;color:var(--faint);margin:0 0 8px}
+  .big{font-size:30px;font-weight:850;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1;margin-bottom:6px}
+  .big small{font-size:14px;font-weight:600;color:var(--muted);margin-left:3px}
+
+  ul.clean{margin:10px 0 0;padding:0;list-style:none}
+  ul.clean li{position:relative;padding-left:18px;margin:7px 0;color:var(--muted);font-size:14px}
+  ul.clean li::before{content:"";position:absolute;left:2px;top:9px;width:6px;height:6px;border-radius:50%;background:var(--money)}
+  ul.clean li b{color:var(--ink)}
+  ul.clean.t li::before{background:var(--time)}
+
+  /* grade badges */
+  .gb{display:inline-flex;align-items:center;border-radius:6px;padding:1px 7px;font-size:11.5px;font-weight:700;white-space:nowrap;vertical-align:1px}
+  .gb.real{background:var(--real-soft);color:var(--real)}
+  .gb.common{background:var(--common-soft);color:var(--common)}
+  .gb.input{background:var(--input-soft);color:var(--input)}
+  .gb.policy{background:var(--policy-soft);color:var(--policy)}
+  .gb.est{background:var(--time-soft);color:var(--time-ink)}
+  .grade{border-top:4px solid}
+  .grade.real{border-top-color:var(--real)}
+  .grade.common{border-top-color:var(--common)}
+  .grade.input{border-top-color:var(--input)}
+  .grade.policy{border-top-color:var(--policy)}
+  .grade .eff{margin-top:10px;font-size:12.5px;font-weight:600;color:var(--ink);background:var(--card-2);border-radius:8px;padding:6px 9px}
+
+  /* steps */
+  .steps{counter-reset:s;display:grid;gap:10px}
+  .step{display:flex;gap:14px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .step .n{counter-increment:s;flex:none;width:30px;height:30px;border-radius:9px;background:var(--money);color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px}
+  .step .n::before{content:counter(s)}
+  .step .t{font-weight:700;font-size:14.5px}
+  .step .d{color:var(--muted);font-size:13.5px;margin-top:2px}
+  .steps.two{grid-template-columns:repeat(2,1fr)}
+  @media (max-width:760px){.steps.two{grid-template-columns:1fr}}
+
+  /* table */
+  .tablecard{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--line);box-shadow:var(--shadow);background:var(--card)}
+  table{width:100%;border-collapse:collapse;background:var(--card);font-size:14px}
+  th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--card-2);font-weight:700;font-size:12.5px;color:var(--muted);white-space:nowrap}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  tr:last-child td{border-bottom:0}
+  td.rh{font-weight:700;color:var(--ink);white-space:nowrap}
+  td.muted{color:var(--muted)}
+  .col-us{background:color-mix(in srgb,var(--money) 7%,var(--card))}
+  th.col-us{color:var(--money-ink);background:color-mix(in srgb,var(--money) 14%,var(--card-2))}
+  .wide{min-width:680px}
+
+  /* formula */
+  .formula{font-variant-numeric:tabular-nums;background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:13.5px;line-height:1.8;color:var(--ink);margin-top:10px;overflow-x:auto;white-space:nowrap}
+  .formula .op{color:var(--faint);font-weight:700;padding:0 3px}
+  .formula .m{color:var(--money);font-weight:650}
+  .formula .tm{color:var(--time-ink);font-weight:650}
+  .formula .pl{color:var(--policy);font-weight:650}
+
+  /* exchange ratio feature */
+  .xr{display:grid;grid-template-columns:1.05fr 1fr;gap:0;background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}
+  @media (max-width:760px){.xr{grid-template-columns:1fr}}
+  .xr-l{padding:24px}
+  .xr-r{padding:24px;background:var(--card-2);border-left:1px solid var(--line)}
+  @media (max-width:760px){.xr-r{border-left:0;border-top:1px solid var(--line)}}
+  .xr h3{margin:0;font-size:18px;letter-spacing:-.01em}
+  .xr .eq{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:16px}
+  .xr .term{background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:10px 14px;text-align:center;min-width:0}
+  .xr .term .tv{font-size:22px;font-weight:850;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .xr .term .tl{font-size:12px;color:var(--muted)}
+  .xr .term.m .tv{color:var(--money)}
+  .xr .term.t .tv{color:var(--time)}
+  .xr .term.r{background:var(--ink);border-color:var(--ink);color:var(--card)}
+  .xr .term.r .tl{color:color-mix(in srgb,var(--card) 70%,transparent)}
+  .xr .sym{font-size:20px;font-weight:800;color:var(--faint)}
+  .cmpbars{display:grid;gap:14px;margin-top:6px}
+  .cb .row{display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:5px}
+  .cb .row b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .cb .track{height:14px;border-radius:999px;background:var(--line);overflow:hidden}
+  .cb .fill{height:100%;border-radius:999px}
+  .ai-say{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-size:14px;color:var(--ink);position:relative}
+  .ai-say .who{font-size:12px;font-weight:700;color:var(--money-ink);margin-bottom:4px}
+
+  /* mock screen */
+  .screen{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}
+  .screen-bar{display:flex;align-items:center;gap:7px;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--card-2);font-size:12.5px;color:var(--muted)}
+  .screen-bar i{width:9px;height:9px;border-radius:50%;background:var(--line);display:inline-block}
+  .screen-bar span{margin-left:8px;font-weight:600}
+  .sum3{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line)}
+  @media (max-width:640px){.sum3{grid-template-columns:1fr}}
+  .sum3 > div{padding:16px 18px;border-right:1px solid var(--line)}
+  .sum3 > div:last-child{border-right:0}
+  @media (max-width:640px){.sum3 > div{border-right:0;border-bottom:1px solid var(--line)}.sum3 > div:last-child{border-bottom:0}}
+  .sum3 .k{font-size:12.5px;color:var(--muted);font-weight:600}
+  .sum3 .v{font-size:22px;font-weight:850;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:2px}
+  .sum3 .w{font-size:12px;color:var(--faint)}
+  .screen table th,.screen table td{border-bottom:1px solid var(--line)}
+  .screen .best{color:var(--money);font-weight:750}
+  .screen .worst{color:var(--time-ink);font-weight:750}
+  .facil{display:flex;flex-wrap:wrap;gap:8px;padding:14px 18px;border-top:1px solid var(--line);background:var(--card-2)}
+  .facil span{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600}
+  .facil span b{color:var(--real)}
+
+  /* bars */
+  .bars{display:grid;gap:9px}
+  .bar{display:grid;grid-template-columns:72px 1fr 62px;align-items:center;gap:10px;font-size:13px}
+  .bar .lab{color:var(--muted);font-weight:600}
+  .bar .track{display:block;height:12px;border-radius:999px;background:var(--card-2);overflow:hidden}
+  .bar .fill{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--money),var(--money-ink))}
+  .bar .fill.t{background:linear-gradient(90deg,var(--time),var(--time-ink))}
+  .bar .val{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:650}
+
+  /* persona */
+  .persona .tag{display:inline-block;width:30px;height:30px;border-radius:10px;background:var(--money);color:#fff;font-weight:800;text-align:center;line-height:30px;margin-bottom:10px}
+  .persona dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:12px 0 0;font-size:13.5px}
+  .persona dt{color:var(--faint);font-weight:600}
+  .persona dd{margin:0;color:var(--ink)}
+  .persona .qq{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);font-size:14px;font-weight:650;color:var(--ink)}
+
+  /* timeline */
+  .tl-who{display:inline-block;font-size:11.5px;font-weight:700;border-radius:6px;padding:1px 7px;margin-right:4px}
+  .w-s{background:var(--money-soft);color:var(--money-ink)}
+  .w-m{background:var(--real-soft);color:var(--real)}
+  .w-j{background:var(--time-soft);color:var(--time-ink)}
+  tr.mentor td{background:color-mix(in srgb,var(--policy) 8%,var(--card))}
+  tr.deadline td{background:color-mix(in srgb,var(--warn) 9%,var(--card))}
+
+  /* checklist */
+  .check{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  .check li{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--ink)}
+  .check li::before{content:"";flex:none;width:16px;height:16px;border:2px solid var(--faint);border-radius:5px;margin-top:3px}
+
+  .note{background:var(--money-soft);border:1px solid color-mix(in srgb,var(--money) 28%,transparent);border-radius:14px;padding:14px 16px;color:var(--money-ink);font-size:14px;font-weight:500}
+  .note b{color:inherit}
+  .note.t{background:var(--time-soft);border-color:color-mix(in srgb,var(--time) 30%,transparent);color:var(--time-ink)}
+  .quote{font-size:clamp(18px,2.8vw,22px);font-weight:750;letter-spacing:-.015em;line-height:1.45;margin:0;padding:18px 22px;border-left:4px solid var(--time);background:var(--card);border-radius:0 14px 14px 0;box-shadow:var(--shadow)}
+  .titles{display:grid;gap:8px}
+  .titles div{font-size:17px;font-weight:700;letter-spacing:-.01em;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+  .foot{color:var(--faint);font-size:12.5px;padding:34px 0 50px;border-top:1px solid var(--line);margin-top:24px}
+  .foot ul{margin:8px 0 0;padding-left:18px}
+  .foot a{color:var(--muted);word-break:break-all}
+  .mt{margin-top:14px}
+</style>
+</head>
+<body>
+<button class="themebtn" id="themebtn" type="button" aria-label="밝게/어둡게 전환">◐</button>
+<div class="wrap">
+
+  <!-- ===== HERO ===== -->
+  <header class="hero">
+    <p class="kicker">2026 양주시 미래인재 AI 공모전 프로젝트 개요서</p>
+    <div class="brandrow">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><circle cx="12" cy="14" r="3.2"/><path d="M12 12.4V14l1 .8"/></svg>
+      </div>
+      <div>
+        <h1>양주 미리살기</h1>
+        <p class="h1sub">AI 생활권 시뮬레이터</p>
+      </div>
+    </div>
+    <p class="motto">집을 고르기 전에, 그 동네에서의 1년을 먼저 살아보세요.</p>
+    <p class="lede">소득·가족·이동·생활습관을 말로 입력하면 AI가 생활권별 <b>1년 생활비와 이동시간, 받을 수 있는 지원</b>을 함께 계산합니다. 매물 정보를 더 보여주는 대신, 흩어진 정보를 <b>내 기준으로 합산해 1년의 결과</b>로 바꿔 이사 전의 선택을 돕습니다.</p>
+    <div class="pills">
+      <span class="pill"><span class="dot" style="background:var(--money)"></span>1년 저축 가능액</span>
+      <span class="pill"><span class="dot" style="background:var(--time)"></span>1년 이동시간</span>
+      <span class="pill"><span class="dot" style="background:var(--policy)"></span>지원정책 자동 반영</span>
+      <span class="pill on">돈-시간 교환 비율</span>
+    </div>
+
+    <div class="ledger" role="group" aria-label="1년 비교 예시">
+      <div class="ledger-top">
+        <span class="q">덕정을 고르면, 옥정보다 1년에…</span>
+        <span class="ex">페르소나 A 기준 설명용 예시 수치</span>
+      </div>
+      <div class="ledger-body">
+        <div class="lcell money"><div class="k">아끼는 돈</div><div class="v">276<small>만 원</small></div><div class="s">월 23만 원 × 12개월</div></div>
+        <div class="lop" aria-hidden="true">↔</div>
+        <div class="lcell time"><div class="k">더 쓰는 시간</div><div class="v">96<small>시간</small></div><div class="s">월 8시간 × 12개월 · 약 4일</div></div>
+        <div class="lop" aria-hidden="true">=</div>
+        <div class="lcell ratio"><div class="k">시간 1시간을 파는 값</div><div class="v">2.9<small>만 원</small></div><div class="s">내 시간가치 약 1.3만 원과 비교</div></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== 01 문제 ===== -->
+  <section>
+    <div class="shead"><span class="snum">01</span><div><h2>문제 정의</h2><p class="sub">싼 동네의 숨은 비용, 그리고 시가 보지 못하는 이사 고민층</p></div></div>
+    <div class="grid g2">
+      <div class="card">
+        <p class="eyebrow">시민의 문제</p>
+        <h3>집값만 보고 고르면 1년이 안 보인다</h3>
+        <ul class="clean t">
+          <li>월세가 싼 대신 출퇴근이 길면 <b>교통비와 시간</b>이 늘어난다</li>
+          <li>장보기·병원·운동시설이 멀면 <b>생활 이동시간</b>이 쌓인다</li>
+          <li>지역마다 받을 수 있는 <b>지원</b>(교통비 환급, 청년 지원)이 다르다</li>
+          <li>정보는 곳곳에 흩어져 있고 <b>서로 합산되지 않는다</b> — “월 20만 원 아끼고 한 달 8시간 더 쓰는 게 이득인가?”에 답해주는 곳이 없다</li>
+        </ul>
+      </div>
+      <div class="card">
+        <p class="eyebrow">양주시의 문제</p>
+        <h3>고민하다 떠난 사람은 보이지 않는다</h3>
+        <ul class="clean">
+          <li>시는 전입 신고한 사람은 알지만, <b>양주를 고민하다 다른 곳을 고른 사람</b>이 무엇 때문에 포기했는지는 알 수 없다</li>
+          <li>청년 지원·교통비 환급 같은 정책이 <b>이사를 판단하는 시점</b>에 노출되지 않는다</li>
+          <li>이사의 가장 큰 이유는 주거인데, 판단은 대부분 집값 위주로 이뤄진다</li>
+        </ul>
+      </div>
+    </div>
+    <div class="grid g3 mt">
+      <div class="card"><p class="eyebrow">2024년 인구 증가</p><div class="big">약 2<small>만 명</small></div><p>한 해 만에 늘며 인구 30만 명 돌파. 3040 유입이 빠른 도시.</p></div>
+      <div class="card"><p class="eyebrow">GTX-C 본공사 착수</p><div class="big">2026.9.15</div><p>개통 후 덕정~삼성 30분대 예상. 양주를 이사 후보로 고민하는 사람이 늘어날 시점.</p></div>
+      <div class="card">
+        <p class="eyebrow">2025년 국내 인구 이동 사유</p>
+        <div class="bars" style="margin-top:4px">
+          <div class="bar"><span class="lab">주택</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">33.7%</span></div>
+          <div class="bar"><span class="lab">가족</span><span class="track"><span class="fill" style="width:77%"></span></span><span class="val">25.9%</span></div>
+          <div class="bar"><span class="lab">직업</span><span class="track"><span class="fill" style="width:64%"></span></span><span class="val">21.4%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="note mt">양주 미리살기는 시민에게는 <b>1년 비교</b>를, 시에는 <b>“이사를 고민하는 사람들이 무엇을 보고 결정하는가”</b>라는 새 데이터를 줍니다.</div>
+  </section>
+
+  <!-- ===== 02 기존 서비스 ===== -->
+  <section>
+    <div class="shead"><span class="snum">02</span><div><h2>기존 서비스와의 차이</h2><p class="sub">정보를 더 보여주는 경쟁이 아니라, 개인 기준으로 합산하는 경쟁</p></div></div>
+    <div class="tablecard">
+      <table class="wide">
+        <thead><tr><th>구분</th><th>부동산 플랫폼<br>(호갱노노·직방 등)</th><th>권익위 전입자<br>생활정보 사전안내</th><th class="col-us">양주 미리살기</th></tr></thead>
+        <tbody>
+          <tr><td class="rh">답하는 질문</td><td class="muted">어떤 집·매물이 좋은가</td><td class="muted">전입한 지역에 무엇이 있는가</td><td class="col-us"><b>이 동네에서 1년을 살면 어떻게 되는가</b></td></tr>
+          <tr><td class="rh">개입 시점</td><td class="muted">매물 탐색</td><td class="muted">전입 신고 시 1회</td><td class="col-us">이사 결정 전</td></tr>
+          <tr><td class="rh">개인화</td><td class="muted">검색 필터 (자차 출퇴근 등)</td><td class="muted">없음 (정적 정보)</td><td class="col-us">소득·가구·이동습관 기반 계산</td></tr>
+          <tr><td class="rh">돈과 시간 합산</td><td class="muted">정보를 개별로 보여줌</td><td class="muted">없음</td><td class="col-us">하나의 결과로 합산</td></tr>
+          <tr><td class="rh">지원정책</td><td class="muted">반영 안 함</td><td class="muted">지역 정보 안내</td><td class="col-us">개인 조건별 자격 판정 후 비용에 반영</td></tr>
+          <tr><td class="rh">What-if</td><td class="muted">없음</td><td class="muted">없음</td><td class="col-us">조건 변경 시 즉시 재계산</td></tr>
+          <tr><td class="rh">시에 주는 것</td><td class="muted">없음</td><td class="muted">없음</td><td class="col-us">이사 고려층 익명 집계 데이터</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note mt">“AI가 이사를 돕는다”는 것 자체는 차별점이 아닙니다. 차별점은 <b>1년 통합 계산 + 돈-시간 교환 비율 + 정책 반영 + 시 집계 데이터</b>의 조합입니다.</div>
+  </section>
+
+  <!-- ===== 03 페르소나 ===== -->
+  <section>
+    <div class="shead"><span class="snum">03</span><div><h2>사용자 페르소나</h2><p class="sub">MVP 개발과 시연의 기준이 되는 세 가구</p></div></div>
+    <div class="grid g3">
+      <div class="card persona">
+        <span class="tag">A</span>
+        <h3>1인 청년 직장인</h3>
+        <dl>
+          <dt>나이</dt><dd>29세</dd>
+          <dt>월소득</dt><dd>280만 원</dd>
+          <dt>차량</dt><dd>없음</dd>
+          <dt>출퇴근</dt><dd>서울 강남 (삼성역 인근)</dd>
+          <dt>특이</dt><dd>반려견 1마리, 주 3회 운동</dd>
+        </dl>
+        <p class="qq">덕정의 싼 월세가 긴 출퇴근을 감당할 만한가?</p>
+      </div>
+      <div class="card persona">
+        <span class="tag">B</span>
+        <h3>맞벌이 신혼부부</h3>
+        <dl>
+          <dt>나이</dt><dd>32세 · 31세</dd>
+          <dt>월소득</dt><dd>합산 520만 원</dd>
+          <dt>차량</dt><dd>1대</dd>
+          <dt>출퇴근</dt><dd>서울 종로 / 의정부</dd>
+          <dt>특이</dt><dd>두 사람 출퇴근 합산 필요</dd>
+        </dl>
+        <p class="qq">두 직장 사이 어디가 균형점인가?</p>
+      </div>
+      <div class="card persona">
+        <span class="tag">C</span>
+        <h3>영유아 가족</h3>
+        <dl>
+          <dt>나이</dt><dd>35세 · 34세 + 2세</dd>
+          <dt>월소득</dt><dd>합산 450만 원</dd>
+          <dt>차량</dt><dd>1대</dd>
+          <dt>출퇴근</dt><dd>서울 여의도 / 재택 위주</dd>
+          <dt>특이</dt><dd>어린이집·소아과 접근성 최우선</dd>
+        </dl>
+        <p class="qq">아이 동선 기준으로 어디가 편한가?</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 04 근거 등급 ===== -->
+  <section>
+    <div class="shead"><span class="snum">04</span><div><h2>계산 엔진 — 근거 등급</h2><p class="sub">데이터가 없는 차이는 지어내지 않는다</p></div></div>
+    <div class="grid g3">
+      <div class="card"><h3>① 지역 차이는 데이터로</h3><p>주거비·출퇴근·시설 거리처럼 지역 차이를 만드는 항목은 실제 데이터로 계산.</p></div>
+      <div class="card"><h3>② 개인 차이는 입력으로</h3><p>운동비·반려동물·통신비처럼 사람마다 다른 항목은 사용자에게 받는다.</p></div>
+      <div class="card"><h3>③ 없으면 빼고, 뺐다고 표시</h3><p>데이터가 없는 항목은 추정치로 채우지 않고 비교에서 제외한다.</p></div>
+    </div>
+    <p class="sub" style="margin:22px 0 12px">결과 화면의 모든 숫자 옆에 아래 네 가지 등급 중 하나가 붙습니다.</p>
+    <div class="grid g4">
+      <div class="card grade real"><p class="eyebrow"><span class="gb real">실측</span></p><h3>생활권 단위 실제 데이터</h3><p>전월세 실거래 주거비, 경로 API 출퇴근 시간·요금, 시설까지 거리</p><div class="eff">지역 차이를 만드는 핵심</div></div>
+      <div class="card grade common"><p class="eyebrow"><span class="gb common">공통</span></p><h3>시군구·전국 평균</h3><p>공과금, 식비 기본값 — 모든 생활권에 같은 값 적용</p><div class="eff">총액엔 포함, 지역 간 차이 없음</div></div>
+      <div class="card grade input"><p class="eyebrow"><span class="gb input">입력</span></p><h3>사용자 개인 지출</h3><p>운동비, 반려동물 비용, 통신비, 차량 유지비</p><div class="eff">사용자별로 다름</div></div>
+      <div class="card grade policy"><p class="eyebrow"><span class="gb policy">정책</span></p><h3>조건 충족 시 차감</h3><p>교통비 환급, 청년·주거 지원</p><div class="eff">거주지와 조건에 따라 다름</div></div>
+    </div>
+    <div class="note t mt">v1의 가장 큰 약점이던 “양주 안 생활권끼리는 생활비 데이터 차이가 안 나온다”를 정직하게 처리합니다. 식비처럼 생활권 데이터가 없는 항목은 공통값으로 두고, <b>실제 차이는 주거비와 이동시간에서 나온다</b>는 것을 화면에 그대로 보여줍니다.</div>
+  </section>
+
+  <!-- ===== 05 계산식 ===== -->
+  <section>
+    <div class="shead"><span class="snum">05</span><div><h2>항목별 계산식</h2><p class="sub">모든 수치는 LLM이 아닌 계산 엔진에서 나온다</p></div></div>
+    <div class="grid g2">
+      <div class="card">
+        <h3>월 주거비 <span class="gb real">실측</span></h3>
+        <div class="formula">
+          월세형 = 월세 <span class="op">+</span> 보증금 × 기회비용 이율 ÷ 12 <span class="op">+</span> 관리비<br>
+          전세형 = 전세보증금 × 전세대출 금리 ÷ 12 <span class="op">+</span> 관리비
+        </div>
+        <ul class="clean"><li>생활권(법정동 묶음)별 최근 12개월 실거래 중 가구형태에 맞는 면적 구간의 <b>중위값</b> 사용</li><li>거래 건수를 함께 표시해 표본이 적은 생활권을 알림</li></ul>
+      </div>
+      <div class="card">
+        <h3>월 교통비 <span class="gb real">실측</span> <span class="gb policy">정책</span></h3>
+        <div class="formula">
+          대중교통 = 월 출근일수 × 왕복 요금 <span class="op">−</span> <span class="pl">교통비 환급액</span><br>
+          자차 = 유류비 <span class="op">+</span> 보험·주차 등 고정비
+        </div>
+        <ul class="clean"><li>왕복 요금은 경로 API의 실제 요금</li><li>환급액은 <b>K-패스·The 경기패스</b> 규칙(거주지·연령·월 이용횟수)으로 계산, 기준일을 화면에 표시</li></ul>
+      </div>
+      <div class="card">
+        <h3>이동시간 <span class="gb real">실측</span></h3>
+        <div class="formula">
+          <span class="tm">출퇴근</span> = 월 출근일수 × 왕복 소요시간(출근 시간대)<br>
+          <span class="tm">생활 이동</span> = Σ (우선순위 시설 월 이용 횟수 × 왕복 접근시간)
+        </div>
+        <ul class="clean"><li>생활권마다 대표 지점 3곳, 가장 가까운 시설까지 도보(시속 4km) 또는 대중교통 시간</li><li>생활편의는 점수 대신 <b>“마트 도보 8분”</b>처럼 분 단위로</li></ul>
+      </div>
+      <div class="card">
+        <h3>잔여소득과 1년 환산</h3>
+        <div class="formula">
+          잔여소득 = 월소득 <span class="op">−</span> (주거비 + 교통비 + 공통 생활비 + 입력 지출) <span class="op">+</span> <span class="pl">정책 지원액</span><br>
+          <span class="m">1년 저축 가능액</span> = 잔여소득 × 12<br>
+          <span class="tm">1년 이동시간</span> = (출퇴근 + 생활 이동) × 12 → “약 ○일”
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 06 교환 비율 ===== -->
+  <section>
+    <div class="shead"><span class="snum">06</span><div><h2>핵심 지표 — 돈-시간 교환 비율</h2><p class="sub">“어디가 더 좋다”가 아니라 “무엇을 내주고 무엇을 얻는가”</p></div></div>
+    <div class="xr">
+      <div class="xr-l">
+        <h3>1시간을 내주고 아끼는 돈</h3>
+        <p class="sub">두 지역의 월 비용 차이 ÷ 월 이동시간 차이</p>
+        <div class="eq">
+          <div class="term m"><div class="tv">23만 원</div><div class="tl">월 비용 차이</div></div>
+          <span class="sym">÷</span>
+          <div class="term t"><div class="tv">8시간</div><div class="tl">월 이동시간 차이</div></div>
+          <span class="sym">=</span>
+          <div class="term r"><div class="tv">2.9만 원</div><div class="tl">시간당 교환 비율</div></div>
+        </div>
+        <ul class="clean" style="margin-top:16px">
+          <li><b>내 시간가치</b> = 월소득 280만 원 ÷ 월 209시간 ≈ 시간당 약 1.3만 원</li>
+          <li>교환 비율이 시간가치보다 높으면 비용 기준으로 유리한 선택</li>
+        </ul>
+      </div>
+      <div class="xr-r">
+        <p class="eyebrow">페르소나 A · 덕정 vs 옥정 (설명용 수치)</p>
+        <div class="cmpbars">
+          <div class="cb"><div class="row"><span>덕정의 교환 비율</span><b>시간당 2.9만 원</b></div><div class="track"><div class="fill" style="width:100%;background:var(--money)"></div></div></div>
+          <div class="cb"><div class="row"><span>내 시간가치</span><b>시간당 1.3만 원</b></div><div class="track"><div class="fill" style="width:45%;background:var(--time)"></div></div></div>
+        </div>
+        <div class="ai-say">
+          <div class="who">AI 설명</div>
+          덕정은 시간 1시간을 약 2.9만 원에 파는 선택입니다. 당신의 시간가치(약 1.3만 원)보다 높아서 비용 기준으로는 유리합니다. 다만 출퇴근 피로를 중요하게 보신다면 옥정이 맞습니다.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 07 1년 비교 화면 ===== -->
+  <section>
+    <div class="shead"><span class="snum">07</span><div><h2>1년 비교 화면</h2><p class="sub">요약 카드 3개 + 근거 등급이 붙은 비교표 + 우선순위 시설 접근시간</p></div></div>
+    <div class="screen" role="figure" aria-label="1년 비교 화면 예시">
+      <div class="screen-bar"><i></i><i></i><i></i><span>양주 미리살기 · 1년 비교 (화면 예시)</span></div>
+      <div class="sum3">
+        <div><div class="k">1년 저축 가능액</div><div class="v" style="color:var(--money)">덕정 1,428만 원</div><div class="w">세 생활권 중 최대</div></div>
+        <div><div class="k">1년 이동시간</div><div class="v" style="color:var(--time)">덕정 21일</div><div class="w">출퇴근 + 생활 이동</div></div>
+        <div><div class="k">교환 비율</div><div class="v">시간당 2.9만 원</div><div class="w">덕정 vs 옥정</div></div>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>항목</th><th>등급</th><th class="num">옥정</th><th class="num">덕정</th><th class="num">양주역</th></tr></thead>
+          <tbody>
+            <tr><td class="rh">주거비</td><td><span class="gb real">실측</span></td><td class="num worst">68만</td><td class="num best">52만</td><td class="num">58만</td></tr>
+            <tr><td class="rh">교통비</td><td><span class="gb real">실측</span></td><td class="num best">9만</td><td class="num worst">11만</td><td class="num">10만</td></tr>
+            <tr><td class="rh">출퇴근</td><td><span class="gb real">실측</span></td><td class="num best">31시간</td><td class="num worst">39시간</td><td class="num">35시간</td></tr>
+            <tr><td class="rh">환급</td><td><span class="gb policy">정책</span></td><td class="num">−2만</td><td class="num">−2만</td><td class="num">−2만</td></tr>
+            <tr><td class="rh">공통비</td><td><span class="gb common">공통</span></td><td class="num">48만</td><td class="num">48만</td><td class="num">48만</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="facil"><span>헬스장 도보 <b>6분</b></span><span>동물병원 <b>12분</b></span><span>마트 <b>8분</b></span></div>
+    </div>
+    <p class="sub" style="margin-top:10px">수치는 화면 예시이며 실제 값은 데이터 확보 후 계산합니다.</p>
+  </section>
+
+  <!-- ===== 08 What-if ===== -->
+  <section>
+    <div class="shead"><span class="snum">08</span><div><h2>What-if 엔진</h2><p class="sub">AI는 질문을 시나리오로 연결만 하고, 계산은 엔진이 다시 돌린다</p></div></div>
+    <div class="tablecard">
+      <table class="wide">
+        <thead><tr><th>시나리오</th><th>바뀌는 변수</th><th>결과에서 보이는 변화</th></tr></thead>
+        <tbody>
+          <tr><td class="rh">재택근무 주 2회</td><td class="muted">월 출근일수 약 22일 → 약 13일</td><td>출퇴근 시간·교통비 감소, 먼 생활권 순위 상승</td></tr>
+          <tr><td class="rh">차량 구매</td><td class="muted">이동수단 자차, 차량 고정비 추가, 대중교통비·환급 제거</td><td>비용 증가, 이동시간 변화</td></tr>
+          <tr><td class="rh">월급 +30만 원</td><td class="muted">소득, 정책 자격 재판정</td><td>소득 기준을 넘으면 지원이 빠질 수 있음을 함께 표시</td></tr>
+          <tr><td class="rh">반려동물 추가</td><td class="muted">입력 지출, 동물병원·공원 접근시간</td><td>생활 이동시간 변화</td></tr>
+          <tr><td class="rh">직장 이동</td><td class="muted">출퇴근 목적지 좌표</td><td>생활권 순위 재정렬</td></tr>
+          <tr><td class="rh">GTX-C 개통 후</td><td class="muted">덕정 출퇴근 시간에 개통 후 예상치 적용</td><td>덕정 순위 변화 <span class="gb est">예상치</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== 09 AI 역할 ===== -->
+  <section>
+    <div class="shead"><span class="snum">09</span><div><h2>AI의 역할과 안전장치</h2><p class="sub">AI는 말을 이해하고 설명한다. 숫자는 만들지 않는다.</p></div></div>
+    <div class="grid g2">
+      <div class="steps">
+        <div class="step"><div class="n"></div><div><div class="t">생활 프로필 구조화</div><div class="d">자연어 설명 → 프로필 데이터. 빠진 항목은 되묻기.</div></div></div>
+        <div class="step"><div class="n"></div><div><div class="t">우선순위 해석</div><div class="d">“돈 아끼고 싶지만 출퇴근 길면 싫어요” → 주거비·출퇴근 민감도 가중치.</div></div></div>
+        <div class="step"><div class="n"></div><div><div class="t">What-if 해석</div><div class="d">“차 사면 어때요?” → 시나리오와 바꿀 변수.</div></div></div>
+        <div class="step"><div class="n"></div><div><div class="t">결과 설명</div><div class="d">엔진 출력값 → 3문장 이내 설명 + 근거 등급·출처.</div></div></div>
+        <div class="step"><div class="n"></div><div><div class="t">정책 자격 설명</div><div class="d">룰 판정 결과 → 쉬운 말 설명, 필요한 서류·신청처 안내.</div></div></div>
+      </div>
+      <div class="grid" style="align-content:start">
+        <div class="card">
+          <p class="eyebrow">프로필 데이터 예시 (페르소나 A)</p>
+          <div class="formula" style="white-space:pre;line-height:1.6;font-size:12.5px">{
+  "monthly_income": 2800000,
+  "household": "1인",
+  "car": false,
+  "pets": ["반려견"],
+  "commute": { "destination": "서울 강남구 삼성동", "days_per_week": 5 },
+  "rent_budget": 700000,
+  "priorities": ["운동시설", "동물병원", "마트"],
+  "sensitivity": { "housing_cost": "높음", "commute_time": "높음" }
+}</div>
+        </div>
+        <div class="card">
+          <p class="eyebrow">안전장치</p>
+          <ul class="clean" style="margin-top:0">
+            <li><b>LLM은 숫자를 만들지 않는다</b> — 모든 수치는 계산 엔진에서만</li>
+            <li>설명문 속 숫자를 엔진 출력과 <b>자동 대조</b>, 다르면 다시 생성</li>
+            <li>정책·시설은 <b>DB에 등록된 항목만</b> 언급하고 출처 표기</li>
+            <li>판정이 불확실하면 단정하지 않고 <b>“확인 필요”</b></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 10 행정용 집계 ===== -->
+  <section>
+    <div class="shead"><span class="snum">10</span><div><h2>양주시를 위한 행정용 집계 화면</h2><p class="sub">개인을 식별하지 않는 집계만으로, 시가 지금까지 가질 수 없던 데이터</p></div></div>
+    <p class="quote">전입 신고 데이터는 “온 사람”만 보여줍니다. 양주 미리살기는 “고민하다 떠난 사람”이 무엇 때문에 떠났는지 보여줍니다.</p>
+    <div class="grid g2 mt">
+      <div class="card">
+        <p class="eyebrow">생활권별 비교 횟수 (모의 데이터)</p>
+        <div class="bars">
+          <div class="bar"><span class="lab">옥정</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">1,240회</span></div>
+          <div class="bar"><span class="lab">덕정</span><span class="track"><span class="fill" style="width:69%"></span></span><span class="val">860회</span></div>
+          <div class="bar"><span class="lab">양주역</span><span class="track"><span class="fill" style="width:33%"></span></span><span class="val">410회</span></div>
+        </div>
+        <p style="margin-top:14px">관심 생활권을 파악하고, 유형별로 보면 <b style="color:var(--ink)">1인가구는 덕정, 영유아 가족은 옥정</b> 비교가 많다는 식으로 정책 홍보 대상을 정합니다.</p>
+      </div>
+      <div class="card">
+        <p class="eyebrow">가장 불리하게 나온 항목 (모의 데이터)</p>
+        <div class="big" style="color:var(--time)">62<small>%</small></div>
+        <p>덕정을 비교한 1인가구 중 <b style="color:var(--ink)">출퇴근 시간</b>이 최대 약점으로 나온 비율 → 교통 노선 협의 근거.</p>
+        <div class="divider" style="height:1px;background:var(--line);margin:14px 0"></div>
+        <ul class="clean" style="margin:0">
+          <li><b>많이 조회된 What-if</b> — 재택근무, GTX-C 개통 후 → 수요 변화 예측</li>
+          <li><b>정책 노출·클릭</b> — 교통비 환급 카드 노출 대비 클릭 → 정책 인지도 측정</li>
+        </ul>
+      </div>
+    </div>
+    <p class="sub" style="margin-top:10px">표시된 수치는 화면 예시이며, 시연에서도 모의 데이터임을 명시합니다.</p>
+  </section>
+
+  <!-- ===== 11 개인정보 ===== -->
+  <section>
+    <div class="shead"><span class="snum">11</span><div><h2>개인정보 처리 원칙</h2><p class="sub">소득·가구·반려동물 같은 생활 정보를 다루므로 처음부터 최소 수집</p></div></div>
+    <div class="grid g3">
+      <div class="card"><h3>저장하지 않음</h3><p>개인 프로필은 계산에만 쓰고 세션이 끝나면 삭제.</p></div>
+      <div class="card"><h3>집계는 구간으로</h3><p>소득은 100만 원 구간, 나이는 연령대, 가구는 유형만. 자연어 원문은 저장하지 않음.</p></div>
+      <div class="card"><h3>위치는 행정동까지</h3><p>출퇴근지는 좌표 대신 행정동 단위로만 저장.</p></div>
+      <div class="card"><h3>외부 전송 전 가림</h3><p>외부 LLM으로 보내기 전 이름·연락처·상세주소 마스킹.</p></div>
+      <div class="card"><h3>동의 기반</h3><p>집계 저장은 사용자가 동의한 경우에만.</p></div>
+      <div class="card"><h3>소표본 비공개</h3><p>10건 미만 집계는 행정 화면에 표시하지 않음 (재식별 방지).</p></div>
+    </div>
+    <p class="sub" style="margin-top:12px">이 원칙은 멘토링(장웅태 멘토)에서 검토받습니다.</p>
+  </section>
+
+  <!-- ===== 12 데이터 ===== -->
+  <section>
+    <div class="shead"><span class="snum">12</span><div><h2>데이터 소스와 확보 계획</h2><p class="sub">공공 API 중심, 대중교통은 ODsay 사전 계산 후 캐싱</p></div></div>
+    <div class="tablecard">
+      <table class="wide">
+        <thead><tr><th>데이터</th><th>출처</th><th>단위</th><th>확보 메모</th></tr></thead>
+        <tbody>
+          <tr><td class="rh">전월세 실거래</td><td class="muted">국토교통부 아파트·오피스텔·연립다세대·단독다가구 전월세 실거래가 API</td><td class="muted">법정동·단지</td><td>무료, 데이터셋별 활용신청 승인 필요</td></tr>
+          <tr><td class="rh">대중교통 경로·시간·요금</td><td class="muted">ODsay LIVE API</td><td class="muted">좌표 간</td><td>무료 체험 일 1,000건 → 사전 계산 후 캐싱</td></tr>
+          <tr><td class="rh">주소 → 좌표</td><td class="muted">카카오 로컬 API</td><td class="muted">주소</td><td></td></tr>
+          <tr><td class="rh">생활시설 위치</td><td class="muted">소상공인 상가(상권)정보, 양주시 의료시설·약국, 체육시설·어린이집</td><td class="muted">좌표</td><td>일부 최신성 확인 필요</td></tr>
+          <tr><td class="rh">교통비 환급 규칙</td><td class="muted">K-패스·The 경기패스 공식 안내</td><td class="muted">규칙</td><td>환급률 변경 가능, 기준일 관리</td></tr>
+          <tr><td class="rh">지원정책</td><td class="muted">온통청년 청년정책 정보, 양주시 공고</td><td class="muted">정책 단위</td><td>MVP는 10~20개 수작업 구조화</td></tr>
+          <tr><td class="rh">생활비 공통값</td><td class="muted">국가데이터처 가계동향조사</td><td class="muted">전국·시도</td><td>공통 등급으로만 사용</td></tr>
+          <tr><td class="rh">인구 이동·전입 사유</td><td class="muted">국가데이터처 국내인구이동통계 (KOSIS)</td><td class="muted">시군구</td><td>양주 단위 사유별 조회 가능 여부 확인 필요</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="sub" style="margin-top:10px">카카오맵·네이버지도 길찾기 API는 대중교통 경로를 공개하지 않으므로 대중교통 계산은 ODsay를 사용합니다.</p>
+  </section>
+
+  <!-- ===== 13 MVP ===== -->
+  <section>
+    <div class="shead"><span class="snum">13</span><div><h2>MVP 범위와 화면 구성</h2><p class="sub">양주 3개 생활권 · 출퇴근지 4곳에서 한 줄기를 완성</p></div></div>
+    <div class="grid g3">
+      <div class="card"><p class="eyebrow">생활권</p><div class="big">3<small>곳</small></div><p>옥정 / 덕정 / 양주역, 각 대표 지점 3곳</p></div>
+      <div class="card"><p class="eyebrow">출퇴근 목적지</p><div class="big">4<small>곳</small></div><p>서울 강남·종로·여의도, 의정부</p></div>
+      <div class="card"><p class="eyebrow">경로 사전 계산</p><div class="big">72<small>건</small></div><p>3 생활권 × 3 지점 × 4 목적지 × 왕복 — API 한도 안에서 하루에 완료</p></div>
+    </div>
+    <div class="grid g2 mt">
+      <div class="card">
+        <h3>포함</h3>
+        <ul class="clean">
+          <li>페르소나 3개 + 자유 입력</li>
+          <li>What-if 4종: 재택근무, 차량 구매, 소득 변화, GTX-C 개통 후</li>
+          <li>지원정책 10~20개</li>
+          <li>행정용 집계 화면 (모의 데이터)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>제외</h3>
+        <ul class="clean t">
+          <li>실시간 매물 연동</li>
+          <li>양주 외 지역 (구조만 준비)</li>
+          <li>자차 실시간 교통 정보</li>
+          <li>회원가입·로그인</li>
+        </ul>
+      </div>
+    </div>
+    <p class="sub" style="margin:22px 0 12px">사용자가 지나가는 화면 순서</p>
+    <div class="steps two">
+      <div class="step"><div class="n"></div><div><div class="t">생활 입력</div><div class="d">자연어 입력창 → AI가 정리한 확인 카드(항목별 수정 가능), 빠진 항목은 질문으로.</div></div></div>
+      <div class="step"><div class="n"></div><div><div class="t">생활권 선택</div><div class="d">양주 지도 위 생활권 3곳 + 출퇴근지 표시, 비교할 곳 선택.</div></div></div>
+      <div class="step"><div class="n"></div><div><div class="t">1년 비교</div><div class="d">요약 카드 3개 + 근거 등급 배지가 붙은 비교표 + 우선순위 시설 접근시간.</div></div></div>
+      <div class="step"><div class="n"></div><div><div class="t">AI 설명</div><div class="d">3문장 이내, “근거 보기”를 펼치면 계산 항목과 출처.</div></div></div>
+      <div class="step"><div class="n"></div><div><div class="t">What-if</div><div class="d">시나리오 버튼, 바뀐 값은 “전 → 후”, 순위가 바뀌면 강조.</div></div></div>
+      <div class="step"><div class="n"></div><div><div class="t">받을 수 있는 지원</div><div class="d">정책 카드(조건 충족 / 확인 필요 / 미충족), 비용에 반영된 금액.</div></div></div>
+      <div class="step"><div class="n"></div><div><div class="t">행정용 집계</div><div class="d">이사 고려층 지표를 차트로 표시 (시 담당자용).</div></div></div>
+    </div>
+  </section>
+
+  <!-- ===== 14 검증 ===== -->
+  <section>
+    <div class="shead"><span class="snum">14</span><div><h2>실현 가능성 검증 계획</h2><p class="sub">정확도 4종 + 사용자 검증 — 목표치를 약속하지 않고 측정 결과를 그대로 싣는다</p></div></div>
+    <div class="tablecard">
+      <table class="wide">
+        <thead><tr><th>검증</th><th>방법</th><th>제시할 결과</th></tr></thead>
+        <tbody>
+          <tr><td class="rh">주거비 정확도</td><td class="muted">엔진 추정 월 주거비 vs 생활권별 실제 매물 시세 샘플 10건</td><td>생활권별 오차율</td></tr>
+          <tr><td class="rh">이동시간 정확도</td><td class="muted">API 추정 출퇴근 시간 vs 팀원 실측 (출근 시간대, 구간별 3회)</td><td>분 단위 오차</td></tr>
+          <tr><td class="rh">정책 판정 정확도</td><td class="muted">페르소나 10개 × 정책 20개 자격 판정 vs 공고 원문 수작업 판정</td><td>일치율</td></tr>
+          <tr><td class="rh">AI 설명 정확도</td><td class="muted">설명문 50건의 숫자·사실을 엔진 출력과 대조</td><td>불일치 건수</td></tr>
+          <tr><td class="rh">사용자 검증</td><td class="muted">이사 경험자·고려자 10~15명 사용 후 5점 척도 설문 (“실제 경험과 맞았는가”, “결정에 도움이 됐는가”)</td><td>평균 점수와 대표 의견</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== 15 일정 ===== -->
+  <section>
+    <div class="shead"><span class="snum">15</span><div><h2>개발 일정</h2><p class="sub">10/5 ~ 10/15 · <span class="tl-who w-s">상진</span>클라이언트 <span class="tl-who w-m">소미</span>백엔드·데이터·AI <span class="tl-who w-j">승재</span>UI/UX</p></div></div>
+    <div class="tablecard">
+      <table class="wide">
+        <thead><tr><th>기간</th><th>상진 (클라이언트)</th><th>소미 (백엔드·데이터·AI)</th><th>승재 (UI/UX)</th></tr></thead>
+        <tbody>
+          <tr><td class="rh tnum">~10/4</td><td>기획안 제출 준비</td><td>API 키 신청 (승인 기간 고려해 즉시)</td><td>화면 와이어프레임</td></tr>
+          <tr><td class="rh tnum">10/5~10/6</td><td>프론트 골격, 지도 화면</td><td>실거래·시설 데이터 수집, 경로 사전 계산</td><td>화면 디자인 확정</td></tr>
+          <tr><td class="rh tnum">10/7~10/9</td><td>입력·비교 화면 구현</td><td>계산 엔진, 근거 등급 처리</td><td>비교표·요약 카드 시각화</td></tr>
+          <tr class="mentor"><td class="rh tnum">10/8</td><td colspan="3">멘토링 — 중간 점검</td></tr>
+          <tr><td class="rh tnum">10/10~10/12</td><td>What-if·정책 화면 구현</td><td>AI 연동(구조화·설명·What-if), 정책 DB</td><td>행정 화면, 정책 카드</td></tr>
+          <tr class="mentor"><td class="rh tnum">10/13</td><td>멘토링</td><td>검증 실행 (정확도 측정)</td><td>사용자 검증 설문</td></tr>
+          <tr><td class="rh tnum">10/14</td><td>버그 수정, 시연 리허설</td><td>데이터 최종 점검</td><td>데모 영상 녹화</td></tr>
+          <tr class="deadline"><td class="rh tnum">10/15</td><td colspan="3"><b>발표자료(PDF) 제출 — 22:59 마감</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== 16 시연 ===== -->
+  <section>
+    <div class="shead"><span class="snum">16</span><div><h2>발표 시연 시나리오 (3분)</h2><p class="sub">시연 데이터는 모두 미리 계산 — 외부 API 장애와 무관하게 작동</p></div></div>
+    <div class="steps two">
+      <div class="step"><div class="n"></div><div><div class="t">입력</div><div class="d">페르소나 A를 자연어로 입력, AI가 정리한 확인 카드.</div></div></div>
+      <div class="step"><div class="n"></div><div><div class="t">비교</div><div class="d">옥정 vs 덕정 vs 양주역 1년 결과.</div></div></div>
+      <div class="step"><div class="n"></div><div><div class="t">교환 비율</div><div class="d">“덕정은 시간 1시간을 약 2.9만 원에 파는 선택입니다.”</div></div></div>
+      <div class="step"><div class="n"></div><div><div class="t">What-if ① 재택근무 주 2회</div><div class="d">출근일수가 줄며 생활권 순위 변화.</div></div></div>
+      <div class="step"><div class="n"></div><div><div class="t">What-if ② GTX-C 개통 후</div><div class="d">덕정 출퇴근 시간 변화 (예상치 배지 표시).</div></div></div>
+      <div class="step"><div class="n"></div><div><div class="t">지원</div><div class="d">교통비 환급이 비용에 반영되는 장면.</div></div></div>
+      <div class="step"><div class="n"></div><div><div class="t">행정 화면</div><div class="d">“시가 처음 갖게 되는 데이터.”</div></div></div>
+      <div class="step"><div class="n"></div><div><div class="t">확장성</div><div class="d">“같은 구조에 파주·포천 데이터를 넣으면 그대로 작동합니다.”</div></div></div>
+    </div>
+    <div class="note mt">라이브 시연 실패에 대비해 <b>사전 녹화 영상</b>을 준비합니다.</div>
+  </section>
+
+  <!-- ===== 17 리스크 ===== -->
+  <section>
+    <div class="shead"><span class="snum">17</span><div><h2>리스크와 대응</h2></div></div>
+    <div class="tablecard">
+      <table class="wide">
+        <thead><tr><th>리스크</th><th>대응</th></tr></thead>
+        <tbody>
+          <tr><td class="rh">생활비 추정의 신뢰도</td><td>근거 등급으로 실측·공통·입력·정책 구분 표시, 데이터 없는 항목은 비교에서 제외</td></tr>
+          <tr><td class="rh">AI의 잘못된 설명</td><td>숫자는 엔진만 생성, 설명문 숫자 자동 대조, 정책·시설은 DB 항목만</td></tr>
+          <tr><td class="rh">“부동산 앱과 뭐가 다른가”</td><td>02 비교표 — 정보 제공이 아니라 개인 기준 합산과 교환 비율</td></tr>
+          <tr><td class="rh">신축 지역 실거래 표본 부족</td><td>기간 확장, 면적 구간 통합, 거래 건수 표시</td></tr>
+          <tr><td class="rh">외부 API 한도·장애</td><td>경로 사전 계산·캐싱, 시연은 저장 데이터로 작동</td></tr>
+          <tr><td class="rh">정책 변경 (환급률 등)</td><td>규칙을 코드가 아닌 데이터로 분리, 기준일 표시</td></tr>
+          <tr><td class="rh">GTX-C 예상치의 불확실성</td><td><span class="gb est">예상치</span> 배지와 출처 표시, 확정 수치처럼 표현하지 않음</td></tr>
+          <tr><td class="rh">개인정보</td><td>11 처리 원칙 적용, 멘토 검토</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== 18 제목 · 확인 ===== -->
+  <section>
+    <div class="shead"><span class="snum">18</span><div><h2>발표 제목 후보 · 남은 확인 사항</h2><p class="sub">기술명보다 질문이나 통념 뒤집기를 제목으로</p></div></div>
+    <div class="grid g2">
+      <div class="titles">
+        <div>월세가 싼 동네는 정말 싼 동네일까</div>
+        <div>집값 말고, 1년을 비교하세요</div>
+        <div>싼 동네의 숨은 비용, 시간</div>
+      </div>
+      <div class="card">
+        <ul class="check">
+          <li>국토교통부 전월세 실거래가 API 4종 활용신청 (데이터셋별 승인)</li>
+          <li>ODsay API 키 발급, 서버 IP 등록</li>
+          <li>ODsay 출근 시간대 소요시간 반영 여부 확인 (안 되면 실측 보정)</li>
+          <li>생활권별 최근 12개월 거래 건수 확인 (표본 충분 여부)</li>
+          <li>국내인구이동통계 양주 전입·전출 사유 조회 가능 여부</li>
+          <li>권익위 전입자 생활정보 사전안내 실제 화면 확인</li>
+          <li>K-패스·The 경기패스 2026 환급 기준 공식 확인</li>
+          <li>양주시 청년·주거·교통 지원정책 10~20개 목록화</li>
+          <li>개인정보 처리 원칙 멘토 검토</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    양주 미리살기 · AI 생활권 시뮬레이터 &nbsp;·&nbsp; 2026 양주시 미래인재 AI 공모전 프로젝트 개요서 (v2 기획안 기준)<br>
+    화면 속 금액·시간·집계 수치는 설계 설명용 예시이며, 실제 값은 데이터 확보 후 계산합니다.
+    <ul>
+      <li>2025년 국내인구이동통계 (국가데이터처) — <a href="https://www.heraldk.com/article/2026012818471712823">heraldk.com</a></li>
+      <li>The 경기패스 2026 안내 (경기도) — <a href="https://www.gg.go.kr/myggd/vol199/1_3.php">gg.go.kr</a></li>
+      <li>K-패스 환급률 정리 — <a href="https://glasswallet.com/blog/k-pass-refund-application-guide/">glasswallet.com</a></li>
+      <li>국토교통부 실거래가 API 목록 — <a href="https://github.com/yybmion/public-apis-4Kr">github.com/yybmion/public-apis-4Kr</a></li>
+      <li>전월세 실거래가 API 활용 사례 — <a href="https://glama.ai/mcp/servers/su8729/ziplife-navi-mcp/tree">glama.ai</a></li>
+      <li>ODsay 대중교통 경로 API 활용 가이드 — <a href="https://raw.githubusercontent.com/nomadamas/k-skill/main/korean-transit-route/SKILL.md">github (k-skill)</a></li>
+      <li>호갱노노 출퇴근 필터 — <a href="https://weolbu.com/community/4111973/property-check-tips">weolbu.com</a> · 앱 기능 — <a href="https://apps.apple.com/vn/app/%ED%98%B8%EA%B0%B1%EB%85%B8%EB%85%B8/id1084799742">App Store</a></li>
+    </ul>
+  </footer>
+
+</div>
+<script>
+  (function(){
+    var btn=document.getElementById('themebtn'), root=document.documentElement;
+    function cur(){var t=root.getAttribute('data-theme');if(t)return t;return matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    btn.addEventListener('click',function(){root.setAttribute('data-theme',cur()==='dark'?'light':'dark');});
+  })();
+</script>
+</body>
+</html>

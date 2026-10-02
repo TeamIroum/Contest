@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>민원 내비 · 양주시 AI 민원 사전점검</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=Do+Hyeon&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F7F4; --paper:#FFFFFF; --ink:#16231D; --sub:#55635C; --line:#D6DDD8;
+  --sign:#00694B; --sign-ink:#FFFFFF; --amber:#E8A317; --amber-bg:#FFF5DC;
+  --ok:#1F8A55; --ok-bg:#E5F4EC; --chk:#5E6B8A; --chk-bg:#ECEFF6;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1613; --paper:#18221D; --ink:#E7EEEA; --sub:#9DAAA3; --line:#2C3A33;
+    --sign:#0E8A63; --amber:#F0B63A; --amber-bg:#3A2F12; --ok:#4CC08A; --ok-bg:#163527; --chk:#A6B2D2; --chk-bg:#232A3B;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1613; --paper:#18221D; --ink:#E7EEEA; --sub:#9DAAA3; --line:#2C3A33;
+  --sign:#0E8A63; --amber:#F0B63A; --amber-bg:#3A2F12; --ok:#4CC08A; --ok-bg:#163527; --chk:#A6B2D2; --chk-bg:#232A3B;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:17px;line-height:1.7;word-break:keep-all}
+.wrap{max-width:1040px;margin:0 auto;padding:0 22px}
+h1,h2,h3{font-family:"Do Hyeon","IBM Plex Sans KR",sans-serif;font-weight:400;line-height:1.25;margin:0}
+h2{font-size:clamp(28px,4vw,38px);margin-bottom:14px}
+h3{font-size:22px;margin-bottom:6px}
+p{margin:0 0 12px;max-width:66ch}
+section{padding:72px 0;border-top:1px solid var(--line)}
+.lead{color:var(--sub);font-size:18px}
+a{color:var(--sign)}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+
+/* hero: road-sign panel */
+.hero{background:var(--sign);color:var(--sign-ink);padding:56px 0 64px}
+.hero .who{font-size:14px;opacity:.85;margin-bottom:28px}
+.hero h1{font-size:clamp(56px,10vw,104px);letter-spacing:-1px}
+.hero .say{font-size:clamp(20px,2.6vw,26px);margin:10px 0 40px;max-width:30ch;line-height:1.5}
+.route{position:relative;display:grid;grid-template-columns:repeat(6,1fr);gap:0;margin-top:8px}
+.route::before{content:"";position:absolute;left:8%;right:8%;top:22px;height:6px;background:rgba(255,255,255,.35);border-radius:3px}
+.route .fill{position:absolute;left:8%;top:22px;height:6px;width:0;background:var(--amber);border-radius:3px;transition:width 1.6s cubic-bezier(.4,0,.2,1)}
+.stop{position:relative;text-align:center;font-size:15px;line-height:1.35}
+.stop i{display:block;width:50px;height:50px;margin:0 auto 10px;border-radius:50%;background:var(--sign);border:4px solid rgba(255,255,255,.55);font-style:normal;font-family:"Do Hyeon",sans-serif;font-size:20px;line-height:42px;transition:border-color .3s,background .3s}
+.stop.lit i{border-color:var(--amber);background:#0B573F}
+.stop small{display:block;opacity:.8;font-size:13px}
+@media (prefers-reduced-motion:reduce){.route .fill{transition:none}}
+@media (max-width:640px){
+  .route{grid-template-columns:1fr;gap:14px}
+  .route::before,.route .fill{display:none}
+  .stop{display:flex;align-items:center;gap:14px;text-align:left}
+  .stop i{margin:0;flex:none}
+}
+
+/* problem */
+.pains{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:2px;background:var(--line);border:1px solid var(--line);margin-top:28px}
+.pain{background:var(--paper);padding:22px}
+.pain b{display:block;font-size:18px;margin-bottom:6px}
+.pain q{display:block;color:var(--sub);font-size:15px;quotes:none;margin-bottom:10px}
+.pain span{font-size:14px;color:var(--amber);font-weight:700}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pain span{color:var(--amber)}}
+
+/* demo */
+.demo{display:grid;grid-template-columns:1.05fr 1fr;gap:28px;margin-top:28px;align-items:start}
+@media (max-width:820px){.demo{grid-template-columns:1fr}}
+.form{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:22px}
+.form label{font-weight:700;font-size:15px;display:block;margin-bottom:8px}
+textarea{width:100%;min-height:130px;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:12px;resize:vertical}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.chips button{font:inherit;font-size:14px;padding:6px 12px;border-radius:20px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
+.chips button:hover{border-color:var(--sign)}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.btn{font:inherit;font-weight:700;font-size:15px;padding:11px 18px;border-radius:4px;border:2px solid var(--sign);cursor:pointer}
+.btn.main{background:var(--sign);color:#fff}
+.btn.alt{background:transparent;color:var(--sign)}
+.note{font-size:13px;color:var(--sub);margin-top:14px}
+.result{display:grid;gap:10px}
+.result .empty{border:1px dashed var(--line);border-radius:6px;padding:28px;color:var(--sub);text-align:center}
+.card{border-radius:6px;padding:14px 16px;border-left:5px solid}
+.card.ok{background:var(--ok-bg);border-color:var(--ok)}
+.card.warn{background:var(--amber-bg);border-color:var(--amber)}
+.card.chk{background:var(--chk-bg);border-color:var(--chk)}
+.card .t{display:flex;justify-content:space-between;gap:10px;font-weight:700}
+.card .t em{font-style:normal;font-size:13px;white-space:nowrap}
+.card p{font-size:15px;margin:4px 0 0}
+.toast{font-size:14px;padding:10px 14px;border-radius:4px;background:var(--ink);color:var(--bg);display:none}
+
+/* flow */
+.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:28px;counter-reset:f}
+@media (max-width:820px){.flow{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.flow{grid-template-columns:1fr}}
+.step{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:18px;position:relative}
+.step .who{display:inline-block;font-size:13px;font-weight:700;padding:2px 8px;border-radius:3px;margin-bottom:10px}
+.step .who.llm{background:var(--chk-bg);color:var(--chk)}
+.step .who.rule{background:var(--sign);color:#fff}
+.step p{font-size:15px;margin:0}
+.callout{margin-top:20px;padding:16px 18px;border-radius:6px;background:var(--amber-bg);font-size:15px}
+
+/* principles */
+.rules{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:28px}
+@media (max-width:820px){.rules{grid-template-columns:1fr}}
+.rule h3{border-bottom:3px solid var(--sign);padding-bottom:6px;display:inline-block}
+.rule p{font-size:16px;color:var(--sub)}
+
+/* compare */
+.tbl{overflow-x:auto;margin-top:24px;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;min-width:560px;background:var(--paper);font-size:15px}
+th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+thead th{background:var(--bg);font-weight:700}
+td:last-child,th:last-child{background:color-mix(in srgb,var(--sign) 9%,var(--paper))}
+tr:last-child td{border-bottom:0}
+
+/* model tiers */
+.tiers{margin-top:24px;display:grid;gap:10px}
+.tier{display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:start;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:14px 16px}
+.tier b.n{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--sign);color:#fff;font-family:"Do Hyeon",sans-serif;font-size:20px}
+.tier:nth-child(2) b.n{background:color-mix(in srgb,var(--sign) 65%,var(--paper))}
+.tier:nth-child(3) b.n{background:color-mix(in srgb,var(--sign) 40%,var(--paper));color:var(--ink)}
+.tier p{margin:2px 0 0;font-size:15px;color:var(--sub)}
+
+footer{padding:40px 0 56px;border-top:1px solid var(--line);font-size:14px;color:var(--sub)}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="who">2026 양주시 미래인재 AI 공모전 · 함께하는 양주 · 팀 이로움</div>
+    <h1>민원 내비</h1>
+    <p class="say">제출 버튼을 누르기 전에, 내 민원이 제대로 갈 수 있는지 먼저 확인해 드립니다.</p>
+    <div class="route" id="route" aria-label="민원 내비 점검 경로">
+      <div class="fill" id="fill"></div>
+      <div class="stop"><i>✎</i>민원 작성<small>평소처럼</small></div>
+      <div class="stop"><i>1</i>소관<small>어디 일인가</small></div>
+      <div class="stop"><i>2</i>처리 가능성<small>시가 할 수 있나</small></div>
+      <div class="stop"><i>3</i>중복<small>이미 접수됐나</small></div>
+      <div class="stop"><i>4</i>필수 정보<small>찾아갈 수 있나</small></div>
+      <div class="stop"><i>✓</i>제출<small>한 번에 접수</small></div>
+    </div>
+  </div>
+</header>
+
+<main>
+<section>
+  <div class="wrap">
+    <h2>시민은 "쓰기 귀찮다"보다 "이게 맞나"에서 막힙니다</h2>
+    <p class="lead">아래 네 가지는 모두 접수된 뒤가 아니라, 접수하기 전에 막을 수 있는 문제입니다.</p>
+    <div class="pains">
+      <div class="pain"><b>어디 일인지 모름</b><q>도로가 파였는데, 국도인지 시도인지 모르겠어요.</q><span>다른 기관으로 이송, 수 주 지연</span></div>
+      <div class="pain"><b>할 수 있는 일인지 모름</b><q>단지 안 가로등이 꺼졌어요.</q><span>"조치 곤란" 통보 후 다시 관리사무소로</span></div>
+      <div class="pain"><b>이미 접수됐는지 모름</b><q>같은 구멍을 이웃 다섯 명이 각각 신고</q><span>같은 일이 여러 건으로 처리</span></div>
+      <div class="pain"><b>정보가 빠짐</b><q>삼숭동 앞 도로가 파여 있어요.</q><span>담당자 재확인 전화, 처리 지연</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="try">
+  <div class="wrap">
+    <h2>직접 점검해 보세요</h2>
+    <p class="lead">예시를 고르거나 직접 적고 '미리 점검'을 누르면 네 가지 결과가 나옵니다.</p>
+    <div class="demo">
+      <div class="form">
+        <label for="txt">민원 내용</label>
+        <textarea id="txt" placeholder="예: 덕정역 2번 출구 앞 인도 보도블록이 깨졌어요"></textarea>
+        <div class="chips" id="chips">
+          <button type="button" data-ex="0">위치가 모호한 도로 파손</button>
+          <button type="button" data-ex="1">단지 안 가로등</button>
+          <button type="button" data-ex="2">국도 갓길 파손</button>
+          <button type="button" data-ex="3">잘 쓴 인도 파손</button>
+        </div>
+        <div class="btns">
+          <button type="button" class="btn main" id="run">미리 점검</button>
+          <button type="button" class="btn alt" id="send">그냥 제출</button>
+        </div>
+        <p class="note">이 시연은 공모전 설명용 예시 규칙으로 동작합니다. 실제 서비스는 아래 구조처럼 양주시 규칙 데이터로 판정합니다. '그냥 제출'은 점검 결과와 상관없이 언제나 누를 수 있습니다.</p>
+      </div>
+      <div class="result" id="out" aria-live="polite">
+        <div class="empty">점검 결과가 여기에 표시됩니다.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>판정은 규칙이, 이해와 설명은 AI가</h2>
+    <p class="lead">모두 AI에 맡기면 없는 근거를 지어낼 수 있고, 모두 규칙으로 짜면 시민의 말을 알아듣지 못합니다. 그래서 역할을 나눴습니다.</p>
+    <div class="flow">
+      <div class="step"><span class="who llm">AI</span><h3>뜻 읽기</h3><p>시민이 쓴 글에서 시설 종류, 위치, 시기, 요구사항을 뽑아냅니다.</p></div>
+      <div class="step"><span class="who rule">규칙</span><h3>판정</h3><p>양주시 사무분장 규칙, 도로 관리주체 자료, 민원처리법 조문과 대조합니다.</p></div>
+      <div class="step"><span class="who llm">AI</span><h3>쉬운 설명</h3><p>판정 결과를 시민의 말로 풀고, 빠진 정보는 예시와 함께 보완을 권합니다.</p></div>
+      <div class="step"><span class="who rule">규칙</span><h3>물러서기</h3><p>판정 근거가 약하면 단정하지 않고 '확인 필요'로 표시한 뒤 그대로 접수합니다.</p></div>
+    </div>
+    <div class="callout">"AI가 틀리면 어떻게 하나요?"에 대한 답이 이 구조입니다. 최종 판정의 근거는 언제나 양주시 규칙 데이터에서 나옵니다.</div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>문지기가 아니라 길잡이</h2>
+    <div class="rules">
+      <div class="rule"><h3>막지 않습니다</h3><p>모든 안내는 권고입니다. 경고가 떠도 그대로 제출하는 버튼은 항상 열려 있습니다.</p></div>
+      <div class="rule"><h3>막다른 길이 없습니다</h3><p>"처리 불가"로 끝내지 않고, 시 소관이 아니면 맞는 곳을, 처분에 불만이면 시민옴부즈만 같은 창구를 알려줍니다.</p></div>
+      <div class="rule"><h3>모르면 물러섭니다</h3><p>애매한 경우를 단정하는 것이 가장 큰 사고입니다. 확신이 없으면 '확인 필요'로 넘깁니다.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>국가 AI 민원 플랫폼과 경쟁하지 않습니다</h2>
+    <p class="lead">국민권익위원회의 AI 민원 플랫폼은 중앙부처부터 도입될 예정입니다. 민원 내비는 그 위에 양주의 지역 지식을 더하는 층입니다.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>구분</th><th>국가 AI 민원 플랫폼</th><th>민원 내비</th></tr></thead>
+        <tbody>
+          <tr><td>범위</td><td>전국, 중앙부처 우선</td><td>양주시</td></tr>
+          <tr><td>판정 단위</td><td>어느 기관으로 보낼까</td><td>시 안의 어느 부서인가, 시가 해결할 수 있는가</td></tr>
+          <tr><td>근거 데이터</td><td>범정부 민원 분류 체계</td><td>양주시 사무분장, 지역 도로·시설 관리주체</td></tr>
+          <tr><td>설치 방식</td><td>국가 플랫폼</td><td>양주시 홈페이지 민원 창구에 붙는 위젯</td></tr>
+          <tr><td>관계</td><td colspan="2">국가 플랫폼이 지자체로 확대되면, 민원 내비의 지역 규칙 데이터를 그대로 연결할 수 있습니다.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>AI 모델은 공공 기반부터</h2>
+    <p class="lead">별도 앱을 만들지 않고 기존 홈페이지에 붙이므로 개발·배포·홍보 비용이 거의 들지 않습니다. 모델은 아래 순서로 검토합니다.</p>
+    <div class="tiers">
+      <div class="tier"><b class="n">1</b><div><b>범정부 AI 공통기반</b><p>2026년 8월 개정 AI 행정 법령 아래 행정기관이 우선 활용하는 공통 기반</p></div></div>
+      <div class="tier"><b class="n">2</b><div><b>국산 오픈소스 파운데이션 모델</b><p>업스테이지, SKT, LG, HyperCLOVA X 경량 모델 등을 시 환경에 설치</p></div></div>
+      <div class="tier"><b class="n">3</b><div><b>국내 상용 API</b><p>CSAP 인증 클라우드 안에서 이용</p></div></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">민원 내비 · AI 민원 사전점검 도우미<br>팀 이로움 — 황상진, 이소미, 이승재 · 2026 양주시 미래인재 AI 공모전</div>
+</footer>
+
+<script>
+(function(){
+  var stops=[].slice.call(document.querySelectorAll('.stop'));
+  var fill=document.getElementById('fill');
+  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function light(){
+    fill.style.width='84%';
+    stops.forEach(function(s,i){ setTimeout(function(){s.classList.add('lit');}, reduce?0:i*260); });
+  }
+  setTimeout(light, reduce?0:400);
+
+  var EX=[
+    "삼숭동 앞 도로가 크게 파여 있어요. 위험합니다.",
+    "옥정동 아파트 단지 안 가로등이 일주일째 꺼져 있어요. 고쳐주세요.",
+    "국도 3호선 회천 방향 갓길이 파손돼서 오토바이가 위험해요.",
+    "덕정역 2번 출구 앞 인도 보도블록 3장이 깨졌어요. 어제 저녁부터 보였고, 교체 부탁드립니다."
+  ];
+  var txt=document.getElementById('txt'), out=document.getElementById('out');
+  document.getElementById('chips').addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    txt.value=EX[+b.dataset.ex]; check();
+  });
+
+  function card(k,title,tag,body){
+    return '<div class="card '+k+'"><div class="t"><span>'+title+'</span><em>'+tag+'</em></div><p>'+body+'</p></div>';
+  }
+  function has(s,arr){return arr.some(function(w){return s.indexOf(w)>-1;});}
+
+  function check(){
+    var s=txt.value.trim();
+    if(!s){out.innerHTML='<div class="empty">민원 내용을 적거나 예시를 골라 주세요.</div>';return;}
+    var r=[];
+    var apt=has(s,['단지','아파트','관리사무소']);
+    var national=has(s,['국도','고속도로']);
+    var facility=has(s,['도로','인도','보도','가로등','블록','갓길','맨홀','신호','공원','하수']);
+
+    // 1 소관
+    if(apt) r.push(card('warn','① 소관','다른 곳 담당','공동주택 단지 안 시설은 보통 관리사무소가 관리합니다. 관리사무소에 먼저 알리시는 것이 가장 빠릅니다.'));
+    else if(national) r.push(card('warn','① 소관','다른 기관 담당','국도는 국토교통부 국토관리사무소 소관입니다. 이 창구로 내시면 이송되어 시간이 더 걸립니다. 국민신문고에서 해당 기관을 지정해 주세요.'));
+    else if(facility) r.push(card('ok','① 소관','양주시','시가 관리하는 도로·보도 시설로 보입니다. 담당 부서로 바로 전달됩니다.'));
+    else r.push(card('chk','① 소관','확인 필요','어느 시설인지 판정하기 어렵습니다. 그대로 접수하면 담당자가 확인합니다.'));
+
+    // 2 처리 가능성
+    if(apt) r.push(card('warn','② 처리 가능성','시 조치 어려움','사유 시설이라 시가 직접 고치기는 어렵습니다. 관리주체가 응하지 않으면 공동주택 관리 민원으로 다시 안내해 드립니다.'));
+    else if(national) r.push(card('chk','② 처리 가능성','해당 기관 판단','처리 여부는 국토관리사무소가 판단합니다.'));
+    else if(facility) r.push(card('ok','② 처리 가능성','조치 가능','보수 요청은 시가 처리할 수 있는 일반 민원입니다.'));
+    else r.push(card('chk','② 처리 가능성','확인 필요','처리 근거를 판정하지 못했습니다. 접수 후 담당자가 검토합니다.'));
+
+    // 3 중복
+    if(has(s,['삼숭동'])) r.push(card('warn','③ 중복','비슷한 접수 1건','근처에서 같은 내용이 이미 접수돼 처리 중입니다(시연용 가상 사례). 새로 내는 대신 기존 건에 의견을 보태면 더 빨리 반영됩니다.'));
+    else r.push(card('ok','③ 중복','없음','같은 위치·같은 시설로 처리 중인 건이 없습니다.'));
+
+    // 4 필수 정보
+    var miss=[];
+    var placeOK=has(s,['역','출구','번지','앞 ','사거리','교차로','정류장','호선','동 ','단지']) && !/^[가-힣]+동 앞/.test(s);
+    if(/[가-힣]+동 앞 도로/.test(s)) placeOK=false;
+    if(!placeOK) miss.push('위치(가까운 건물명, 정류장, 전신주 번호 등)');
+    if(!has(s,['어제','오늘','부터','째','일 ','주','시경','저녁','아침'])) miss.push('언제부터인지');
+    if(!has(s,['고쳐','교체','보수','부탁','요청','주세요','설치','정비'])) miss.push('원하시는 조치');
+    if(miss.length) r.push(card('warn','④ 필수 정보','보완 권장','담당자가 다시 연락하지 않도록 '+miss.join(', ')+'을(를) 적어 주세요.'));
+    else r.push(card('ok','④ 필수 정보','충분','위치, 시기, 요청 내용이 모두 있어 담당자가 바로 현장을 찾을 수 있습니다.'));
+
+    out.innerHTML=r.join('')+'<div class="toast" id="toast"></div>';
+  }
+  document.getElementById('run').addEventListener('click',check);
+  document.getElementById('send').addEventListener('click',function(){
+    if(!out.querySelector('#toast')) out.insertAdjacentHTML('beforeend','<div class="toast" id="toast"></div>');
+    var t=document.getElementById('toast');
+    t.textContent='제출되었습니다. 점검 결과와 상관없이 접수는 언제나 가능합니다. (시연)';
+    t.style.display='block';
+  });
+})();
+</script>
+</body>
+</html>
