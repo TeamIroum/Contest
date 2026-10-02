@@ -86,6 +86,12 @@
   .lede b{color:var(--ink)}
   .how{margin:26px 0 0;padding:16px 18px;border-radius:14px;background:var(--paper);color:var(--ink);font-size:14.5px;border:1px solid var(--line)}
   .how b{color:var(--ink)}
+  .qbox{display:grid;gap:4px;text-decoration:none;color:var(--ink);background:var(--leaf-soft);border:1px solid color-mix(in srgb,var(--green) 28%,transparent);border-left:5px solid var(--green);padding:18px 20px}
+  .qbox:hover{border-color:color-mix(in srgb,var(--green) 55%,transparent);border-left-color:var(--green)}
+  .qbox .qt{font-weight:750;font-size:17px;color:var(--green)}
+  .qbox .qd{color:var(--muted)}
+  .qbox .qd b{color:var(--ink);font-weight:650}
+  .qbox .qg{justify-self:start;margin-top:8px;font-size:13.5px;font-weight:700;color:var(--cream);background:var(--green);border-radius:9px;padding:6px 12px}
   .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:30px}
   @media (max-width:700px){.cards{grid-template-columns:1fr}}
   .card{display:grid;grid-template-columns:40px 1fr;gap:14px;padding:18px;border-radius:16px;background:var(--paper);border:1px solid var(--line);box-shadow:var(--shadow);text-decoration:none;color:var(--ink)}
@@ -95,7 +101,7 @@
   .card .nm{font-weight:750;font-size:16.5px;letter-spacing:-.01em}
   .card .ds{font-size:13.5px;color:var(--muted);margin-top:3px}
   .card .go{font-size:13px;font-weight:600;color:var(--muted);margin-top:10px}
-  .start{margin-top:28px}
+  .start{margin-top:28px;display:flex;flex-wrap:wrap;gap:10px}
   .foot{margin-top:40px;font-size:12.5px;color:var(--faint)}
 
   [hidden]{display:none!important}
@@ -134,6 +140,7 @@
       <span class="sp"></span>
       <button class="btn" id="prev" type="button" aria-label="이전 기획안">← <span class="lbl">이전</span></button>
       <button class="btn pri" id="next" type="button" aria-label="다음 기획안"><span class="lbl">다음</span> →</button>
+      <a class="btn" id="qbtn" href="#" aria-label="이 기획안 질문 보기">? <span class="lbl">질문</span></a>
       <a class="btn" id="open" href="#" target="_blank" rel="noopener" aria-label="새 창으로 열기">↗ <span class="lbl">새 창</span></a>
     </div>
     <div class="frame" id="frame" hidden><iframe id="doc" title="기획안"></iframe></div>
@@ -142,9 +149,8 @@
       <div class="home-in">
         <div class="hero-mark"><img class="logo" src="" data-logo alt="" width="256" height="256"><div><h1>Team IROUM</h1><p>팀 이로움 · 2026 양주시 미래인재 AI 공모전</p></div></div>
         <p class="lede">양주 시민에게 <b>이로운</b> AI 서비스를 기획하고 있습니다. 멘토링에서 검토받을 기획안 다섯 개를 순서대로 모았습니다.</p>
-        <div class="how"><b>보는 방법</b> — 왼쪽 목록이나 아래 카드에서 기획안을 고르고, 위쪽 <b>이전 · 다음</b> 버튼으로 순서대로 넘겨 보시면 됩니다. 각 기획안은 <b>새 창</b> 버튼으로 크게 열 수도 있습니다.</div>
+        <a class="how qbox" href="#questions"><span class="qt">멘토링 사전 질문</span><span class="qd">공통 질문 6개와 기획안별 질문 27개를 정리했습니다. 기획안을 보다가 위쪽 <b>? 질문</b> 버튼을 누르면 그 기획안의 질문으로 바로 이동합니다.</span><span class="qg">사전 질문 보기 →</span></a>
         <div class="cards" id="cards"></div>
-        <div class="start"><a class="btn pri" id="startbtn" href="#">첫 기획안부터 보기 →</a></div>
         <p class="foot">© Team IROUM. 기획안의 모든 내용은 팀 이로움에 저작권이 있습니다.</p>
       </div>
     </div>
@@ -162,7 +168,7 @@
     { id: "yangju-mirisalgi", title: "양주 미리살기", desc: "AI 생활권 시뮬레이터" },
     { id: "yangju-jangbaguni", title: "양주 장바구니", desc: "영수증·가격표로 만드는 동네 물가지도" },
     { id: "yangju-airang", title: "양주 아이랑", desc: "아이 나이에 맞춘 나들이·돌봄 정보 지도" },
-    { id: "minwon-navi",   title: "민원 네비게이션", desc: "제출 전 AI 민원 사전점검" },
+    { id: "minwon-navi",   title: "민원 내비게이션", desc: "제출 전 AI 민원 사전점검" },
     { id: "gongsa-radar",  title: "공사 레이더",   desc: "우리 집 앞 공사, 일어나기 전에 알림" }
   ];
 
@@ -175,7 +181,8 @@
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 
   var homeLi = '<li><a class="home" href="#home" data-id="home"><span class="n">⌂</span><span class="nm">처음 화면</span></a></li>';
-  nav.innerHTML = homeLi + DOCS.map(function(d, i){
+  var qLi = '<li><a href="#questions" data-id="questions"><span class="n">?</span><span><span class="nm">멘토링 사전 질문</span><span class="ds">공통 질문과 기획안별 질문</span></span></a></li>';
+  nav.innerHTML = homeLi + qLi + DOCS.map(function(d, i){
     return '<li><a href="#' + d.id + '" data-id="' + d.id + '"><span class="n">' + (i + 1) + '</span><span><span class="nm">' + esc(d.title) + '</span>' +
       (d.desc ? '<span class="ds">' + esc(d.desc) + '</span>' : '') + '</span></a></li>';
   }).join('');
@@ -183,14 +190,30 @@
     return '<a class="card" href="#' + d.id + '"><span class="n">' + (i + 1) + '</span><span><div class="nm">' + esc(d.title) + '</div>' +
       (d.desc ? '<div class="ds">' + esc(d.desc) + '</div>' : '') + '<div class="go">기획안 보기 →</div></span></a>';
   }).join('');
-  document.getElementById('startbtn').href = '#' + DOCS[0].id;
 
   function closeMenu(){ side.classList.remove('open'); scrim.hidden = true; menu.setAttribute('aria-expanded', 'false'); }
   menu.addEventListener('click', function(){ side.classList.add('open'); scrim.hidden = false; menu.setAttribute('aria-expanded', 'true'); });
   scrim.addEventListener('click', closeMenu);
 
+  var qbtn = document.getElementById('qbtn');
   function route(){
     var id = decodeURIComponent(location.hash.slice(1)) || 'home';
+    if (id === 'questions' || id.indexOf('questions/') === 0){
+      var sub = id.split('/')[1] || '', qurl = 'questions.html' + (sub ? '#' + sub : '');
+      nav.querySelectorAll('a').forEach(function(a){
+        if (a.dataset.id === 'questions') a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+      });
+      closeMenu();
+      homeEl.hidden = true; bar.hidden = false; frame.hidden = false;
+      iframe.setAttribute('src', qurl);
+      iframe.title = '멘토링 사전 질문';
+      cur.textContent = '멘토링 사전 질문'; pos.textContent = '';
+      prev.hidden = true; next.hidden = true; qbtn.hidden = true;
+      open.href = qurl;
+      document.title = '멘토링 사전 질문 · Team IROUM';
+      return;
+    }
+    prev.hidden = false; next.hidden = false; qbtn.hidden = false;
     var idx = -1;
     for (var i = 0; i < DOCS.length; i++) if (DOCS[i].id === id) idx = i;
     nav.querySelectorAll('a').forEach(function(a){
@@ -209,6 +232,7 @@
     cur.textContent = d.title;
     pos.textContent = (idx + 1) + ' / ' + DOCS.length;
     open.href = url;
+    qbtn.href = '#questions/' + d.id;
     prev.disabled = idx === 0;
     next.disabled = idx === DOCS.length - 1;
     prev.onclick = function(){ location.hash = DOCS[idx - 1].id; };
