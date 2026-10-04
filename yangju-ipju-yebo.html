@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="양주 입주 예보 — 새 아파트 단지가 입주하기 전에 AI가 아이 물결이 어린이집·학교·돌봄·등교길을 언제, 얼마 동안 지나갈지 예보해 양주시와 교육지원청이 미리 대비하게 하는 서비스. 2026 양주시 미래인재 AI 공모전">
+<title>양주 입주 예보 · 프로젝트 개요</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+  :root{
+    --bg:#F4F6FA; --card:#FFFFFF; --card-2:#EAF2FD;
+    --ink:#1D2B3A; --muted:#5A6B7D; --faint:#93A2B3; --line:#DCE6F2;
+    --sun:#F2A516; --sun-soft:#FDF0D5; --sun-ink:#8A5A00;
+    --sky:#3554D1; --sky-soft:#E1E7FB;
+    --grass:#22A45D; --grass-soft:#DAF4E5;
+    --alert:#F2544A; --alert-soft:#FFE3E0;
+    --shadow:0 1px 2px rgba(29,43,58,.05),0 14px 30px -18px rgba(29,43,58,.3);
+    --display:"Do Hyeon","Noto Sans KR",system-ui,sans-serif;
+    --body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0F1620; --card:#18222E; --card-2:#1F2C3B;
+      --ink:#E9F0F8; --muted:#A3B2C2; --faint:#6D7C8D; --line:#2A3746;
+      --sun:#FFD25E; --sun-soft:#3A2F12; --sun-ink:#FFD25E;
+      --sky:#6FA8FF; --sky-soft:#15283F;
+      --grass:#4CCB84; --grass-soft:#13301F;
+      --alert:#FF7A70; --alert-soft:#3A1A18;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 16px 34px -18px rgba(0,0,0,.7);
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0F1620; --card:#18222E; --card-2:#1F2C3B;
+    --ink:#E9F0F8; --muted:#A3B2C2; --faint:#6D7C8D; --line:#2A3746;
+    --sun:#FFD25E; --sun-soft:#3A2F12; --sun-ink:#FFD25E;
+    --sky:#6FA8FF; --sky-soft:#15283F;
+    --grass:#4CCB84; --grass-soft:#13301F;
+    --alert:#FF7A70; --alert-soft:#3A1A18;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 16px 34px -18px rgba(0,0,0,.7);
+    color-scheme:dark;
+  }
+  :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  html{scroll-padding-top:env(safe-area-inset-top,0px)}
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.7;-webkit-font-smoothing:antialiased;word-break:keep-all}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 20px}
+  h1,h2,h3{margin:0;text-wrap:balance}
+  p{margin:0}
+  :focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+
+  .top{display:flex;justify-content:space-between;align-items:center;padding:18px 0;font-size:13px;color:var(--muted)}
+  .themebtn{border:1px solid var(--line);background:var(--card);color:var(--muted);width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:15px}
+
+  /* hero */
+  .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:30px 0 56px}
+  @media (max-width:820px){.hero{grid-template-columns:1fr;gap:30px}}
+  .badge{display:inline-flex;align-items:center;gap:10px}
+  .badge .paw{width:54px;height:54px;border-radius:50%;background:var(--sun);display:grid;place-items:center;box-shadow:inset 0 -4px 0 rgba(0,0,0,.08)}
+  .badge .paw svg{width:30px;height:30px;color:#1D2B3A}
+  .hero .name{font-family:var(--display);font-size:clamp(44px,7vw,64px);white-space:nowrap;line-height:1;color:var(--ink)}
+  .hero h1{font-size:clamp(22px,3.4vw,30px);font-weight:900;line-height:1.4;margin-top:20px;letter-spacing:-.015em}
+  .hero h1 .h1l{display:inline-block}
+  .hero h1 em{font-style:normal;background:linear-gradient(transparent 60%,var(--sun) 0)}
+  .hero .lede{color:var(--muted);font-size:16px;margin-top:14px;max-width:52ch}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .chip{font-size:13px;font-weight:500;padding:6px 12px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
+  .chip b{color:var(--sky);font-weight:700}
+
+  /* alert mock (signature) */
+  .phone{background:var(--card);border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow);padding:16px;max-width:380px;margin-left:auto}
+  @media (max-width:820px){.phone{margin:0 auto}}
+  .alertcard{background:var(--alert-soft);border-radius:18px;padding:16px}
+  .alertcard .h{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--alert)}
+  .alertcard .h::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--alert);box-shadow:0 0 0 4px color-mix(in srgb,var(--alert) 25%,transparent)}
+  .pet{display:flex;gap:12px;align-items:center;margin-top:10px}
+  .pet .pic{width:64px;height:64px;border-radius:16px;background:var(--sun-soft);display:grid;place-items:center;font-size:34px;flex:none}
+  .pet strong{font-family:var(--display);font-size:24px;font-weight:400;line-height:1.1;display:block}
+  .pet span{font-size:13px;color:var(--muted)}
+  .match{margin-top:12px;border:2px dashed var(--line);border-radius:18px;padding:14px}
+  .match .t{font-size:12.5px;font-weight:700;color:var(--muted)}
+  .match .row{display:flex;align-items:center;gap:10px;margin-top:8px}
+  .match .pic2{width:48px;height:48px;border-radius:12px;background:var(--card-2);display:grid;place-items:center;font-size:24px;flex:none}
+  .match .lv{margin-left:auto;font-size:12.5px;font-weight:700;color:var(--grass);background:var(--grass-soft);border-radius:999px;padding:4px 10px;white-space:nowrap}
+  .match p{font-size:13px;color:var(--muted)}
+  .btns{display:flex;gap:8px;margin-top:12px}
+  .btns span{flex:1;text-align:center;font-size:13px;font-weight:700;border-radius:12px;padding:10px 6px}
+  .btns .yes{background:var(--sky);color:#fff}
+  .btns .no{background:var(--card-2);color:var(--muted)}
+  .demo{font-size:12px;color:var(--faint);text-align:center;margin-top:10px}
+
+  section{padding:46px 0;border-top:1px solid var(--line)}
+  h2{font-size:clamp(22px,3.4vw,29px);font-weight:900;letter-spacing:-.015em}
+  .intro{color:var(--muted);margin-top:10px;max-width:64ch;font-size:15px}
+  .grid{display:grid;gap:14px;margin-top:24px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  @media (max-width:820px){.g3,.g4{grid-template-columns:1fr 1fr}}
+  @media (max-width:560px){.g2,.g3,.g4{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
+  .card h3{font-size:16.5px;font-weight:700;letter-spacing:-.01em}
+  .card p{color:var(--muted);font-size:14px;margin-top:7px}
+  .card .ic{font-size:24px;display:block;margin-bottom:10px}
+
+  /* policy timeline */
+  .policy{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch;margin-top:24px}
+  @media (max-width:720px){.policy{grid-template-columns:1fr}.policy .arrow{transform:rotate(90deg);justify-self:center}}
+  .pol{border-radius:18px;padding:20px;border:1px solid var(--line);background:var(--card)}
+  .pol.now{background:var(--sun-soft);border-color:transparent}
+  .pol .when{font-size:13px;font-weight:700;color:var(--muted)}
+  .pol.now .when{color:var(--sun-ink)}
+  .pol h3{font-size:17px;font-weight:700;margin-top:4px}
+  .pol ul{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:14px}
+  .pol ul li+li{margin-top:4px}
+  .arrow{display:grid;place-items:center;font-size:22px;color:var(--faint);font-weight:700}
+
+  /* missions */
+  .missions{display:grid;gap:16px;margin-top:24px}
+  .mission{display:grid;grid-template-columns:auto 1fr;gap:18px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:var(--shadow)}
+  @media (max-width:560px){.mission{grid-template-columns:1fr}}
+  .mission .mk{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;font-size:30px}
+  .m1 .mk{background:var(--alert-soft)} .m2 .mk{background:var(--sky-soft)} .m3 .mk{background:var(--grass-soft)}
+  .mission .who{font-size:13px;font-weight:700}
+  .m1 .who{color:var(--alert)} .m2 .who{color:var(--sky)} .m3 .who{color:var(--grass)}
+  .mission h3{font-size:19px;font-weight:900;margin-top:2px}
+  .mission p{color:var(--muted);font-size:14.5px;margin-top:6px}
+  .mission .ai{margin-top:12px;font-size:13.5px;background:var(--card-2);border-radius:12px;padding:10px 14px;color:var(--ink)}
+  .mission .ai b{color:var(--sky)}
+
+  /* flow */
+  .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:24px;counter-reset:f}
+  @media (max-width:860px){.flow{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.flow{grid-template-columns:1fr}}
+  .fstep{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .fstep::before{counter-increment:f;content:counter(f);display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--sun);color:#1D2B3A;font-weight:900;font-size:14px;margin-bottom:10px}
+  .fstep h3{font-size:15px;font-weight:700}
+  .fstep p{color:var(--muted);font-size:13px;margin-top:5px}
+
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+  @media (max-width:560px){.split{grid-template-columns:1fr}}
+  .split div{border-radius:14px;padding:14px 16px;font-size:14px}
+  .split .a{background:var(--sky-soft);color:var(--sky)}
+  .split .p{background:var(--sun-soft);color:var(--sun-ink)}
+  .split b{display:block;font-size:13px;margin-bottom:4px}
+
+  .life{display:grid;grid-template-columns:repeat(4,1fr);margin-top:24px;background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}
+  @media (max-width:820px){.life{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.life{grid-template-columns:1fr}}
+  .life > div{padding:18px;border-right:1px solid var(--line)}
+  .life > div:last-child{border-right:0;background:var(--grass-soft)}
+  @media (max-width:820px){.life > div{border-bottom:1px solid var(--line)}}
+  .life .s{font-weight:900;color:var(--grass);font-size:14px}
+  .life h3{font-size:15px;font-weight:700;margin-top:4px}
+  .life p{color:var(--muted);font-size:13.5px;margin-top:6px}
+
+  .tbl{overflow-x:auto;margin-top:24px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
+  table{width:100%;border-collapse:collapse;font-size:14px;min-width:600px}
+  th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:13px;color:var(--muted);font-weight:700;background:var(--card-2)}
+  tr:last-child td{border-bottom:0}
+  td.me,th.me{background:color-mix(in srgb,var(--sun) 16%,var(--card))}
+  th small{display:block;font-size:12px;font-weight:500;margin-top:2px}
+  tr.key td:first-child,tr.key td.me{font-weight:700;color:var(--ink)}
+  .tblnote{margin-top:10px;font-size:12.5px;color:var(--muted)}
+
+  .data .row{display:grid;grid-template-columns:34% 1fr auto;gap:14px;align-items:start;padding:13px 18px;border-top:1px solid var(--line);font-size:14px}
+  .data .row:first-child{border-top:0}
+  @media (max-width:560px){.data .row{grid-template-columns:1fr}}
+  .data .row b{font-weight:700}
+  .data .row span{color:var(--muted)}
+  .data .st{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap;justify-self:start}
+  .st.ok{background:var(--grass-soft);color:var(--grass)}
+  .st.chk{background:var(--sun-soft);color:var(--sun-ink)}
+
+  .note{margin-top:18px;background:var(--card-2);border-radius:14px;padding:14px 18px;font-size:14px;color:var(--muted)}
+  .note b{color:var(--ink)}
+  footer{border-top:1px solid var(--line);padding:30px 0 50px;color:var(--faint);font-size:12.5px}
+  footer p+p{margin-top:6px}
+  /* coordinator mock */
+  .coord{margin-top:12px;border:2px dashed var(--line);border-radius:18px;padding:14px}
+  .coord .t{font-size:12.5px;font-weight:700;color:var(--sky)}
+  .coord ol{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+  .coord li{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted);line-height:1.5}
+  .coord li .k{flex:none;font-size:11.5px;font-weight:700;border-radius:8px;padding:2px 8px;margin-top:1px}
+  .k.zone{background:var(--sky-soft);color:var(--sky)} .k.clue{background:var(--grass-soft);color:var(--grass)} .k.call{background:var(--sun-soft);color:var(--sun-ink)}
+  .m4 .mk{background:var(--sun-soft)} .m4 .who{color:var(--sun-ink)}
+  .mission .ex{margin-top:10px;font-size:13.5px;border-left:3px solid var(--line);padding-left:12px;color:var(--muted)}
+  .mission .ex b{color:var(--ink);font-weight:700}
+  .side2 .card{box-shadow:none;background:var(--card-2);border-color:transparent}
+  td.h{color:var(--muted)}
+  /* route card */
+  .route{margin-top:12px;border-radius:18px;padding:14px;background:var(--sky-soft)}
+  .route .t{font-size:12.5px;font-weight:700;color:var(--sky)}
+  .route strong{display:block;font-family:var(--display);font-weight:400;font-size:23px;line-height:1.15;margin-top:4px;color:var(--ink)}
+  .route .meta{font-size:13px;color:var(--muted);margin-top:2px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .tags span{font-size:12px;font-weight:700;border-radius:999px;padding:3px 9px;background:var(--card);color:var(--ink)}
+  .why{margin-top:10px;font-size:13px;color:var(--ink);background:var(--card);border-radius:12px;padding:10px 12px;line-height:1.55}
+  .why b{color:var(--sky)}
+  .mission-chip{display:flex;align-items:center;gap:10px;margin-top:10px;background:var(--sun-soft);border-radius:14px;padding:10px 12px;font-size:13px;color:var(--sun-ink);font-weight:700}
+  .mission-chip span{font-size:20px}
+  /* event bridge */
+  .bridge{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch;margin-top:24px}
+  @media (max-width:720px){.bridge{grid-template-columns:1fr}.bridge .arrow{transform:rotate(90deg);justify-self:center}}
+  .ev{border-radius:18px;padding:20px;border:1px solid var(--line);background:var(--card)}
+  .ev.after{background:var(--grass-soft);border-color:transparent}
+  .ev .when{font-size:13px;font-weight:700;color:var(--muted)}
+  .ev.after .when{color:var(--grass)}
+  .ev h3{font-size:17px;font-weight:700;margin-top:4px}
+  .ev ul{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:14px}
+  .ev ul li+li{margin-top:4px}
+  .facts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+  @media (max-width:720px){.facts{grid-template-columns:1fr 1fr}}
+  .fact{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .fact .n{font-family:var(--display);font-size:28px;line-height:1;color:var(--sky)}
+  .fact .l{font-size:12.5px;color:var(--muted);margin-top:6px}
+  /* badges */
+  .badges{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}
+  @media (max-width:820px){.badges{grid-template-columns:1fr 1fr}}
+  @media (max-width:420px){.badges{grid-template-columns:1fr}}
+  .bd{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;text-align:center;box-shadow:var(--shadow)}
+  .bd .medal{width:62px;height:62px;border-radius:50%;margin:0 auto 10px;display:grid;place-items:center;font-size:28px;background:var(--sun);box-shadow:inset 0 -4px 0 rgba(0,0,0,.08)}
+  .bd:nth-child(2) .medal{background:var(--sky-soft)} .bd:nth-child(3) .medal{background:var(--grass-soft)} .bd:nth-child(4) .medal{background:var(--alert-soft)}
+  .bd h3{font-size:15.5px;font-weight:700}
+  .bd p{font-size:13px;color:var(--muted);margin-top:6px}
+
+  /* track badge */
+  .track{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--grass);background:var(--grass-soft);border-radius:999px;padding:6px 12px;margin-bottom:16px}
+  .fit3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+  @media (max-width:820px){.fit3{grid-template-columns:1fr}}
+  .fitc{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
+  .fitc .k{font-size:13px;font-weight:700;color:var(--grass)}
+  .fitc h3{font-size:16.5px;font-weight:700;margin-top:4px}
+  .fitc p{color:var(--muted);font-size:14px;margin-top:6px}
+  /* architecture */
+  .arch{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}
+  @media (max-width:860px){.arch{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.arch{grid-template-columns:1fr}}
+  .an{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px}
+  .an .h{font-weight:700;font-size:15px}
+  .an .d{color:var(--muted);font-size:13.5px}
+  .an .sec{margin-top:auto;font-size:12.5px;font-weight:700;color:var(--grass);background:var(--grass-soft);border-radius:10px;padding:8px 10px;line-height:1.5}
+  /* screens */
+  .screens{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:20px}
+  @media (max-width:860px){.screens{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.screens{grid-template-columns:1fr}}
+  .scr{background:var(--card);border:2px solid var(--line);border-radius:22px;padding:14px 12px;text-align:center}
+  .scr .ic{font-size:24px}
+  .scr h3{font-size:14.5px;font-weight:700;margin-top:6px}
+  .scr p{font-size:12.5px;color:var(--muted);margin-top:4px}
+  .scr.web{border-style:dashed}
+  /* team */
+  .team{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+  @media (max-width:820px){.team{grid-template-columns:1fr}}
+  .mem{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
+  .mem .role{display:inline-block;font-size:12.5px;font-weight:700;border-radius:999px;padding:3px 10px}
+  .mem:nth-child(1) .role{background:var(--sky-soft);color:var(--sky)}
+  .mem:nth-child(2) .role{background:var(--sun-soft);color:var(--sun-ink)}
+  .mem:nth-child(3) .role{background:var(--alert-soft);color:var(--alert)}
+  .mem h3{font-size:19px;font-weight:900;margin-top:8px}
+  .mem ul{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:14px}
+  .mem ul li+li{margin-top:5px}
+  .fstep .dt{font-size:12.5px;font-weight:700;color:var(--sky)}
+
+  /* yearly timeline */
+  .tl{list-style:none;margin:24px 0 0;padding:0;position:relative}
+  .tl::before{content:"";position:absolute;left:74px;top:6px;bottom:6px;width:2px;background:var(--line)}
+  .tl li{display:grid;grid-template-columns:88px 1fr;gap:18px;padding:0 0 18px;position:relative}
+  .tl li:last-child{padding-bottom:0}
+  .tl .yr{font-family:var(--display);font-size:22px;line-height:1.2;color:var(--muted);text-align:left}
+  .tl li::after{content:"";position:absolute;left:69px;top:8px;width:12px;height:12px;border-radius:50%;background:var(--card);border:3px solid var(--sky)}
+  .tl li.now::after{background:var(--sun);border-color:var(--sun)}
+  .tl li.now .yr{color:var(--ink)}
+  .tl .bx{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-left:8px}
+  .tl li.now .bx{background:var(--sun-soft);border-color:transparent}
+  .tl .bx h3{font-size:15.5px;font-weight:700}
+  .tl .bx p{color:var(--muted);font-size:13.5px;margin-top:4px}
+  @media (max-width:560px){.tl::before{left:6px}.tl li{grid-template-columns:1fr;gap:4px;padding-left:24px}.tl li::after{left:1px}.tl .bx{margin-left:0}}
+
+  /* prototype-style phone mock (fixed light app colors) */
+  .pm{max-width:360px;margin-left:auto;background:#F5F9FF;border-radius:36px;box-shadow:0 0 0 8px #1D2B3A,0 24px 50px -20px rgba(29,43,58,.5);overflow:hidden;color:#1D2B3A;font-family:var(--body)}
+  @media (max-width:820px){.pm{margin:0 auto}}
+  .pm svg.pi{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+  .pm-screen{padding:16px 16px 12px;display:flex;flex-direction:column;gap:10px}
+  .pm-top{display:flex;align-items:center;justify-content:space-between}
+  .pm-when{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#5A6B7D}
+  .pm-av{width:36px;height:36px;border-radius:50%;background:#FFC93C;display:grid;place-items:center}
+  .pm-av svg.pi{width:18px;height:18px}
+  .pm-title{font-family:var(--display);font-size:26px;line-height:1.15}
+  .pm-chips{display:flex;flex-wrap:wrap;gap:5px}
+  .pm-chips span{font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:999px;background:#FFFFFF;border:1px solid #DCE6F2}
+  .pm-say{display:flex;gap:6px}
+  .pm-input{flex:1;height:38px;border:1px solid #DCE6F2;border-radius:10px;background:#FFFFFF;display:flex;align-items:center;padding:0 12px;font-size:12px;color:#6B7B8C}
+  .pm-mic{width:38px;height:38px;border-radius:10px;background:#1D2B3A;color:#FFFFFF;display:grid;place-items:center}
+  .pm-mic svg.pi{width:16px;height:16px}
+  .pm-card{background:#FFFFFF;border:1px solid #DCE6F2;border-radius:16px;overflow:hidden}
+  .pm-map{height:96px;background:#E9F0E6}
+  .pm-map svg{display:block;width:100%;height:100%}
+  .pm-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px}
+  .pm-lbl{font-size:11px;font-weight:700;color:#1F64D1}
+  .pm-name{font-size:15.5px;font-weight:900;line-height:1.3;margin-top:1px}
+  .pm-meta{font-size:12px;color:#5A6B7D;margin-top:1px}
+  .pm-tags{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  .pm-tags span{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:6px 8px;border-radius:9px;background:#F5F9FF}
+  .pm-tags span.tx,.pm-today span.tx{display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:0;border-radius:0;background:none;line-height:1.25;min-width:0}
+  .pm-tags small,.pm-today small{font-size:9.5px;font-weight:500;color:#5A6B7D}
+  .pm-today{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+  .pm-today .k{width:100%;font-size:10.5px;font-weight:700;color:#5A6B7D}
+  .pm-today .c{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:5px 8px;border-radius:9px;background:#FFF3CF;color:#7A5400}
+  .pm-ai{background:#EAF2FD;border-radius:10px;padding:8px 10px}
+  .pm-ai b{display:flex;align-items:center;gap:4px;font-size:11px;color:#1F64D1}
+  .pm-ai p{margin:3px 0 0;font-size:12px;line-height:1.5;color:#1D2B3A}
+  .pm-btns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .pm-btns span{height:38px;border-radius:11px;border:1px solid #DCE6F2;background:#FFFFFF;font-size:12.5px;font-weight:700;display:grid;place-items:center}
+  .pm-btns .pri{background:#1F64D1;border-color:#1F64D1;color:#FFFFFF}
+  .pm-mission{display:flex;align-items:center;gap:6px;min-height:38px;border-radius:11px;background:#FFF3CF;color:#7A5400;font-size:11.5px;font-weight:700;padding:0 12px}
+  .pm-tab{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));height:58px;background:#FFFFFF;border-top:1px solid #DCE6F2}
+  .pm-tab span{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:700;color:#5A6B7D}
+  .pm-tab svg.pi{width:18px;height:18px}
+  .pm-tab .on{color:#1F64D1}
+  .demo a{color:var(--sky);font-weight:700}
+  /* prototype link */
+  .protolink{display:flex;align-items:center;gap:14px;margin-top:16px;padding:16px 18px;border-radius:16px;background:var(--sun);color:#1D2B3A;text-decoration:none}
+  .protolink:hover{filter:brightness(.97)}
+  .protolink .pl-ic{width:44px;height:44px;border-radius:50%;background:#1D2B3A;color:#FFFFFF;display:grid;place-items:center;flex-shrink:0}
+  .protolink .pl-ic svg{width:20px;height:20px;fill:currentColor}
+  .protolink b{display:block;font-size:16px}
+  .protolink span.s{display:block;font-size:13px;margin-top:2px}
+
+  /* ---- v2: criteria structure ---- */
+  .crit{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:-20px 0 30px}
+  @media (max-width:860px){.crit{grid-template-columns:1fr 1fr}}
+  @media (max-width:480px){.crit{grid-template-columns:1fr}}
+  .crit a{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-top:4px solid var(--sun);border-radius:14px;padding:13px 15px;box-shadow:var(--shadow);min-width:0}
+  .crit a:hover{border-color:var(--sky)}
+  .crit .w{font-size:12px;font-weight:700;color:var(--sun-ink)}
+  .crit b{display:block;font-size:15px;margin:3px 0 4px}
+  .crit span.d{display:block;font-size:12.8px;color:var(--muted);line-height:1.55}
+  .part{margin:40px 0 0;padding:20px 24px;border-radius:20px;background:var(--ink);color:var(--bg)}
+  .part .pn{font-size:13px;font-weight:700;color:var(--sun)}
+  .part h2{color:var(--bg);margin-top:4px}
+  .part p{font-size:14.5px;opacity:.8;margin-top:6px;max-width:70ch}
+  .part + section{border-top:0}
+  .ev .big{font-family:var(--display);font-size:32px;line-height:1.1;color:var(--sky)}
+  .ev .big small{font-family:var(--body);font-size:14px;color:var(--muted);margin-left:2px}
+  .ev .src{display:block;font-size:12px;color:var(--faint);margin-top:8px}
+  .phases{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}
+  @media (max-width:860px){.phases{grid-template-columns:1fr 1fr}}
+  @media (max-width:480px){.phases{grid-template-columns:1fr}}
+  .ph{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);min-width:0}
+  .ph.now{border-top-color:var(--sun)}
+  .ph .w{font-size:12.5px;font-weight:700;color:var(--muted)}
+  .ph h3{font-size:15.5px;margin:3px 0 6px}
+  .ph ul{margin:0;padding-left:17px;font-size:13.5px;color:var(--muted)}
+  .ph .x{margin-top:10px;padding-top:8px;border-top:1px dashed var(--line);font-size:13px}
+  .proc{counter-reset:p;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:24px}
+  @media (max-width:700px){.proc{grid-template-columns:1fr}}
+  .proc > div{display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .proc > div::before{counter-increment:p;content:counter(p);flex:none;width:28px;height:28px;border-radius:50%;background:var(--sky);color:#fff;font-weight:900;font-size:14px;display:grid;place-items:center}
+  .proc b{display:block;font-size:14.5px}
+  .proc span{font-size:13.5px;color:var(--muted)}
+
+  /* ---- v3: 자금 없이 출시 (제품 기획서 컴포넌트) ---- */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}
+  @media (max-width:820px){.kpis{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.kpis{grid-template-columns:1fr}}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);min-width:0}
+  .kpi .n{font-family:var(--display);font-size:30px;line-height:1.1;color:var(--sky)}
+  .kpi .n small{font-family:var(--body);font-size:14px;color:var(--muted);margin-left:2px}
+  .kpi p{font-size:13.5px;color:var(--muted);margin-top:6px}
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+  @media (max-width:820px){.plans{grid-template-columns:1fr}}
+  .plan{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow);min-width:0}
+  .plan .who{font-size:12.5px;font-weight:700;color:var(--sun-ink)}
+  .plan h3{font-size:17px;margin-top:4px}
+  .plan .price{font-family:var(--display);font-size:24px;margin-top:8px}
+  .plan .price small{font-family:var(--body);font-size:13px;color:var(--muted)}
+  .plan ul{margin:10px 0 0;padding-left:18px;font-size:14px;color:var(--muted)}
+  .plan li{margin:4px 0}
+  .plan li b{color:var(--ink)}
+  .prin{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .prin span{font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;background:var(--grass-soft);color:var(--grass)}
+  tr.sum td{background:var(--card-2)}
+  tr.sum td:first-child,tr.sum td.me{font-weight:700;color:var(--ink)}
+  tr.sum td.me{background:color-mix(in srgb,var(--sun) 30%,var(--card))}
+  .nw{white-space:nowrap}
+
+  /* forecast card (hero) */
+  .fc{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:18px;max-width:420px;margin-left:auto}
+  @media (max-width:820px){.fc{margin:0 auto}}
+  .fc-top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-family:var(--display);font-size:19px;color:var(--ink)}
+  .fc-ex{font-family:var(--body);font-size:11.5px;color:var(--faint);align-self:center}
+  .fc-base{font-size:12.5px;color:var(--muted);margin:4px 0 12px}
+  .fc-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+  .fc-row b{display:block;font-size:14.5px}
+  .fc-row span{font-size:12.5px;color:var(--muted)}
+  .fc .lv{flex:none;font-size:13px;font-weight:700;padding:4px 12px;border-radius:999px}
+  .lv.bad{background:var(--alert-soft);color:var(--alert)}
+  .lv.mid{background:var(--sun-soft);color:var(--sun-ink)}
+  .lv.ok{background:var(--grass-soft);color:var(--grass)}
+  .fc-wave{margin:2px 0 6px}.fc-wave svg{display:block;width:100%;height:auto}.fc-wave text{font-size:10.5px;fill:var(--muted)}.fc-wave .lb{font-size:11px;font-weight:700}
+  .fc-why{margin-top:12px;font-size:13px;line-height:1.6;background:var(--sky-soft);border-radius:12px;padding:10px 12px}
+  .fc-why b{display:block;color:var(--sky);font-size:12.5px;margin-bottom:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <span>2026 양주시 미래인재 AI 공모전, 팀 이로움</span>
+    <button class="themebtn" id="themeToggle" aria-label="밝게/어둡게 전환">◐</button>
+  </div>
+
+  <header class="hero">
+    <div>
+      <div class="track">소주제 02 · 똑똑하고 편리한 양주</div>
+      <div class="badge"><span class="paw" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg></span><span class="name">양주 입주 예보</span></div>
+      <h1>아이는 한꺼번에 와서,<br><span class="h1l">함께 나이를 먹습니다</span></h1>
+      <p class="lede">새 단지에 입주하면 어린이집이 먼저 모자라고, 몇 년 뒤 초등학교, 그 뒤 중학교로 아이 물결이 옮겨 갑니다. AI가 입주자모집공고와 옥정의 실제 입주 결과를 읽어, 이 물결이 각 시설을 언제 지나가고 얼마나 머무는지 입주 6~24개월 전에 예보합니다. 시와 교육지원청은 새로 지을지, 잠시 버틸지, 정점이 지난 뒤 다른 용도로 돌려 쓸지를 미리 정하고, 입주 예정자는 필요한 돌봄을 등록해 예보를 함께 만듭니다.</p>
+      <div class="chips">
+        <span class="chip">대상 <b>입주 예정 가구와 양주시·교육지원청</b></span>
+        <span class="chip">핵심 <b>아이 물결이 언제, 얼마 동안 오는지</b></span>
+        <span class="chip">검증 <b>옥정에서 지나가는 물결 확인</b></span>
+      </div>
+    </div>
+    <div>
+      <div class="fc" role="img" aria-label="입주 예보 화면 예시: 회천 생활권 아이 물결 예보. 0~2세는 2028년, 초등은 2032년, 중학교는 2037년 무렵 정점">
+        <div class="fc-top"><span>회천 생활권 · 아이 물결 예보</span><span class="fc-ex">화면 예시 · 단지와 수치 모두 가상</span></div>
+        <div class="fc-base">2027년 입주 예정 3개 단지 2,400세대 · 옥정 유사 단지 실적 기준</div>
+        <div class="fc-wave" aria-hidden="true"><svg viewBox="0 0 380 108">
+          <line x1="14" y1="84" x2="366" y2="84" stroke="var(--line)" stroke-width="1"/>
+          <path d="M14.0,52.8 L16.5,50.8 L19.0,48.7 L21.5,46.8 L24.1,45.0 L26.6,43.2 L29.1,41.6 L31.6,40.2 L34.1,39.0 L36.6,37.9 L39.1,37.1 L41.7,36.5 L44.2,36.1 L46.7,36.0 L49.2,36.1 L51.7,36.5 L54.2,37.1 L56.7,37.9 L59.3,39.0 L61.8,40.2 L64.3,41.6 L66.8,43.2 L69.3,45.0 L71.8,46.8 L74.3,48.7 L76.9,50.8 L79.4,52.8 L81.9,54.9 L84.4,57.0 L86.9,59.0 L89.4,61.0 L91.9,63.0 L94.5,64.9 L97.0,66.7 L99.5,68.4 L102.0,70.0 L104.5,71.6 L107.0,73.0 L109.5,74.3 L112.1,75.4 L114.6,76.5 L117.1,77.5 L119.6,78.4 L122.1,79.2 L124.6,79.9 L127.1,80.5 L129.7,81.0 L132.2,81.5 L134.7,81.9 L137.2,82.2 L139.7,82.5 L142.2,82.8 L144.7,83.0 L147.3,83.2 L149.8,83.3 L152.3,83.5 L154.8,83.6 L157.3,83.7 L159.8,83.7 L162.3,83.8 L164.9,83.8 L167.4,83.9 L169.9,83.9 L172.4,83.9 L174.9,83.9 L177.4,84.0 L179.9,84.0 L182.5,84.0 L185.0,84.0 L187.5,84.0 L190.0,84.0 L192.5,84.0 L195.0,84.0 L197.5,84.0 L200.1,84.0 L202.6,84.0 L205.1,84.0 L207.6,84.0 L210.1,84.0 L212.6,84.0 L215.1,84.0 L217.7,84.0 L220.2,84.0 L222.7,84.0 L225.2,84.0 L227.7,84.0 L230.2,84.0 L232.7,84.0 L235.3,84.0 L237.8,84.0 L240.3,84.0 L242.8,84.0 L245.3,84.0 L247.8,84.0 L250.3,84.0 L252.9,84.0 L255.4,84.0 L257.9,84.0 L260.4,84.0 L262.9,84.0 L265.4,84.0 L267.9,84.0 L270.5,84.0 L273.0,84.0 L275.5,84.0 L278.0,84.0 L280.5,84.0 L283.0,84.0 L285.5,84.0 L288.1,84.0 L290.6,84.0 L293.1,84.0 L295.6,84.0 L298.1,84.0 L300.6,84.0 L303.1,84.0 L305.7,84.0 L308.2,84.0 L310.7,84.0 L313.2,84.0 L315.7,84.0 L318.2,84.0 L320.7,84.0 L323.3,84.0 L325.8,84.0 L328.3,84.0 L330.8,84.0 L333.3,84.0 L335.8,84.0 L338.3,84.0 L340.9,84.0 L343.4,84.0 L345.9,84.0 L348.4,84.0 L350.9,84.0 L353.4,84.0 L355.9,84.0 L358.5,84.0 L361.0,84.0 L363.5,84.0 L366.0,84.0" fill="none" stroke="var(--sun)" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M14.0,76.5 L16.5,75.8 L19.0,75.1 L21.5,74.3 L24.1,73.5 L26.6,72.6 L29.1,71.7 L31.6,70.7 L34.1,69.7 L36.6,68.7 L39.1,67.5 L41.7,66.4 L44.2,65.2 L46.7,63.9 L49.2,62.6 L51.7,61.2 L54.2,59.8 L56.7,58.4 L59.3,56.9 L61.8,55.3 L64.3,53.8 L66.8,52.2 L69.3,50.6 L71.8,48.9 L74.3,47.3 L76.9,45.6 L79.4,44.0 L81.9,42.3 L84.4,40.6 L86.9,39.0 L89.4,37.4 L91.9,35.8 L94.5,34.2 L97.0,32.6 L99.5,31.2 L102.0,29.7 L104.5,28.3 L107.0,27.0 L109.5,25.8 L112.1,24.6 L114.6,23.5 L117.1,22.5 L119.6,21.6 L122.1,20.7 L124.6,20.0 L127.1,19.4 L129.7,18.9 L132.2,18.5 L134.7,18.2 L137.2,18.1 L139.7,18.0 L142.2,18.1 L144.7,18.2 L147.3,18.5 L149.8,18.9 L152.3,19.4 L154.8,20.0 L157.3,20.7 L159.8,21.6 L162.3,22.5 L164.9,23.5 L167.4,24.6 L169.9,25.8 L172.4,27.0 L174.9,28.3 L177.4,29.7 L179.9,31.2 L182.5,32.6 L185.0,34.2 L187.5,35.8 L190.0,37.4 L192.5,39.0 L195.0,40.6 L197.5,42.3 L200.1,44.0 L202.6,45.6 L205.1,47.3 L207.6,48.9 L210.1,50.6 L212.6,52.2 L215.1,53.8 L217.7,55.3 L220.2,56.9 L222.7,58.4 L225.2,59.8 L227.7,61.2 L230.2,62.6 L232.7,63.9 L235.3,65.2 L237.8,66.4 L240.3,67.5 L242.8,68.7 L245.3,69.7 L247.8,70.7 L250.3,71.7 L252.9,72.6 L255.4,73.5 L257.9,74.3 L260.4,75.1 L262.9,75.8 L265.4,76.5 L267.9,77.1 L270.5,77.7 L273.0,78.2 L275.5,78.7 L278.0,79.2 L280.5,79.7 L283.0,80.1 L285.5,80.4 L288.1,80.8 L290.6,81.1 L293.1,81.4 L295.6,81.7 L298.1,81.9 L300.6,82.1 L303.1,82.3 L305.7,82.5 L308.2,82.7 L310.7,82.8 L313.2,82.9 L315.7,83.1 L318.2,83.2 L320.7,83.3 L323.3,83.4 L325.8,83.4 L328.3,83.5 L330.8,83.6 L333.3,83.6 L335.8,83.7 L338.3,83.7 L340.9,83.7 L343.4,83.8 L345.9,83.8 L348.4,83.8 L350.9,83.9 L353.4,83.9 L355.9,83.9 L358.5,83.9 L361.0,83.9 L363.5,83.9 L366.0,83.9" fill="none" stroke="var(--alert)" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M14.0,84.0 L16.5,84.0 L19.0,84.0 L21.5,84.0 L24.1,84.0 L26.6,84.0 L29.1,84.0 L31.6,84.0 L34.1,84.0 L36.6,84.0 L39.1,84.0 L41.7,84.0 L44.2,84.0 L46.7,84.0 L49.2,84.0 L51.7,84.0 L54.2,84.0 L56.7,84.0 L59.3,84.0 L61.8,84.0 L64.3,84.0 L66.8,84.0 L69.3,83.9 L71.8,83.9 L74.3,83.9 L76.9,83.9 L79.4,83.9 L81.9,83.9 L84.4,83.9 L86.9,83.8 L89.4,83.8 L91.9,83.8 L94.5,83.7 L97.0,83.7 L99.5,83.6 L102.0,83.6 L104.5,83.5 L107.0,83.4 L109.5,83.3 L112.1,83.2 L114.6,83.1 L117.1,83.0 L119.6,82.9 L122.1,82.7 L124.6,82.5 L127.1,82.3 L129.7,82.1 L132.2,81.8 L134.7,81.6 L137.2,81.3 L139.7,80.9 L142.2,80.6 L144.7,80.2 L147.3,79.8 L149.8,79.3 L152.3,78.8 L154.8,78.2 L157.3,77.6 L159.8,77.0 L162.3,76.3 L164.9,75.5 L167.4,74.7 L169.9,73.9 L172.4,73.0 L174.9,72.0 L177.4,71.0 L179.9,70.0 L182.5,68.9 L185.0,67.7 L187.5,66.5 L190.0,65.3 L192.5,64.0 L195.0,62.6 L197.5,61.2 L200.1,59.8 L202.6,58.4 L205.1,56.9 L207.6,55.5 L210.1,54.0 L212.6,52.5 L215.1,51.0 L217.7,49.5 L220.2,48.0 L222.7,46.5 L225.2,45.1 L227.7,43.7 L230.2,42.4 L232.7,41.1 L235.3,39.8 L237.8,38.7 L240.3,37.6 L242.8,36.6 L245.3,35.6 L247.8,34.8 L250.3,34.1 L252.9,33.5 L255.4,32.9 L257.9,32.5 L260.4,32.2 L262.9,32.1 L265.4,32.0 L267.9,32.1 L270.5,32.2 L273.0,32.5 L275.5,32.9 L278.0,33.5 L280.5,34.1 L283.0,34.8 L285.5,35.6 L288.1,36.6 L290.6,37.6 L293.1,38.7 L295.6,39.8 L298.1,41.1 L300.6,42.4 L303.1,43.7 L305.7,45.1 L308.2,46.5 L310.7,48.0 L313.2,49.5 L315.7,51.0 L318.2,52.5 L320.7,54.0 L323.3,55.5 L325.8,56.9 L328.3,58.4 L330.8,59.8 L333.3,61.2 L335.8,62.6 L338.3,64.0 L340.9,65.3 L343.4,66.5 L345.9,67.7 L348.4,68.9 L350.9,70.0 L353.4,71.0 L355.9,72.0 L358.5,73.0 L361.0,73.9 L363.5,74.7 L366.0,75.5" fill="none" stroke="var(--sky)" stroke-width="2.5" stroke-linecap="round"/>
+          <text class="lb" x="50" y="28" style="fill:var(--sun-ink)">0~2세</text>
+          <text class="lb" x="146" y="13" style="fill:var(--alert)">초등</text>
+          <text class="lb" x="272" y="26" style="fill:var(--sky)">중학교</text>
+          <text x="39" y="100" text-anchor="middle">2028</text><text x="140" y="100" text-anchor="middle">2032</text><text x="240" y="100" text-anchor="middle">2036</text><text x="341" y="100" text-anchor="middle">2040</text>
+        </svg></div>
+        <div class="fc-row"><div><b>0~2세 보육</b><span>2028년 정점, 3년 뒤 감소 · 돌려 쓸 수 있는 공간으로 확충 권장</span></div><span class="lv mid">빠듯</span></div>
+        <div class="fc-row"><div><b>초등학교</b><span>2030~2035년 수용 초과 · 6년짜리 부족이라 신설과 모듈러 비교 필요</span></div><span class="lv bad">부족</span></div>
+        <div class="fc-row"><div><b>중학교</b><span>2037년 무렵 정점 · 지금은 여유, 2033년까지 계획 착수</span></div><span class="lv ok">여유</span></div>
+        <div class="fc-row"><div><b>등교 시간 버스</b><span>8시대 수요 1.6배 / 현 노선 2개</span></div><span class="lv mid">빠듯</span></div>
+        <div class="fc-why"><b>이 예보의 근거</b> 평형 구성이 비슷한 옥정 단지들에서 실제로 지나간 연령별 물결로 계산했습니다. 사전 등록한 입주 예정 가구 312곳 중 41%가 시간연장 보육을 원했습니다.</div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="crit" aria-label="심사 기준별 바로가기">
+    <a href="#p1"><span class="w">문제정의 25점</span><b>정점에 맞추면 남고, 늦으면 모자란다</b><span class="d">초등 입학생 1,500명 넘는 옥정·회천, 학교는 9곳. 과밀은 민원이 터진 뒤에 확인되고, 정점이 지나면 남는 시설이 된다.</span></a>
+    <a href="#p2"><span class="w">창의성 25점</span><b>아이 수가 아니라 아이 물결을 예보</b><span class="d">AI가 공고문을 읽고, 옥정의 물결로 배우고, 시설을 새로 지을지 버틸지 돌려 쓸지 선택지를 낸다.</span></a>
+    <a href="#p3"><span class="w">실행계획 25점</span><b>공개 데이터로 먼저 증명</b><span class="d">옥정의 물결을 공개 통계로 먼저 보여 주고, 시 주관·교육지원청 협약, 단계마다 통과 기준.</span></a>
+    <a href="#p4"><span class="w">효과·확장 25점</span><b>모든 신도시의 시설 생애로</b><span class="d">3기 신도시로, 물결을 먼저 겪은 1기 신도시와 비교하며, 소아과·도서관과 줄어드는 동네까지.</span></a>
+  </nav>
+
+  <div class="part" id="p1"><span class="pn">PART 1 · 심사기준 1</span><h2>문제정의의 타당성</h2><p>양주 신도시에서 학교와 돌봄이 왜 입주 뒤에 모자라고, 몇 년 뒤에는 남게 되는지 짚습니다.</p></div>
+
+  <section>
+    <h2>양주에서 이미 벌어진 일</h2>
+    <p class="intro">옥정·회천에 젊은 가구가 한꺼번에 들어오면서, 아이 자리는 입주가 끝난 뒤에야 모자란다는 것이 드러났습니다. 학부모 민원이 쏟아졌고, 시와 교육지원청, 학부모가 함께하는 과밀 해결 토론회까지 열렸습니다.</p>
+    <div class="grid g3 ev">
+      <div class="card"><div class="big">1,500<small>명 이상</small></div><p>옥정·회천 신도시 초등학교 입학생. 그런데 운영 중인 초·중학교는 9곳뿐입니다.</p><span class="src">데일리안 기획 보도</span></div>
+      <div class="card"><div class="big">8<small>곳, 1~3년 뒤</small></div><p>개교 예정인 초·중학교. 그때까지는 모듈러 교실과 원거리 통학으로 버팁니다.</p><span class="src">데일리안 기획 보도</span></div>
+      <div class="card"><div class="big">2만 1,435<small>가구</small></div><p>2022년 10월부터 2024년 6월까지 두 신도시에 입주했거나 입주 예정인 가구. 회천은 6.5만 명에서 10만 명으로 늘어날 전망입니다.</p><span class="src">양주시 (데일리안 보도)</span></div>
+    </div>
+    <div class="grid g3">
+      <div class="card"><span class="ic">⏳</span><h3>수요는 입주 뒤에야 보인다</h3><p>학교 설립 계획은 분양 세대가 확인된 뒤에야 낼 수 있어, 개교 시기가 입주 시기를 따라가지 못합니다.</p></div>
+      <div class="card"><span class="ic">🌊</span><h3>아이는 함께 자란다</h3><p>입주 직후엔 어린이집, 3~4년 뒤엔 초등학교, 그 뒤엔 중학교로 수요가 차례로 몰립니다. 소아과와 등교 시간 버스도 같은 물결을 탑니다. 정점에 맞춰 지은 시설은 물결이 지나가면 남습니다.</p></div>
+      <div class="card"><span class="ic">🎯</span><h3>예측은 양쪽으로 빗나간다</h3><p>2018~2020년 전국 신설 학교 214곳 중 31.3%는 학생이 예상보다 너무 적었고 8.4%는 너무 많았습니다. 경기도도 89곳 중 21.3%가 과소였습니다. 계획 단계의 과대 추정도 원인이지만, 개교가 물결보다 이르거나 늦으면 같은 학교도 과밀과 과소를 오갑니다.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>왜 매번 빗나가나</h2>
+    <p class="intro">원인은 두 가지입니다. 한 단지에서 아이가 몇 명 생길지(학생유발률)를 과거 평균으로 잡는 것, 그리고 그 숫자를 한 시점의 값으로만 보는 것입니다.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>원인</th><th>지금</th><th class="me">입주 예보가 바꾸는 것</th></tr></thead>
+        <tbody>
+          <tr><td><b>과거 평균으로 추정</b></td><td class="h">전주 에코시티는 심사 당시 세대당 0.281로 잡았지만, 젊은 가구가 몰리며 실제와 크게 달랐음</td><td class="me">옥정의 실제 입주 결과로 양주 단지의 유발률을 다시 배움</td></tr>
+          <tr><td><b>한 시점의 숫자만 봄</b></td><td class="h">개교 시점 학생 수 한 숫자로 시설 규모를 정하고, 어린이집·학교·돌봄을 따로 계획</td><td class="me">같은 아이들의 물결이 시설마다 언제 와서 얼마나 머무는지 연도별로 예보</td></tr>
+          <tr><td><b>늦게 시작하는 계획</b></td><td class="h">분양 세대가 확정된 뒤에야 학교 계획 제출</td><td class="me">입주자모집공고가 나오는 순간 예보 시작</td></tr>
+          <tr><td><b>입주자 목소리는 민원으로만</b></td><td class="h">과천 지식정보타운 입주 예정자는 과밀 우려로 감사원 공익감사까지 청구</td><td class="me">입주 전 사전 수요 등록으로 공식 데이터가 됨</td></tr>
+          <tr><td><b>기관마다 따로</b></td><td class="h">학교는 교육청, 보육·돌봄·버스는 시가 각자 판단</td><td class="me">같은 예보를 시와 교육지원청이 함께 봄</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><b>공고문이 똑똑하고 편리한 양주의 예시로 든 "데이터 기반 행정"에 정면으로 답합니다.</b> 민원이 터진 뒤가 아니라 입주 전에, 담당자의 감이 아니라 데이터로 먼저 판단합니다.</p>
+  </section>
+
+  <div class="part" id="p2"><span class="pn">PART 2 · 심사기준 2</span><h2>아이디어의 창의성·독창성</h2><p>민원이 터진 뒤의 대응을 입주 전 예보로, 한 시점의 숫자를 시간에 따른 물결로 바꿉니다. AI가 없으면 할 수 없던 네 가지 일입니다.</p></div>
+
+  <section>
+    <h2>AI가 하는 네 가지 일</h2>
+    <p class="intro">숫자를 예측하는 건 학습된 예보 모델이, 흩어진 문서와 사람의 말을 데이터로 바꾸고 근거를 설명하는 건 AI가 맡습니다.</p>
+    <div class="missions">
+      <div class="mission m2">
+        <div class="mk" aria-hidden="true">📄</div>
+        <div>
+          <div class="who">입주자모집공고가 나오면</div>
+          <h3>공고문을 읽어 단지 정보로</h3>
+          <p>PDF 공고문에서 주택형별 세대수, 분양·임대 구분, 입주 예정 시기를 뽑아 단지 정보로 만듭니다. 교육지원청의 학생 배치 계획과 통학구역 고시도 같은 방식으로 읽습니다.</p>
+        </div>
+      </div>
+      <div class="mission m3">
+        <div class="mk" aria-hidden="true">📈</div>
+        <div>
+          <div class="who">옥정에서 배우고</div>
+          <h3>단지별 아이 물결 예보</h3>
+          <p>옥정 단지들의 입주 전 정보와 입주 뒤 매달의 연령별 인구를 짝지어 학습합니다. 아이가 몇 명인지뿐 아니라 0~2세 정점이 언제 오고 몇 년 뒤 초등으로 넘어가는지, 입주 뒤 출생과 전출입이 물결을 어떻게 바꾸는지 배웁니다. 새 단지는 한 숫자가 아니라 연도별 범위로 예보합니다.</p>
+          <div class="ex"><b>왜 범위인가</b> 예측이 틀릴 수 있다는 걸 숨기지 않기 위해서입니다. 시와 교육지원청은 범위의 위쪽 끝을 기준으로 대비할지 판단합니다.</div>
+        </div>
+      </div>
+      <div class="mission m4">
+        <div class="mk" aria-hidden="true">✍️</div>
+        <div>
+          <div class="who">입주 예정자가 말하면</div>
+          <h3>사전 수요 등록</h3>
+          <p>"둘째가 내년에 태어나고 맞벌이라 저녁 7시까지 맡겨야 해요"처럼 말로 적으면 AI가 아이 나이, 필요한 돌봄 종류와 시간으로 정리합니다. 입주 예정자가 예보를 함께 만드는 셈이고, 등록이 쌓일수록 예보의 범위가 좁아집니다.</p>
+        </div>
+      </div>
+      <div class="mission m1">
+        <div class="mk" aria-hidden="true">🔔</div>
+        <div>
+          <div class="who">양주시와 교육지원청에</div>
+          <h3>공백 예보와 시설 선택지</h3>
+          <p>학구·생활권별로 연도마다 예상 수요와 수용량을 맞대어 "여유·빠듯·부족"을 입주 6~24개월 전에 알리고, 근거 문장을 붙입니다. 부족이 몇 년 이어지는지에 따라 새로 지을지, 모듈러·임차로 버틸지, 정점 뒤 돌려 쓸 공간으로 지을지 선택지를 나란히 보여 줍니다. "입주가 6개월 늦어지면" 같은 시나리오도 다시 계산합니다.</p>
+          <div class="ex"><b>돌려 쓰는 순서의 예</b> 0~2세 반이 비기 시작하면 시간연장 보육이나 초등 돌봄으로, 초등 정점이 지나면 청소년·어르신 공간으로. 언제 빌지 미리 알면 처음부터 바꿔 쓰기 쉬운 구조로 지을 수 있습니다.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>지금의 방식과 무엇이 다른가요</h2>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>구분</th><th>지금</th><th class="me">양주 입주 예보</th></tr></thead>
+        <tbody>
+          <tr><td>예측 시점</td><td class="h">분양 확정 뒤 학교 계획, 보육·돌봄은 민원 뒤</td><td class="me">입주자모집공고 시점부터 입주 24개월 전</td></tr>
+          <tr class="key"><td>예보 내용</td><td class="h">개교 시점의 학생 수 한 숫자</td><td class="me">연령별 정점 시기와 지속 기간, 그에 맞춘 시설 선택지</td></tr>
+          <tr class="key"><td>예측 근거</td><td class="h">과거 평균 학생유발률</td><td class="me">옥정 실제 입주 결과로 학습한 양주 유발률</td></tr>
+          <tr class="key"><td>입주자 참여</td><td class="h">민원, 감사 청구</td><td class="me">사전 수요 등록이 예보 데이터가 됨</td></tr>
+          <tr><td>다루는 시설</td><td class="h">학교 중심</td><td class="me">학교, 어린이집, 방과후 돌봄, 등교 시간 버스</td></tr>
+          <tr><td>누가 보나</td><td class="h">교육청 내부 업무 시스템</td><td class="me">시, 교육지원청, 입주 예정자가 같은 예보를 봄</td></tr>
+          <tr class="key"><td>결과 검증</td><td class="h">개교 3~5년 뒤 수용률로 사후 평가</td><td class="me">입주 뒤 실제 인구와 매 분기 비교해 공개, 모델 재학습</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><b>교육청의 기존 시스템과 경쟁하지 않고 보탭니다.</b> 교육 당국에는 한국교육시설안전원이 운영하는 학생배치·학교설립 지원시스템이 있고, 주민등록 통계로 학생 수를 추계합니다. 입주 예보는 같은 아이들이 어린이집에서 초등학교, 중학교로 옮겨 가는 물결을 시와 교육지원청의 시설을 가로질러 한 화면에 잇습니다. 그 시스템이 다루지 않는 보육·돌봄·교통 같은 시의 몫, 입주 예정자가 등록한 수요, 옥정에서 배운 양주 유발률도 교육지원청에 넘겨 줍니다.</p>
+    <div class="prin"><span>단지 이름으로 과밀을 표시하지 않음</span><span>학구·생활권 단위로만 공개</span><span>통학구역 배정은 예측하지 않음</span><span>숫자와 정점 시기는 늘 범위로</span><span>시설 전환은 선택지로만 제시</span></div>
+    <p class="note"><b>예보는 결정하지 않습니다.</b> 학교 설립과 통학구역 배정은 교육청의 권한이고, 시설을 새로 지을지 돌려 쓸지도 시와 교육지원청이 정합니다. 입주 예보는 그 판단을 더 일찍, 더 정확한 근거로 할 수 있게 돕는 자료입니다. 특정 단지에 "과밀" 딱지를 붙이면 집값과 얽혀 갈등이 생길 수 있어, 시민에게는 생활권 단위의 예보만 보여 줍니다.</p>
+  </section>
+
+  <div class="part" id="p3"><span class="pn">PART 3 · 심사기준 3</span><h2>실행계획의 현실성</h2><p>옥정에서 이미 지나가는 물결을 공개 통계로 먼저 보여 주고, 시가 주관하며 교육지원청과 같은 예보를 봅니다.</p></div>
+
+  <section>
+    <h2>누가 운영하고, 무엇을 하나</h2>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>역할</th><th>주체</th><th class="me">하는 일</th></tr></thead>
+        <tbody>
+          <tr><td><b>주관</b></td><td>아동·돌봄 담당부서</td><td class="me">예보를 보육·돌봄 확충과 전환 계획에 반영, 교육지원청과의 협의 창구</td></tr>
+          <tr><td><b>입주 일정</b></td><td>공동주택 담당부서</td><td class="me">사업승인·입주 예정 일정 갱신</td></tr>
+          <tr><td><b>공공시설</b></td><td>공공건축·공유재산 담당부서</td><td class="me">신축 공공시설의 전환 가능 설계 검토, 비게 될 공간의 활용 계획</td></tr>
+          <tr><td><b>교육 협력</b></td><td>동두천양주교육지원청</td><td class="me">학생 배치 계획 공유, 학교 수요 예보 수신</td></tr>
+          <tr><td><b>교통</b></td><td>교통 담당부서</td><td class="me">등교 시간 버스·똑버스 수요 예보를 노선 조정에 반영</td></tr>
+          <tr><td><b>입주자 안내</b></td><td>입주예정자협의회, 행정복지센터</td><td class="me">사전 수요 등록 안내</td></tr>
+          <tr><td><b>보안·개인정보</b></td><td>정보화 담당부서</td><td class="me">클라우드 보안, 사전 수요 등록 개인정보 검토</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tblnote">부서명은 기능 기준이며 실제 소관은 시 조직에 맞춥니다.</p>
+  </section>
+
+  <section>
+    <h2>쓰는 데이터</h2>
+    <p class="intro">예보의 뼈대는 모두 공개된 데이터로 만들 수 있습니다. 협조가 필요한 자료는 예보의 정확도를 높이는 데 쓰입니다.</p>
+    <div class="card data" style="padding:0;margin-top:24px;overflow:hidden">
+      <div class="row"><b>연령별 인구</b><span>행정안전부 주민등록 인구통계. 행정동·법정동별, 1세 단위, 매월 공표</span><span class="st ok">공개 확인</span></div>
+      <div class="row"><b>분양 단지 정보</b><span>청약홈 APT 분양정보(공급 위치, 공급 규모, 모집공고일, 입주예정월)와 주택형별 분양정보(주택형, 공급면적, 공급세대수, 분양가). 파일과 오픈 API, 무료</span><span class="st ok">공개 확인</span></div>
+      <div class="row"><b>입주한 단지 정보</b><span>공동주택관리정보시스템(K-apt) 단지 기본정보. 사용승인일, 전용면적 구간별 세대수, 분양·임대 구분, 법정동 코드</span><span class="st ok">공개 확인</span></div>
+      <div class="row"><b>보육 수용량</b><span>어린이집 정보공개포털 연령반별 정원·현원</span><span class="st ok">공개 확인</span></div>
+      <div class="row"><b>학교 수용량</b><span>학교알리미 학교별 학생·학급 수, 학구도안내서비스의 초등학교 통학구역 도면과 학교-학구도 연계정보(반기 갱신)</span><span class="st ok">공개 확인</span></div>
+      <div class="row"><b>돌봄·교통</b><span>다함께돌봄센터 운영 현황, 버스 노선·배차</span><span class="st chk">시 협조</span></div>
+      <div class="row"><b>학생 배치 계획</b><span>교육지원청 학교 신설·배치 계획</span><span class="st chk">협약</span></div>
+      <div class="row"><b>사전 수요 등록</b><span>입주 예정자가 직접 등록한 아이 나이와 돌봄 필요</span><span class="st ok">자체 생성</span></div>
+    </div>
+    <p class="note"><b>공개 데이터의 한계도 설계에 넣었습니다.</b> 청약홈은 최근 공급 주택 위주라 옥정 초기 단지는 K-apt의 면적별 세대수로 대신합니다. 주민등록 인구는 동 단위라 단지별 아이 수를 직접 보여 주지 않으므로, 예보는 단지 정보로 계산하되 검증과 공개는 동·생활권 단위로 합니다. 주민등록 통계에는 외국인이 빠져 있어 외국인 가구 비중이 높은 곳은 보정이 필요합니다.</p>
+  </section>
+
+  <section>
+    <h2>옥정으로 먼저 보여 주고, 맞혀 봅니다</h2>
+    <p class="intro">본선 전(10월 5~12일)에 공개 데이터만으로 두 가지를 확인합니다. 하나는 관측이고 하나는 예측입니다. 필요한 데이터는 모두 공개돼 있음을 확인했고, 결과는 좋든 나쁘든 숫자 그대로 발표합니다.</p>
+    <div class="proc">
+      <div><div><b>옥정의 물결 그리기</b><span>2019년부터 매월 행정동별 0~12세 1세 단위 인구로 나이×연도 표를 그려, 0~2세 정점이 3~5세로 옮겨 가는지 확인</span></div></div>
+      <div><div><b>옥정 단지의 입주 시점 정리</b><span>K-apt 사용승인일과 면적별 세대수로 2022~2024년 입주 단지 정리</span></div></div>
+      <div><div><b>입주 전 정보만으로 예측</b><span>그 단지 정보만으로 2025년 동별 0~6세, 7~12세 인구 예측</span></div></div>
+      <div><div><b>실제 주민등록 인구와 비교</b><span>1세 단위 월별 통계와 대조, 세대당 평균값으로 계산한 기준 예측과도 비교</span></div></div>
+      <div><div><b>회천에 적용</b><span>입주 예정 단지로 2027~2040년 물결 예보 화면 시연</span></div></div>
+    </div>
+    <p class="note"><b>첫 번째 증거는 관측, 두 번째 증거는 예측입니다.</b> 옥정의 물결은 이미 공개 통계에 남아 있어 모델 없이도 보여 줄 수 있고, 그다음 "평균 유발률보다 얼마나 더 맞혔나"를 보입니다. 입주가 아직 이어져 물결이 뚜렷하지 않으면 먼저 입주가 끝난 행정동이나 앞서 개발된 고읍지구로 범위를 바꿔 확인합니다. 행정동 단위로 비교하므로 개인정보 없이 공개 통계만으로 검증할 수 있습니다.</p>
+  </section>
+
+  <section>
+    <h2>행정 절차, 단계별 계획, 예산</h2>
+    <div class="proc">
+      <div><div><b>시범사업 지정, 주관 부서 결정</b><span>아동·돌봄 부서 주관, 공동주택·교통·정보화 부서 협조</span></div></div>
+      <div><div><b>교육지원청 업무협약</b><span>학생 배치 계획 공유와 예보 활용 범위</span></div></div>
+      <div><div><b>개인정보·보안 검토</b><span>사전 수요 등록의 동의 구조, 소표본 비공개 기준, 공공 클라우드 보안인증</span></div></div>
+      <div><div><b>예산 반영</b><span>본예산 또는 추경, 경기도·행정안전부 공공데이터·AI 공모사업 매칭</span></div></div>
+    </div>
+    <div class="phases" style="margin-top:20px">
+      <div class="ph now"><span class="w">0단계 · 2026.10</span><h3>공모전</h3><ul><li>옥정 물결 관측과 사전 검증</li><li>회천 물결 예보 화면 시연</li></ul><div class="x">산출: 옥정 나이×연도 표, 평균 유발률 대비 오차</div></div>
+      <div class="ph"><span class="w">1단계 · 3개월</span><h3>시청 내부용</h3><ul><li>시·교육지원청 예보 대시보드</li><li>회천 입주 예정 단지 전체</li></ul><div class="x">다음 단계 조건: 동별 연령 인구 오차 ±15% 이내</div></div>
+      <div class="ph"><span class="w">2단계 · 6개월</span><h3>입주 예정자 공개</h3><ul><li>사전 수요 등록</li><li>생활권 예보 공개</li></ul><div class="x">다음 단계 조건: 입주 예정 가구 등록률 20%</div></div>
+      <div class="ph"><span class="w">3단계 · 이후</span><h3>전역·광역</h3><ul><li>양주 전역, 소아과·버스</li><li>공공시설 전환 계획 연계</li><li>경기 시군과 모델 공유</li></ul><div class="x">검증: 분기별 예보 대비 실제 공개</div></div>
+    </div>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>예산 항목</th><th>내용</th><th class="me">규모 (추정)</th></tr></thead>
+        <tbody>
+          <tr><td><b>구축 (1~2단계)</b></td><td class="h">공고문 추출, 예보 모델, 시·교육지원청 대시보드, 사전 수요 등록</td><td class="me">4천만~6천만 원</td></tr>
+          <tr><td><b>연간 운영</b></td><td class="h">클라우드, AI 이용료, 모델 재학습, 유지보수</td><td class="me">연 1천5백만~2천5백만 원</td></tr>
+          <tr><td><b>인력</b></td><td class="h">기존 부서 업무 내 갱신과 확인</td><td class="me">신규 채용 없음</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tblnote">개략 추정입니다. 다른 지자체 데이터 사업과 비슷한 규모로 잡았고, 공개 데이터 중심이라 데이터 구입비는 들지 않습니다. 시범사업 계획 단계에서 견적으로 확정합니다.</p>
+  </section>
+
+  <section>
+    <h2>예상되는 어려움과 대응</h2>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>어려움</th><th class="me">대응</th></tr></thead>
+        <tbody>
+          <tr><td><b>단지 낙인과 집값 갈등</b></td><td class="me">단지 이름으로 과밀을 표시하지 않고, 시민에게는 생활권 단위 예보만 공개</td></tr>
+          <tr><td><b>배정 예측으로 오해</b></td><td class="me">통학구역은 교육청 권한임을 화면에 명시, 배정 예측 기능은 만들지 않음</td></tr>
+          <tr><td><b>예측이 틀림</b></td><td class="me">늘 범위로 표시, 분기마다 실제와 비교해 공개하고 재학습</td></tr>
+          <tr><td><b>물결이 길게 늘어짐</b></td><td class="me">입주가 이어지거나 둘째 출산이 많으면 정점이 넓어짐. 출생과 전출입을 매월 반영해 다시 계산하고, 정점 시기도 범위로 표시</td></tr>
+          <tr><td><b>시설 전환의 제도 제약</b></td><td class="me">전환은 선택지로만 제시하고, 실제 전환은 관련 법령과 시설 기준을 담당 부서가 검토</td></tr>
+          <tr><td><b>입주 예정자 참여 저조</b></td><td class="me">입주예정자협의회와 함께 안내, 등록하면 생활권 예보와 돌봄 신청 시기를 먼저 받음</td></tr>
+          <tr><td><b>기관 간 협조 지연</b></td><td class="me">1단계는 공개 데이터만으로 동작, 교육지원청 자료는 정확도를 높이는 용도로 단계적 연계</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="part" id="p4"><span class="pn">PART 4 · 심사기준 4</span><h2>기대효과·확장 가능성</h2><p>같은 엔진으로 다른 신도시, 다른 시설, 그리고 물결이 지나간 뒤의 동네까지 다룹니다.</p></div>
+
+  <section>
+    <h2>누가 무엇을 얻나</h2>
+    <div class="grid g3">
+      <div class="card"><span class="ic">🏠</span><h3>입주 가구</h3><p>입주 전에 우리 생활권의 학교·보육·돌봄 사정을 알고, 필요한 돌봄을 미리 말할 창구가 생깁니다.</p></div>
+      <div class="card"><span class="ic">🏛️</span><h3>양주시</h3><p>어린이집·돌봄·버스 확충을 입주 전에 결정할 근거를 얻고, 과밀 민원을 사후 대응에서 사전 대비로 바꿉니다. 정점 뒤 남을 공간을 미리 알아 돌려 쓸 수 있게 짓습니다.</p></div>
+      <div class="card"><span class="ic">🏫</span><h3>교육지원청</h3><p>학교 설립 심사에 쓸 양주 단지의 실제 유발률과 입주자 등록 수요를 얻고, 과밀이 몇 년 이어질지 보고 신설과 모듈러 사이를 판단합니다.</p></div>
+    </div>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>지표</th><th>측정 방법</th><th class="me">2단계 종료 시 목표</th></tr></thead>
+        <tbody>
+          <tr><td><b>예보 정확도</b></td><td class="h">행정동 연령별 예보와 실제 주민등록 인구 비교</td><td class="me">오차 ±15% 이내, 세대당 평균값 계산보다 개선</td></tr>
+          <tr><td><b>사전 대비</b></td><td class="h">입주 전에 결정된 보육·돌봄·노선 확충 건수</td><td class="me">기록·공개</td></tr>
+          <tr><td><b>전환 대비</b></td><td class="h">물결 예보를 근거로 전환 가능 설계나 임시 시설로 정한 건수</td><td class="me">기록·공개</td></tr>
+          <tr><td><b>사전 수요 등록</b></td><td class="h">입주 예정 가구 중 등록 비율</td><td class="me">20% 이상</td></tr>
+          <tr><td><b>관련 민원</b></td><td class="h">시범 생활권의 보육·과밀 민원, 도입 전 대비</td><td class="me">감소 추이 확인</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tblnote">±15%는 교육 당국이 적정으로 보는 학생 수용률 범위(계획 대비 70~130%)의 절반 폭으로 잡았습니다. 등록률 20%는 근거가 될 선례가 없는 가설로, 첫 시범 단지 결과로 조정합니다. 모든 목표치는 0단계 사전 검증 뒤 다시 정합니다.</p>
+  </section>
+
+  <section>
+    <h2>어디까지 넓힐 수 있나</h2>
+    <div class="grid g3">
+      <div class="card"><span class="ic">🗺️</span><h3>지역: 모든 택지개발지구로</h3><p>3기 신도시와 경기도 택지지구는 같은 문제를 겪습니다. 공개 데이터가 전국 단위라, 새 지역은 그곳의 입주 결과로 다시 학습하면 됩니다.</p></div>
+      <div class="card"><span class="ic">🩺</span><h3>영역: 학교에서 생활 전반으로</h3><p>같은 아이 수 예보로 소아과, 공공도서관, 놀이시설, 쓰레기 수거량까지 입주 전에 준비합니다.</p></div>
+      <div class="card"><span class="ic">📉</span><h3>지나간 물결: 1기 신도시와 원도심</h3><p>1기 신도시는 물결을 먼저 겪었습니다. 그곳 통계로 엔진을 거꾸로 검증하고, 양주 서부권처럼 아이가 줄어드는 동네의 과소 학교와 빈 돌봄 정원도 미리 찾습니다.</p></div>
+    </div>
+    <p class="note"><b>양주가 만든 유발률과 물결은 다른 지자체의 출발점이 됩니다.</b> 옥정과 회천에서 쌓은 "입주 전 정보와 연도별 실제 결과" 쌍을 비식별 데이터로 공개하면, 다른 신도시는 처음부터 더 나은 예보로 시작할 수 있습니다.</p>
+  </section>
+
+  <div class="part"><span class="pn">부록</span><h2>본선 준비와 팀</h2></div>
+
+  <section>
+    <h2>본선까지의 일정</h2>
+    <div class="flow">
+      <div class="fstep"><div class="dt">10.5 ~ 10.7</div><h3>데이터 수집</h3><p>옥정 물결 표부터(10.5), 입주 단지 정보, 어린이집·학교 수용량</p></div>
+      <div class="fstep"><div class="dt">10.8</div><h3>멘토링 2회차</h3><p>물결 관측 결과, 예보 모델과 검증 방법 점검</p></div>
+      <div class="fstep"><div class="dt">10.8 ~ 10.12</div><h3>검증과 구현</h3><p>옥정 사전 검증, 공고문 추출, 예보 화면</p></div>
+      <div class="fstep"><div class="dt">10.13</div><h3>멘토링 3회차</h3><p>시연 흐름과 발표 구성</p></div>
+      <div class="fstep"><div class="dt">10.14 ~ 10.15</div><h3>다듬기와 제출</h3><p>검증 결과 정리, 발표자료 제출</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>팀 이로움의 역할</h2>
+    <p class="intro">본선 결과물 제작 역할 분담 제안입니다. 팀 회의에서 확정합니다.</p>
+    <div class="team">
+      <div class="mem"><span class="role">프론트엔드</span><h3>황상진</h3><ul><li>생활권 예보 지도와 입주 예정자 화면</li><li>사전 수요 등록 흐름</li><li>시나리오와 시설 선택지 화면</li></ul></div>
+      <div class="mem"><span class="role">백엔드·데이터·AI</span><h3>이소미</h3><ul><li>옥정 물결 표와 사전 검증</li><li>예보 모델과 공고문 추출</li><li>사전 수요 등록 구조화</li></ul></div>
+      <div class="mem"><span class="role">UI</span><h3>이승재</h3><ul><li>물결 그래프와 "여유·빠듯·부족" 근거 설명</li><li>시·교육지원청 대시보드</li><li>발표자료와 검증 결과 시각화</li></ul></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>양주 입주 예보(가제), 팀 이로움 — 황상진, 이소미, 이승재. 화면 속 단지·연도·인원·비율은 설명용 가상 수치이며, 실제 값은 데이터 수집과 검증 뒤 계산합니다.</p>
+    <p>출처: 옥정·회천 초·중학교 과밀, 입주 가구 수, 회천 인구 전망 (데일리안 기획 보도, 양주시 제공), 2018~2020년 신설 학교 학생 수용률 (한국교육개발원 2023 지방교육재정분석 종합보고서, 경기일보 사설 2024.1), 전주 에코시티 학생유발률과 학교 설립 계획 시점 (프레시안 2021.6), 과천 지식정보타운 학생 과밀과 입주 예정자 민원 (경기일보 2022.8), 학생배치·학교설립 지원시스템 (한국교육시설안전원, 한국교육시설학회논문집 2019.1). 데이터: 행정안전부 주민등록 인구통계, 한국부동산원 청약홈 분양정보(공공데이터포털), 공동주택관리정보시스템 단지 기본정보, 학구도안내서비스 공공데이터. 비용과 목표치는 가설이며 착수 시점에 다시 확인합니다.</p>
+  </footer>
+
+</div>
+<script>
+  (function(){
+    var root=document.documentElement, btn=document.getElementById('themeToggle');
+    var saved=null; try{saved=localStorage.getItem('ip-theme');}catch(e){}
+    if(saved){root.setAttribute('data-theme',saved);}
+    btn.addEventListener('click',function(){
+      var cur=root.getAttribute('data-theme');
+      var isDark=cur?cur==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var next=isDark?'light':'dark';
+      root.setAttribute('data-theme',next);
+      try{localStorage.setItem('ip-theme',next);}catch(e){}
+    });
+  })();
+</script>
+</body>
+</html>

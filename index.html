@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Team IROUM · 2026 양주시 미래인재 AI 공모전</title>
-<meta name="description" content="팀 이로움(IROUM)의 2026 양주시 미래인재 AI 공모전 기획안 모음 — 멘토링용">
+<meta name="description" content="팀 이로움(IROUM)의 2026 양주시 미래인재 AI 공모전 기획안 모음과 심사기준 평가표">
 <link rel="icon" type="image/png" href="logo.png">
 <link rel="apple-touch-icon" href="logo.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
@@ -101,6 +101,7 @@
   .card .nm{font-weight:750;font-size:16.5px;letter-spacing:-.01em}
   .card .ds{font-size:13.5px;color:var(--muted);margin-top:3px}
   .card .go{font-size:13px;font-weight:600;color:var(--muted);margin-top:10px}
+  .card .sc{display:inline-block;margin-top:8px;font-size:12.5px;font-weight:700;color:var(--green);background:var(--leaf-soft);border-radius:999px;padding:2px 10px;font-variant-numeric:tabular-nums}
   .start{margin-top:28px;display:flex;flex-wrap:wrap;gap:10px}
   .foot{margin-top:40px;font-size:12.5px;color:var(--faint)}
 
@@ -128,7 +129,7 @@
     </a>
     <div class="navlabel">기획안</div>
     <nav><ol id="nav"></ol></nav>
-    <div class="side-foot"><span>멘토링용 기획안 모음</span><button class="themebtn" id="themebtn" type="button" aria-label="밝게/어둡게 전환">◐</button></div>
+    <div class="side-foot"><span>기획안 모음과 평가표</span><button class="themebtn" id="themebtn" type="button" aria-label="밝게/어둡게 전환">◐</button></div>
   </aside>
   <div class="scrim" id="scrim" hidden></div>
 
@@ -140,7 +141,6 @@
       <span class="sp"></span>
       <button class="btn" id="prev" type="button" aria-label="이전 기획안">← <span class="lbl">이전</span></button>
       <button class="btn pri" id="next" type="button" aria-label="다음 기획안"><span class="lbl">다음</span> →</button>
-      <a class="btn" id="qbtn" href="#" aria-label="이 기획안 질문 보기">? <span class="lbl">질문</span></a>
       <a class="btn" id="open" href="#" target="_blank" rel="noopener" aria-label="새 창으로 열기">↗ <span class="lbl">새 창</span></a>
     </div>
     <div class="frame" id="frame" hidden><iframe id="doc" title="기획안"></iframe></div>
@@ -148,8 +148,8 @@
     <div class="home-view" id="home">
       <div class="home-in">
         <div class="hero-mark"><img class="logo" src="" data-logo alt="" width="256" height="256"><div><h1>Team IROUM</h1><p>팀 이로움 · 2026 양주시 미래인재 AI 공모전</p></div></div>
-        <p class="lede">양주 시민에게 <b>이로운</b> AI 서비스를 기획하고 있습니다. 멘토링에서 검토받을 기획안 다섯 개를 순서대로 모았습니다.</p>
-        <a class="how qbox" href="#questions"><span class="qt">멘토링 사전 질문</span><span class="qd">공통 질문 6개와 기획안별 질문 27개를 정리했습니다. 기획안을 보다가 위쪽 <b>? 질문</b> 버튼을 누르면 그 기획안의 질문으로 바로 이동합니다.</span><span class="qg">사전 질문 보기 →</span></a>
+        <p class="lede">양주 시민에게 <b>이로운</b> AI 서비스를 기획하고 있습니다. 기획안 열 개를 심사기준 평가표의 보완 후 추정 점수가 높은 순서로 모았습니다. 각 카드에는 지금 문서 기준 점수와 보완 후 추정 점수를 함께 적었습니다.</p>
+        <a class="how qbox" href="#evaluation"><span class="qt">기획안 심사기준 평가표</span><span class="qd">공모전 심사기준 네 항목으로 기획안을 채점하고, 비슷한 기존 서비스와 수상작이 있는지 점검했습니다. <b>점수, 유사 사례, 본선 대비, 오늘 할 일</b>을 한곳에서 봅니다.</span><span class="qg">평가표 보기 →</span></a>
         <div class="cards" id="cards"></div>
         <p class="foot">© Team IROUM. 기획안의 모든 내용은 팀 이로움에 저작권이 있습니다.</p>
       </div>
@@ -163,13 +163,18 @@
   document.querySelectorAll("img[data-logo]").forEach(function(img){ img.src = LOGO; });
   (function(){ var l=document.querySelector('link[rel="icon"]'); if(l) l.href = LOGO; })();
 
-  // 기획안 목록 — 순서와 파일 이름은 여기서만 고치면 됩니다.
+  // 기획안 목록: 평가표의 보완 후 추정 점수 순서. 순서와 파일 이름은 여기서만 고치면 됩니다.
   var DOCS = [
-    { id: "yangju-mirisalgi", title: "양주 미리살기", desc: "AI 생활권 시뮬레이터" },
-    { id: "yangju-jangbaguni", title: "양주 장바구니", desc: "영수증·가격표로 만드는 동네 물가지도" },
-    { id: "yangju-airang", title: "양주 아이랑", desc: "아이 나이에 맞춘 나들이·돌봄 정보 지도" },
-    { id: "minwon-navi",   title: "민원 내비게이션", desc: "제출 전 AI 민원 사전점검" },
-    { id: "gongsa-radar",  title: "공사 레이더",   desc: "우리 집 앞 공사, 일어나기 전에 알림" }
+    { id: "yangju-school-simulator", title: "양주 학교 배치 시뮬레이터", desc: "학교를 지을지, 나눠 보낼지 숫자로 답하기", score: "96~98", now: "94" },
+    { id: "yangju-ipju-yebo", title: "양주 입주 예보", desc: "입주 전에 아이 물결을 예보", score: "93~95", now: "90" },
+    { id: "yangju-byeongwon-jido", title: "공공병원 근거 지도", desc: "동네·진료과·시간대로 쪼갠 의료 공백", score: "93~95", now: "91" },
+    { id: "yangju-bi-ogi-jeon", title: "비 오기 전 지도", desc: "호우 전 48시간, 먼저 점검할 공사장과 옹벽", score: "89~93", now: "88" },
+    { id: "gongsa-radar",  title: "공사 레이더",   desc: "우리 집 앞 공사, 일어나기 전에 알림", score: "89~92", now: "89" },
+    { id: "yangju-mirisalgi", title: "양주 미리살기", desc: "AI 양주 1년 생활 설계", score: "87~91", now: "86" },
+    { id: "yangju-airang", title: "양주 아이랑", desc: "아이 나이에 맞춘 나들이·돌봄 정보 지도", score: "87~90", now: "87" },
+    { id: "minwon-navi",   title: "민원 내비", desc: "제출 전 AI 민원 사전점검", score: "86~89", now: "86" },
+    { id: "yangju-meongnyanggil", title: "양주 멍냥길", desc: "반려견의 오늘에 맞춘 이웃 배려 산책길", score: "83~86", now: "80" },
+    { id: "yangju-jangbaguni", title: "양주 장바구니", desc: "영수증·가격표로 만드는 동네 물가지도", score: "83~86", now: "83" }
   ];
 
   var nav = document.getElementById('nav'), cards = document.getElementById('cards');
@@ -181,39 +186,44 @@
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 
   var homeLi = '<li><a class="home" href="#home" data-id="home"><span class="n">⌂</span><span class="nm">처음 화면</span></a></li>';
-  var qLi = '<li><a href="#questions" data-id="questions"><span class="n">?</span><span><span class="nm">멘토링 사전 질문</span><span class="ds">공통 질문과 기획안별 질문</span></span></a></li>';
-  nav.innerHTML = homeLi + qLi + DOCS.map(function(d, i){
+  var evLi = '<li><a href="#evaluation" data-id="evaluation"><span class="n">✓</span><span><span class="nm">심사기준 평가표</span><span class="ds">점수, 유사 사례, 본선 대비</span></span></a></li>';
+  nav.innerHTML = homeLi + evLi + DOCS.map(function(d, i){
     return '<li><a href="#' + d.id + '" data-id="' + d.id + '"><span class="n">' + (i + 1) + '</span><span><span class="nm">' + esc(d.title) + '</span>' +
       (d.desc ? '<span class="ds">' + esc(d.desc) + '</span>' : '') + '</span></a></li>';
   }).join('');
   cards.innerHTML = DOCS.map(function(d, i){
     return '<a class="card" href="#' + d.id + '"><span class="n">' + (i + 1) + '</span><span><div class="nm">' + esc(d.title) + '</div>' +
-      (d.desc ? '<div class="ds">' + esc(d.desc) + '</div>' : '') + '<div class="go">기획안 보기 →</div></span></a>';
+      (d.desc ? '<div class="ds">' + esc(d.desc) + '</div>' : '') + (d.score ? '<span class="sc">' + (d.now ? '현재 ' + esc(d.now) + '점 · ' : '') + '보완 후 ' + esc(d.score) + '점</span>' : '') + '<div class="go">기획안 보기 →</div></span></a>';
   }).join('');
 
   function closeMenu(){ side.classList.remove('open'); scrim.hidden = true; menu.setAttribute('aria-expanded', 'false'); }
   menu.addEventListener('click', function(){ side.classList.add('open'); scrim.hidden = false; menu.setAttribute('aria-expanded', 'true'); });
   scrim.addEventListener('click', closeMenu);
 
-  var qbtn = document.getElementById('qbtn');
+  function syncEvalTheme(){
+    if (iframe.dataset.view !== 'evaluation') return;
+    try { var t = document.documentElement.getAttribute('data-theme'), r = iframe.contentDocument.documentElement;
+      if (t) r.setAttribute('data-theme', t); else r.removeAttribute('data-theme'); } catch(e){}
+  }
+  iframe.addEventListener('load', syncEvalTheme);
   function route(){
     var id = decodeURIComponent(location.hash.slice(1)) || 'home';
-    if (id === 'questions' || id.indexOf('questions/') === 0){
-      var sub = id.split('/')[1] || '', qurl = 'questions.html' + (sub ? '#' + sub : '');
+    if (id === 'evaluation'){
       nav.querySelectorAll('a').forEach(function(a){
-        if (a.dataset.id === 'questions') a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+        if (a.dataset.id === 'evaluation') a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
       });
       closeMenu();
       homeEl.hidden = true; bar.hidden = false; frame.hidden = false;
-      iframe.setAttribute('src', qurl);
-      iframe.title = '멘토링 사전 질문';
-      cur.textContent = '멘토링 사전 질문'; pos.textContent = '';
-      prev.hidden = true; next.hidden = true; qbtn.hidden = true;
-      open.href = qurl;
-      document.title = '멘토링 사전 질문 · Team IROUM';
+      iframe.dataset.view = 'evaluation';
+      if (iframe.getAttribute('src') !== 'evaluation.html') iframe.setAttribute('src', 'evaluation.html');
+      iframe.title = '기획안 심사기준 평가표';
+      cur.textContent = '기획안 심사기준 평가표'; pos.textContent = '';
+      prev.hidden = true; next.hidden = true;
+      open.href = 'evaluation.html';
+      document.title = '기획안 심사기준 평가표 · Team IROUM';
       return;
     }
-    prev.hidden = false; next.hidden = false; qbtn.hidden = false;
+    prev.hidden = false; next.hidden = false;
     var idx = -1;
     for (var i = 0; i < DOCS.length; i++) if (DOCS[i].id === id) idx = i;
     nav.querySelectorAll('a').forEach(function(a){
@@ -227,12 +237,12 @@
     }
     var d = DOCS[idx], url = d.id + '.html';
     homeEl.hidden = true; bar.hidden = false; frame.hidden = false;
+    iframe.dataset.view = '';
     if (iframe.getAttribute('src') !== url) iframe.setAttribute('src', url);
     iframe.title = d.title + ' 기획안';
     cur.textContent = d.title;
     pos.textContent = (idx + 1) + ' / ' + DOCS.length;
     open.href = url;
-    qbtn.href = '#questions/' + d.id;
     prev.disabled = idx === 0;
     next.disabled = idx === DOCS.length - 1;
     prev.onclick = function(){ location.hash = DOCS[idx - 1].id; };
@@ -251,7 +261,7 @@
   (function(){
     var btn = document.getElementById('themebtn'), root = document.documentElement;
     function curTheme(){ var t = root.getAttribute('data-theme'); if (t) return t; return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
-    btn.addEventListener('click', function(){ root.setAttribute('data-theme', curTheme() === 'dark' ? 'light' : 'dark'); });
+    btn.addEventListener('click', function(){ root.setAttribute('data-theme', curTheme() === 'dark' ? 'light' : 'dark'); syncEvalTheme(); });
   })();
 </script>
 </body>

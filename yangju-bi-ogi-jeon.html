@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="양주 비 오기 전 지도 — 호우 예보가 뜨면 공사장과 옹벽 가운데 48시간 안에 먼저 점검할 곳의 순서를 내고, 드론·시민 사진에서 막힌 배수로와 가득 찬 침사지를 찾아 시공사 조치를 요청하는 서비스. 2026 양주시 미래인재 AI 공모전">
+<title>양주 비 오기 전 지도 · 프로젝트 개요</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+  :root{
+    --bg:#F4F6FA; --card:#FFFFFF; --card-2:#EAF2FD;
+    --ink:#1D2B3A; --muted:#5A6B7D; --faint:#93A2B3; --line:#DCE6F2;
+    --sun:#F2A516; --sun-soft:#FDF0D5; --sun-ink:#8A5A00;
+    --sky:#3554D1; --sky-soft:#E1E7FB;
+    --grass:#22A45D; --grass-soft:#DAF4E5;
+    --alert:#F2544A; --alert-soft:#FFE3E0;
+    --shadow:0 1px 2px rgba(29,43,58,.05),0 14px 30px -18px rgba(29,43,58,.3);
+    --display:"Do Hyeon","Noto Sans KR",system-ui,sans-serif;
+    --body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0F1620; --card:#18222E; --card-2:#1F2C3B;
+      --ink:#E9F0F8; --muted:#A3B2C2; --faint:#6D7C8D; --line:#2A3746;
+      --sun:#FFD25E; --sun-soft:#3A2F12; --sun-ink:#FFD25E;
+      --sky:#6FA8FF; --sky-soft:#15283F;
+      --grass:#4CCB84; --grass-soft:#13301F;
+      --alert:#FF7A70; --alert-soft:#3A1A18;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 16px 34px -18px rgba(0,0,0,.7);
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0F1620; --card:#18222E; --card-2:#1F2C3B;
+    --ink:#E9F0F8; --muted:#A3B2C2; --faint:#6D7C8D; --line:#2A3746;
+    --sun:#FFD25E; --sun-soft:#3A2F12; --sun-ink:#FFD25E;
+    --sky:#6FA8FF; --sky-soft:#15283F;
+    --grass:#4CCB84; --grass-soft:#13301F;
+    --alert:#FF7A70; --alert-soft:#3A1A18;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 16px 34px -18px rgba(0,0,0,.7);
+    color-scheme:dark;
+  }
+  :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  html{scroll-padding-top:env(safe-area-inset-top,0px)}
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.7;-webkit-font-smoothing:antialiased;word-break:keep-all}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 20px}
+  h1,h2,h3{margin:0;text-wrap:balance}
+  p{margin:0}
+  :focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+
+  .top{display:flex;justify-content:space-between;align-items:center;padding:18px 0;font-size:13px;color:var(--muted)}
+  .themebtn{border:1px solid var(--line);background:var(--card);color:var(--muted);width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:15px}
+
+  /* hero */
+  .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:30px 0 56px}
+  @media (max-width:820px){.hero{grid-template-columns:1fr;gap:30px}}
+  .badge{display:inline-flex;align-items:center;gap:10px}
+  .badge .paw{width:54px;height:54px;border-radius:50%;background:var(--sun);display:grid;place-items:center;box-shadow:inset 0 -4px 0 rgba(0,0,0,.08)}
+  .badge .paw svg{width:30px;height:30px;color:#1D2B3A}
+  .hero .name{font-family:var(--display);font-size:clamp(44px,7vw,64px);white-space:nowrap;line-height:1;color:var(--ink)}
+  .hero h1{font-size:clamp(22px,3.4vw,30px);font-weight:900;line-height:1.4;margin-top:20px;letter-spacing:-.015em}
+  .hero h1 .h1l{display:inline-block}
+  .hero h1 em{font-style:normal;background:linear-gradient(transparent 60%,var(--sun) 0)}
+  .hero .lede{color:var(--muted);font-size:16px;margin-top:14px;max-width:52ch}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .chip{font-size:13px;font-weight:500;padding:6px 12px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
+  .chip b{color:var(--sky);font-weight:700}
+
+  /* alert mock (signature) */
+  .phone{background:var(--card);border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow);padding:16px;max-width:380px;margin-left:auto}
+  @media (max-width:820px){.phone{margin:0 auto}}
+  .alertcard{background:var(--alert-soft);border-radius:18px;padding:16px}
+  .alertcard .h{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--alert)}
+  .alertcard .h::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--alert);box-shadow:0 0 0 4px color-mix(in srgb,var(--alert) 25%,transparent)}
+  .pet{display:flex;gap:12px;align-items:center;margin-top:10px}
+  .pet .pic{width:64px;height:64px;border-radius:16px;background:var(--sun-soft);display:grid;place-items:center;font-size:34px;flex:none}
+  .pet strong{font-family:var(--display);font-size:24px;font-weight:400;line-height:1.1;display:block}
+  .pet span{font-size:13px;color:var(--muted)}
+  .match{margin-top:12px;border:2px dashed var(--line);border-radius:18px;padding:14px}
+  .match .t{font-size:12.5px;font-weight:700;color:var(--muted)}
+  .match .row{display:flex;align-items:center;gap:10px;margin-top:8px}
+  .match .pic2{width:48px;height:48px;border-radius:12px;background:var(--card-2);display:grid;place-items:center;font-size:24px;flex:none}
+  .match .lv{margin-left:auto;font-size:12.5px;font-weight:700;color:var(--grass);background:var(--grass-soft);border-radius:999px;padding:4px 10px;white-space:nowrap}
+  .match p{font-size:13px;color:var(--muted)}
+  .btns{display:flex;gap:8px;margin-top:12px}
+  .btns span{flex:1;text-align:center;font-size:13px;font-weight:700;border-radius:12px;padding:10px 6px}
+  .btns .yes{background:var(--sky);color:#fff}
+  .btns .no{background:var(--card-2);color:var(--muted)}
+  .demo{font-size:12px;color:var(--faint);text-align:center;margin-top:10px}
+
+  section{padding:46px 0;border-top:1px solid var(--line)}
+  h2{font-size:clamp(22px,3.4vw,29px);font-weight:900;letter-spacing:-.015em}
+  .intro{color:var(--muted);margin-top:10px;max-width:64ch;font-size:15px}
+  .grid{display:grid;gap:14px;margin-top:24px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  @media (max-width:820px){.g3,.g4{grid-template-columns:1fr 1fr}}
+  @media (max-width:560px){.g2,.g3,.g4{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
+  .card h3{font-size:16.5px;font-weight:700;letter-spacing:-.01em}
+  .card p{color:var(--muted);font-size:14px;margin-top:7px}
+  .card .ic{font-size:24px;display:block;margin-bottom:10px}
+
+  /* policy timeline */
+  .policy{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch;margin-top:24px}
+  @media (max-width:720px){.policy{grid-template-columns:1fr}.policy .arrow{transform:rotate(90deg);justify-self:center}}
+  .pol{border-radius:18px;padding:20px;border:1px solid var(--line);background:var(--card)}
+  .pol.now{background:var(--sun-soft);border-color:transparent}
+  .pol .when{font-size:13px;font-weight:700;color:var(--muted)}
+  .pol.now .when{color:var(--sun-ink)}
+  .pol h3{font-size:17px;font-weight:700;margin-top:4px}
+  .pol ul{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:14px}
+  .pol ul li+li{margin-top:4px}
+  .arrow{display:grid;place-items:center;font-size:22px;color:var(--faint);font-weight:700}
+
+  /* missions */
+  .missions{display:grid;gap:16px;margin-top:24px}
+  .mission{display:grid;grid-template-columns:auto 1fr;gap:18px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:var(--shadow)}
+  @media (max-width:560px){.mission{grid-template-columns:1fr}}
+  .mission .mk{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;font-size:30px}
+  .m1 .mk{background:var(--alert-soft)} .m2 .mk{background:var(--sky-soft)} .m3 .mk{background:var(--grass-soft)}
+  .mission .who{font-size:13px;font-weight:700}
+  .m1 .who{color:var(--alert)} .m2 .who{color:var(--sky)} .m3 .who{color:var(--grass)}
+  .mission h3{font-size:19px;font-weight:900;margin-top:2px}
+  .mission p{color:var(--muted);font-size:14.5px;margin-top:6px}
+  .mission .ai{margin-top:12px;font-size:13.5px;background:var(--card-2);border-radius:12px;padding:10px 14px;color:var(--ink)}
+  .mission .ai b{color:var(--sky)}
+
+  /* flow */
+  .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:24px;counter-reset:f}
+  @media (max-width:860px){.flow{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.flow{grid-template-columns:1fr}}
+  .fstep{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .fstep::before{counter-increment:f;content:counter(f);display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--sun);color:#1D2B3A;font-weight:900;font-size:14px;margin-bottom:10px}
+  .fstep h3{font-size:15px;font-weight:700}
+  .fstep p{color:var(--muted);font-size:13px;margin-top:5px}
+
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+  @media (max-width:560px){.split{grid-template-columns:1fr}}
+  .split div{border-radius:14px;padding:14px 16px;font-size:14px}
+  .split .a{background:var(--sky-soft);color:var(--sky)}
+  .split .p{background:var(--sun-soft);color:var(--sun-ink)}
+  .split b{display:block;font-size:13px;margin-bottom:4px}
+
+  .life{display:grid;grid-template-columns:repeat(4,1fr);margin-top:24px;background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}
+  @media (max-width:820px){.life{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.life{grid-template-columns:1fr}}
+  .life > div{padding:18px;border-right:1px solid var(--line)}
+  .life > div:last-child{border-right:0;background:var(--grass-soft)}
+  @media (max-width:820px){.life > div{border-bottom:1px solid var(--line)}}
+  .life .s{font-weight:900;color:var(--grass);font-size:14px}
+  .life h3{font-size:15px;font-weight:700;margin-top:4px}
+  .life p{color:var(--muted);font-size:13.5px;margin-top:6px}
+
+  .tbl{overflow-x:auto;margin-top:24px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
+  table{width:100%;border-collapse:collapse;font-size:14px;min-width:600px}
+  th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:13px;color:var(--muted);font-weight:700;background:var(--card-2)}
+  tr:last-child td{border-bottom:0}
+  td.me,th.me{background:color-mix(in srgb,var(--sun) 16%,var(--card))}
+  th small{display:block;font-size:12px;font-weight:500;margin-top:2px}
+  tr.key td:first-child,tr.key td.me{font-weight:700;color:var(--ink)}
+  .tblnote{margin-top:10px;font-size:12.5px;color:var(--muted)}
+
+  .data .row{display:grid;grid-template-columns:34% 1fr auto;gap:14px;align-items:start;padding:13px 18px;border-top:1px solid var(--line);font-size:14px}
+  .data .row:first-child{border-top:0}
+  @media (max-width:560px){.data .row{grid-template-columns:1fr}}
+  .data .row b{font-weight:700}
+  .data .row span{color:var(--muted)}
+  .data .st{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap;justify-self:start}
+  .st.ok{background:var(--grass-soft);color:var(--grass)}
+  .st.chk{background:var(--sun-soft);color:var(--sun-ink)}
+
+  .note{margin-top:18px;background:var(--card-2);border-radius:14px;padding:14px 18px;font-size:14px;color:var(--muted)}
+  .note b{color:var(--ink)}
+  footer{border-top:1px solid var(--line);padding:30px 0 50px;color:var(--faint);font-size:12.5px}
+  footer p+p{margin-top:6px}
+  /* coordinator mock */
+  .coord{margin-top:12px;border:2px dashed var(--line);border-radius:18px;padding:14px}
+  .coord .t{font-size:12.5px;font-weight:700;color:var(--sky)}
+  .coord ol{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+  .coord li{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted);line-height:1.5}
+  .coord li .k{flex:none;font-size:11.5px;font-weight:700;border-radius:8px;padding:2px 8px;margin-top:1px}
+  .k.zone{background:var(--sky-soft);color:var(--sky)} .k.clue{background:var(--grass-soft);color:var(--grass)} .k.call{background:var(--sun-soft);color:var(--sun-ink)}
+  .m4 .mk{background:var(--sun-soft)} .m4 .who{color:var(--sun-ink)}
+  .mission .ex{margin-top:10px;font-size:13.5px;border-left:3px solid var(--line);padding-left:12px;color:var(--muted)}
+  .mission .ex b{color:var(--ink);font-weight:700}
+  .side2 .card{box-shadow:none;background:var(--card-2);border-color:transparent}
+  td.h{color:var(--muted)}
+  /* route card */
+  .route{margin-top:12px;border-radius:18px;padding:14px;background:var(--sky-soft)}
+  .route .t{font-size:12.5px;font-weight:700;color:var(--sky)}
+  .route strong{display:block;font-family:var(--display);font-weight:400;font-size:23px;line-height:1.15;margin-top:4px;color:var(--ink)}
+  .route .meta{font-size:13px;color:var(--muted);margin-top:2px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .tags span{font-size:12px;font-weight:700;border-radius:999px;padding:3px 9px;background:var(--card);color:var(--ink)}
+  .why{margin-top:10px;font-size:13px;color:var(--ink);background:var(--card);border-radius:12px;padding:10px 12px;line-height:1.55}
+  .why b{color:var(--sky)}
+  .mission-chip{display:flex;align-items:center;gap:10px;margin-top:10px;background:var(--sun-soft);border-radius:14px;padding:10px 12px;font-size:13px;color:var(--sun-ink);font-weight:700}
+  .mission-chip span{font-size:20px}
+  /* event bridge */
+  .bridge{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch;margin-top:24px}
+  @media (max-width:720px){.bridge{grid-template-columns:1fr}.bridge .arrow{transform:rotate(90deg);justify-self:center}}
+  .ev{border-radius:18px;padding:20px;border:1px solid var(--line);background:var(--card)}
+  .ev.after{background:var(--grass-soft);border-color:transparent}
+  .ev .when{font-size:13px;font-weight:700;color:var(--muted)}
+  .ev.after .when{color:var(--grass)}
+  .ev h3{font-size:17px;font-weight:700;margin-top:4px}
+  .ev ul{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:14px}
+  .ev ul li+li{margin-top:4px}
+  .facts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+  @media (max-width:720px){.facts{grid-template-columns:1fr 1fr}}
+  .fact{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .fact .n{font-family:var(--display);font-size:28px;line-height:1;color:var(--sky)}
+  .fact .l{font-size:12.5px;color:var(--muted);margin-top:6px}
+  /* badges */
+  .badges{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}
+  @media (max-width:820px){.badges{grid-template-columns:1fr 1fr}}
+  @media (max-width:420px){.badges{grid-template-columns:1fr}}
+  .bd{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;text-align:center;box-shadow:var(--shadow)}
+  .bd .medal{width:62px;height:62px;border-radius:50%;margin:0 auto 10px;display:grid;place-items:center;font-size:28px;background:var(--sun);box-shadow:inset 0 -4px 0 rgba(0,0,0,.08)}
+  .bd:nth-child(2) .medal{background:var(--sky-soft)} .bd:nth-child(3) .medal{background:var(--grass-soft)} .bd:nth-child(4) .medal{background:var(--alert-soft)}
+  .bd h3{font-size:15.5px;font-weight:700}
+  .bd p{font-size:13px;color:var(--muted);margin-top:6px}
+
+  /* track badge */
+  .track{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--grass);background:var(--grass-soft);border-radius:999px;padding:6px 12px;margin-bottom:16px}
+  .fit3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+  @media (max-width:820px){.fit3{grid-template-columns:1fr}}
+  .fitc{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
+  .fitc .k{font-size:13px;font-weight:700;color:var(--grass)}
+  .fitc h3{font-size:16.5px;font-weight:700;margin-top:4px}
+  .fitc p{color:var(--muted);font-size:14px;margin-top:6px}
+  /* architecture */
+  .arch{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}
+  @media (max-width:860px){.arch{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.arch{grid-template-columns:1fr}}
+  .an{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px}
+  .an .h{font-weight:700;font-size:15px}
+  .an .d{color:var(--muted);font-size:13.5px}
+  .an .sec{margin-top:auto;font-size:12.5px;font-weight:700;color:var(--grass);background:var(--grass-soft);border-radius:10px;padding:8px 10px;line-height:1.5}
+  /* screens */
+  .screens{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:20px}
+  @media (max-width:860px){.screens{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.screens{grid-template-columns:1fr}}
+  .scr{background:var(--card);border:2px solid var(--line);border-radius:22px;padding:14px 12px;text-align:center}
+  .scr .ic{font-size:24px}
+  .scr h3{font-size:14.5px;font-weight:700;margin-top:6px}
+  .scr p{font-size:12.5px;color:var(--muted);margin-top:4px}
+  .scr.web{border-style:dashed}
+  /* team */
+  .team{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+  @media (max-width:820px){.team{grid-template-columns:1fr}}
+  .mem{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
+  .mem .role{display:inline-block;font-size:12.5px;font-weight:700;border-radius:999px;padding:3px 10px}
+  .mem:nth-child(1) .role{background:var(--sky-soft);color:var(--sky)}
+  .mem:nth-child(2) .role{background:var(--sun-soft);color:var(--sun-ink)}
+  .mem:nth-child(3) .role{background:var(--alert-soft);color:var(--alert)}
+  .mem h3{font-size:19px;font-weight:900;margin-top:8px}
+  .mem ul{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:14px}
+  .mem ul li+li{margin-top:5px}
+  .fstep .dt{font-size:12.5px;font-weight:700;color:var(--sky)}
+
+  /* yearly timeline */
+  .tl{list-style:none;margin:24px 0 0;padding:0;position:relative}
+  .tl::before{content:"";position:absolute;left:74px;top:6px;bottom:6px;width:2px;background:var(--line)}
+  .tl li{display:grid;grid-template-columns:88px 1fr;gap:18px;padding:0 0 18px;position:relative}
+  .tl li:last-child{padding-bottom:0}
+  .tl .yr{font-family:var(--display);font-size:22px;line-height:1.2;color:var(--muted);text-align:left}
+  .tl li::after{content:"";position:absolute;left:69px;top:8px;width:12px;height:12px;border-radius:50%;background:var(--card);border:3px solid var(--sky)}
+  .tl li.now::after{background:var(--sun);border-color:var(--sun)}
+  .tl li.now .yr{color:var(--ink)}
+  .tl .bx{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-left:8px}
+  .tl li.now .bx{background:var(--sun-soft);border-color:transparent}
+  .tl .bx h3{font-size:15.5px;font-weight:700}
+  .tl .bx p{color:var(--muted);font-size:13.5px;margin-top:4px}
+  @media (max-width:560px){.tl::before{left:6px}.tl li{grid-template-columns:1fr;gap:4px;padding-left:24px}.tl li::after{left:1px}.tl .bx{margin-left:0}}
+
+  /* prototype-style phone mock (fixed light app colors) */
+  .pm{max-width:360px;margin-left:auto;background:#F5F9FF;border-radius:36px;box-shadow:0 0 0 8px #1D2B3A,0 24px 50px -20px rgba(29,43,58,.5);overflow:hidden;color:#1D2B3A;font-family:var(--body)}
+  @media (max-width:820px){.pm{margin:0 auto}}
+  .pm svg.pi{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+  .pm-screen{padding:16px 16px 12px;display:flex;flex-direction:column;gap:10px}
+  .pm-top{display:flex;align-items:center;justify-content:space-between}
+  .pm-when{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#5A6B7D}
+  .pm-av{width:36px;height:36px;border-radius:50%;background:#FFC93C;display:grid;place-items:center}
+  .pm-av svg.pi{width:18px;height:18px}
+  .pm-title{font-family:var(--display);font-size:26px;line-height:1.15}
+  .pm-chips{display:flex;flex-wrap:wrap;gap:5px}
+  .pm-chips span{font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:999px;background:#FFFFFF;border:1px solid #DCE6F2}
+  .pm-say{display:flex;gap:6px}
+  .pm-input{flex:1;height:38px;border:1px solid #DCE6F2;border-radius:10px;background:#FFFFFF;display:flex;align-items:center;padding:0 12px;font-size:12px;color:#6B7B8C}
+  .pm-mic{width:38px;height:38px;border-radius:10px;background:#1D2B3A;color:#FFFFFF;display:grid;place-items:center}
+  .pm-mic svg.pi{width:16px;height:16px}
+  .pm-card{background:#FFFFFF;border:1px solid #DCE6F2;border-radius:16px;overflow:hidden}
+  .pm-map{height:96px;background:#E9F0E6}
+  .pm-map svg{display:block;width:100%;height:100%}
+  .pm-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px}
+  .pm-lbl{font-size:11px;font-weight:700;color:#1F64D1}
+  .pm-name{font-size:15.5px;font-weight:900;line-height:1.3;margin-top:1px}
+  .pm-meta{font-size:12px;color:#5A6B7D;margin-top:1px}
+  .pm-tags{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  .pm-tags span{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:6px 8px;border-radius:9px;background:#F5F9FF}
+  .pm-tags span.tx,.pm-today span.tx{display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:0;border-radius:0;background:none;line-height:1.25;min-width:0}
+  .pm-tags small,.pm-today small{font-size:9.5px;font-weight:500;color:#5A6B7D}
+  .pm-today{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+  .pm-today .k{width:100%;font-size:10.5px;font-weight:700;color:#5A6B7D}
+  .pm-today .c{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:5px 8px;border-radius:9px;background:#FFF3CF;color:#7A5400}
+  .pm-ai{background:#EAF2FD;border-radius:10px;padding:8px 10px}
+  .pm-ai b{display:flex;align-items:center;gap:4px;font-size:11px;color:#1F64D1}
+  .pm-ai p{margin:3px 0 0;font-size:12px;line-height:1.5;color:#1D2B3A}
+  .pm-btns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .pm-btns span{height:38px;border-radius:11px;border:1px solid #DCE6F2;background:#FFFFFF;font-size:12.5px;font-weight:700;display:grid;place-items:center}
+  .pm-btns .pri{background:#1F64D1;border-color:#1F64D1;color:#FFFFFF}
+  .pm-mission{display:flex;align-items:center;gap:6px;min-height:38px;border-radius:11px;background:#FFF3CF;color:#7A5400;font-size:11.5px;font-weight:700;padding:0 12px}
+  .pm-tab{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));height:58px;background:#FFFFFF;border-top:1px solid #DCE6F2}
+  .pm-tab span{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:700;color:#5A6B7D}
+  .pm-tab svg.pi{width:18px;height:18px}
+  .pm-tab .on{color:#1F64D1}
+  .demo a{color:var(--sky);font-weight:700}
+  /* prototype link */
+  .protolink{display:flex;align-items:center;gap:14px;margin-top:16px;padding:16px 18px;border-radius:16px;background:var(--sun);color:#1D2B3A;text-decoration:none}
+  .protolink:hover{filter:brightness(.97)}
+  .protolink .pl-ic{width:44px;height:44px;border-radius:50%;background:#1D2B3A;color:#FFFFFF;display:grid;place-items:center;flex-shrink:0}
+  .protolink .pl-ic svg{width:20px;height:20px;fill:currentColor}
+  .protolink b{display:block;font-size:16px}
+  .protolink span.s{display:block;font-size:13px;margin-top:2px}
+
+  /* ---- v2: criteria structure ---- */
+  .crit{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:-20px 0 30px}
+  @media (max-width:860px){.crit{grid-template-columns:1fr 1fr}}
+  @media (max-width:480px){.crit{grid-template-columns:1fr}}
+  .crit a{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-top:4px solid var(--sun);border-radius:14px;padding:13px 15px;box-shadow:var(--shadow);min-width:0}
+  .crit a:hover{border-color:var(--sky)}
+  .crit .w{font-size:12px;font-weight:700;color:var(--sun-ink)}
+  .crit b{display:block;font-size:15px;margin:3px 0 4px}
+  .crit span.d{display:block;font-size:12.8px;color:var(--muted);line-height:1.55}
+  .part{margin:40px 0 0;padding:20px 24px;border-radius:20px;background:var(--ink);color:var(--bg)}
+  .part .pn{font-size:13px;font-weight:700;color:var(--sun)}
+  .part h2{color:var(--bg);margin-top:4px}
+  .part p{font-size:14.5px;opacity:.8;margin-top:6px;max-width:70ch}
+  .part + section{border-top:0}
+  .ev .big{font-family:var(--display);font-size:32px;line-height:1.1;color:var(--sky)}
+  .ev .big small{font-family:var(--body);font-size:14px;color:var(--muted);margin-left:2px}
+  .ev .src{display:block;font-size:12px;color:var(--faint);margin-top:8px}
+  .phases{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}
+  @media (max-width:860px){.phases{grid-template-columns:1fr 1fr}}
+  @media (max-width:480px){.phases{grid-template-columns:1fr}}
+  .ph{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);min-width:0}
+  .ph.now{border-top-color:var(--sun)}
+  .ph .w{font-size:12.5px;font-weight:700;color:var(--muted)}
+  .ph h3{font-size:15.5px;margin:3px 0 6px}
+  .ph ul{margin:0;padding-left:17px;font-size:13.5px;color:var(--muted)}
+  .ph .x{margin-top:10px;padding-top:8px;border-top:1px dashed var(--line);font-size:13px}
+  .proc{counter-reset:p;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:24px}
+  @media (max-width:700px){.proc{grid-template-columns:1fr}}
+  .proc > div{display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .proc > div::before{counter-increment:p;content:counter(p);flex:none;width:28px;height:28px;border-radius:50%;background:var(--sky);color:#fff;font-weight:900;font-size:14px;display:grid;place-items:center}
+  .proc b{display:block;font-size:14.5px}
+  .proc span{font-size:13.5px;color:var(--muted)}
+
+  /* ---- v3: 자금 없이 출시 (제품 기획서 컴포넌트) ---- */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}
+  @media (max-width:820px){.kpis{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.kpis{grid-template-columns:1fr}}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);min-width:0}
+  .kpi .n{font-family:var(--display);font-size:30px;line-height:1.1;color:var(--sky)}
+  .kpi .n small{font-family:var(--body);font-size:14px;color:var(--muted);margin-left:2px}
+  .kpi p{font-size:13.5px;color:var(--muted);margin-top:6px}
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+  @media (max-width:820px){.plans{grid-template-columns:1fr}}
+  .plan{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow);min-width:0}
+  .plan .who{font-size:12.5px;font-weight:700;color:var(--sun-ink)}
+  .plan h3{font-size:17px;margin-top:4px}
+  .plan .price{font-family:var(--display);font-size:24px;margin-top:8px}
+  .plan .price small{font-family:var(--body);font-size:13px;color:var(--muted)}
+  .plan ul{margin:10px 0 0;padding-left:18px;font-size:14px;color:var(--muted)}
+  .plan li{margin:4px 0}
+  .plan li b{color:var(--ink)}
+  .prin{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .prin span{font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;background:var(--grass-soft);color:var(--grass)}
+  tr.sum td{background:var(--card-2)}
+  tr.sum td:first-child,tr.sum td.me{font-weight:700;color:var(--ink)}
+  tr.sum td.me{background:color-mix(in srgb,var(--sun) 30%,var(--card))}
+  .nw{white-space:nowrap}
+
+  /* forecast card (hero) */
+  .fc{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:18px;max-width:420px;margin-left:auto}
+  @media (max-width:820px){.fc{margin:0 auto}}
+  .fc-top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-family:var(--display);font-size:19px;color:var(--ink)}
+  .fc-ex{font-family:var(--body);font-size:11.5px;color:var(--faint);align-self:center}
+  .fc-base{font-size:12.5px;color:var(--muted);margin:4px 0 12px}
+  .fc-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+  .fc-row b{display:block;font-size:14.5px}
+  .fc-row span{font-size:12.5px;color:var(--muted)}
+  .fc .lv{flex:none;font-size:13px;font-weight:700;padding:4px 12px;border-radius:999px}
+  .lv.bad{background:var(--alert-soft);color:var(--alert)}
+  .lv.mid{background:var(--sun-soft);color:var(--sun-ink)}
+  .lv.ok{background:var(--grass-soft);color:var(--grass)}
+  .fc-wave{margin:2px 0 6px}.fc-wave svg{display:block;width:100%;height:auto}.fc-wave text{font-size:10.5px;fill:var(--muted)}.fc-wave .lb{font-size:11px;font-weight:700}
+  .fc-why{margin-top:12px;font-size:13px;line-height:1.6;background:var(--sky-soft);border-radius:12px;padding:10px 12px}
+  .fc-why b{display:block;color:var(--sky);font-size:12.5px;margin-bottom:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <span>2026 양주시 미래인재 AI 공모전, 팀 이로움</span>
+    <button class="themebtn" id="themeToggle" aria-label="밝게/어둡게 전환">◐</button>
+  </div>
+
+  <header class="hero">
+    <div>
+      <div class="track">소주제 01 · 안전한 양주</div>
+      <div class="badge"><span class="paw" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 18a5 5 0 0 1-.6-9.96A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9zM8 20h2l-1 3H7zm5 0h2l-1 3h-2z"/></svg></span><span class="name">비 오기 전 지도</span></div>
+      <h1>무너진 곳 옆에는<br><span class="h1l">늘 공사장이 있었습니다</span></h1>
+      <p class="lede">올여름 양주에서 옹벽이 무너지고, 공사장과 산에서 흘러든 흙탕물에 두 가구가 집을 비웠습니다. 2년 전에는 아파트와 초등학교 옆 공사장 흙이 도로로 쏟아졌습니다. 공사 현장의 침사지와 임시 배수로는 며칠마다 모습이 바뀌는데, 비가 오기 전에 어디를 먼저 볼지 정하는 기준은 없습니다. 비 오기 전 지도는 호우 예보가 뜨면 공사장과 옹벽의 위치, 지형, 공사 단계, 최근 사진을 함께 보고 48시간 안에 먼저 점검할 곳의 순서를 냅니다. AI는 시가 이미 띄우고 있는 드론의 사진과 시민 제보 사진에서 막힌 배수로와 가득 찬 침사지를 찾고, 시공사에 보낼 조치 요청서를 씁니다.</p>
+      <div class="chips">
+        <span class="chip">대상 <b>양주시 재난·허가 부서와 공사장 주변 주민</b></span>
+        <span class="chip">핵심 <b>비 오기 전 48시간, 먼저 볼 곳</b></span>
+        <span class="chip">검증 <b>2026년 7월 비로 되짚기</b></span>
+      </div>
+    </div>
+    <div>
+      <div class="fc" role="img" aria-label="비 오기 전 지도 화면 예시: 호우 예비특보가 내린 날 먼저 점검할 공사장과 옹벽 세 곳의 순서와 이유">
+        <div class="fc-top"><span>호우 예비특보 · 먼저 볼 곳</span><span class="fc-ex">화면 예시 · 현장과 수치 모두 가상</span></div>
+        <div class="fc-base">내일 새벽 시간당 최대 50mm 예보 · 회천 생활권 공사장 14곳, 옹벽 9곳 중</div>
+        <div class="fc-row"><div><b>1. 택지 공사장 동쪽 경계</b><span>위쪽 산지 빗물이 공사장을 지나 주택가로 · 사흘 전 사진에서 침사지 가득</span></div><span class="lv bad">오늘 점검</span></div>
+        <div class="fc-row"><div><b>2. 단독주택 뒤 석축 옹벽</b><span>높이 4m 추정 · 배수구 막힘 시민 제보 1건</span></div><span class="lv bad">오늘 점검</span></div>
+        <div class="fc-row"><div><b>3. 아파트 공사장 진입로</b><span>성토 흙 쌓임, 방수포 없음 · 이틀 전 드론 사진</span></div><span class="lv mid">내일 오전</span></div>
+        <div class="fc-row"><div><b>나머지 20곳</b><span>최근 사진에서 이상 없음 · 비 그친 뒤 확인</span></div><span class="lv ok">사후 확인</span></div>
+        <div class="fc-why"><b>1순위인 이유</b> AI가 같은 지점의 드론 사진 두 장을 비교해 침사지가 찼고 임시 배수로가 끊긴 것을 찾았습니다. 조치 요청서 초안을 담당자 확인 대기열에 올렸습니다.</div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="crit" aria-label="심사 기준별 바로가기">
+    <a href="#p1"><span class="w">문제정의 25점</span><b>올여름 두 번, 원인은 공사장과 옹벽</b><span class="d">7월 18일 옹벽 붕괴, 7월 23일 공사장·산지 토사 유입. 시장은 취약지역 사전 점검 강화를 지시했다.</span></a>
+    <a href="#p2"><span class="w">창의성 25점</span><b>땅이 아니라 공사 현장의 상태를 본다</b><span class="d">위성이 잡는 천천한 지반 변위가 아니라, 며칠마다 바뀌는 침사지와 배수로를 예보와 사진으로.</span></a>
+    <a href="#p3"><span class="w">실행계획 25점</span><b>이미 뜨는 드론과 공개 예보로</b><span class="d">시는 드론 예찰을 운영 중이고 예보·지형·착공 정보는 공개. 7월 비로 먼저 되짚는다.</span></a>
+    <a href="#p4"><span class="w">효과·확장 25점</span><b>택지를 짓는 모든 도시의 우기 점검표</b><span class="d">신도시 시군으로, 해빙기와 폭염으로, 공사 레이더와 한 엔진으로.</span></a>
+  </nav>
+
+  <div class="part" id="p1"><span class="pn">PART 1 · 심사기준 1</span><h2>문제정의의 타당성</h2><p>양주의 호우 피해는 산이 아니라 사람이 만든 경사면에서 반복됩니다. 공사가 이어지는 신도시에서는 그 경사면이 계속 새로 생깁니다.</p></div>
+
+  <section>
+    <h2>양주에서 이미 벌어진 일</h2>
+    <ul class="tl">
+      <li><span class="yr">2024</span><div class="bx"><h3>2024년 7월, 덕계동 공사장 흙이 도로로</h3><p>폭우에 공사장 토사가 주변 도로로 쓸려 내려왔습니다. 1천300여 가구 아파트와 초등학교가 있는 곳이었고, 산사태 우려까지 있어 시가 방수포로 응급조치했습니다.</p></div></li>
+      <li class="now"><span class="yr">7.18</span><div class="bx"><h3>2026년 7월, 단독주택 옹벽 붕괴</h3><p>밤새 내린 비에 새벽 5시 50분쯤 주택 옹벽이 무너졌습니다. 대피하던 60대 주민이 다쳤고 가족 두 명이 피했습니다. 시는 접근을 막고 추가 붕괴 가능성을 살피겠다고 했습니다.</p></div></li>
+      <li class="now"><span class="yr">7.23</span><div class="bx"><h3>닷새 뒤, 회정동 주택에 공사장·산지 토사</h3><p>인근 공사장과 산지에서 빗물과 흙이 함께 들어와 주택이 잠기고 흙이 쌓였습니다. 2가구 5명이 임시 거처로 옮겼습니다. 시장은 공사장 배수시설 점검, 임시 배수로 정비, 토사 유출 방지시설 보강, 취약지역 사전 점검 강화를 지시했습니다.</p></div></li>
+    </ul>
+    <p class="note"><b>세 사고 모두 "비가 오기 전에 봤다면"이 가능했던 곳입니다.</b> 원인으로 지목된 것은 공사장 배수시설과 토사 관리, 주택 옹벽이었습니다. 모두 위치를 알 수 있고 사진으로 상태를 볼 수 있는 시설입니다.</p>
+  </section>
+
+  <section>
+    <h2>왜 같은 일이 반복되나</h2>
+    <div class="grid g3">
+      <div class="card"><span class="ic">🔄</span><h3>현장은 며칠마다 바뀐다</h3><p>침사지, 임시 배수로, 방수포, 쌓아 둔 흙은 공사 단계에 따라 생기고 사라집니다. 지난달 점검 결과가 이번 비에 맞는다는 보장이 없습니다.</p></div>
+      <div class="card"><span class="ic">📋</span><h3>점검할 곳은 많고 순서는 없다</h3><p>"취약지역 사전 점검 강화"는 맞는 지시지만, 공사장과 옹벽이 수십 곳인 신도시에서 비가 오기 전 하루 이틀 동안 어디부터 갈지 정할 근거가 없습니다.</p></div>
+      <div class="card"><span class="ic">🧱</span><h3>관리 대상 밖의 경사면</h3><p>급경사지 관리는 지정된 곳 위주입니다. 사유지 옹벽이나 공사장 경계의 임시 비탈이 지정 대상인지는 하나씩 확인해야 하고, 급경사지 대장은 공개되지 않습니다.</p></div>
+    </div>
+    <div class="tbl"><table>
+      <tr><th>원인</th><th>지금</th><th class="me">비 오기 전 지도가 바꾸는 것</th></tr>
+      <tr><td>점검 시점</td><td>피해가 난 뒤 현장 점검, 정기 점검</td><td class="me">호우 예보가 뜬 순간부터 48시간</td></tr>
+      <tr><td>점검 순서</td><td>담당자 경험, 민원 순</td><td class="me">예보 강우·지형·공사 단계·최근 사진으로 정한 순서와 이유</td></tr>
+      <tr><td>현장 상태</td><td>사람이 가서 봐야 앎</td><td class="me">드론·시민 사진을 AI가 비교해 이상 지점부터</td></tr>
+      <tr><td>시공사 조치</td><td>피해 뒤 원인 조사</td><td class="me">비 오기 전 조치 요청서, 조치 사진으로 확인</td></tr>
+      <tr><td>부서 사이</td><td>재난·허가·건축 부서가 각자</td><td class="me">같은 목록을 함께 봄</td></tr>
+    </table></div>
+    <p class="note"><b>안전한 양주에 가장 직접 답합니다.</b> 호우 피해를 사고 뒤의 복구가 아니라 비 오기 전의 점검으로 바꾸고, 한정된 점검 인력을 가장 위험한 곳에 먼저 보냅니다.</p>
+  </section>
+
+  <div class="part" id="p2"><span class="pn">PART 2 · 심사기준 2</span><h2>아이디어의 창의성·독창성</h2><p>땅이 몇 mm 움직였는지가 아니라, 이번 비 앞에 현장이 준비되어 있는지를 봅니다. AI는 사진과 서류를 읽고, 순서의 이유를 설명하고, 조치 요청서를 씁니다.</p></div>
+
+  <section>
+    <h2>AI가 하는 네 가지 일</h2>
+    <p class="intro">점검 순서는 정해진 계산식이 냅니다. 사진과 서류를 데이터로 바꾸고, 그 순서가 왜 나왔는지 사람의 말로 설명하는 일을 AI가 맡습니다.</p>
+    <div class="missions">
+      <div class="mission m1">
+        <div class="mk" aria-hidden="true">🌧️</div>
+        <div>
+          <span class="who">호우 예보가 뜨면</span>
+          <h3>먼저 볼 곳의 순서</h3>
+          <p>기상청 예보 강우량, 위쪽에서 모여드는 빗물의 양과 경사, 공사 단계(흙을 깎거나 쌓는 중인지), 최근 사진의 상태, 과거 민원과 피해를 합쳐 공사장과 옹벽의 점검 순서를 냅니다. AI는 각 순위의 이유를 한두 문장으로 붙입니다.</p>
+          <div class="ai"><b>예</b> "위쪽 산지 빗물이 이 공사장을 지나 주택가로 내려갑니다. 사흘 전 사진에서 침사지가 이미 찼습니다."</div>
+        </div>
+      </div>
+      <div class="mission m2">
+        <div class="mk" aria-hidden="true">📄</div>
+        <div>
+          <span class="who">공사 서류를 읽고</span>
+          <h3>지금 흙을 다루는 현장 찾기</h3>
+          <p>건축 착공 정보와 공사 공고, 시가 받은 공사 계획에서 토공 기간과 위치를 뽑아 지금 흙을 깎거나 쌓는 현장을 찾습니다. 공사 레이더의 공고문 추출과 같은 엔진이라 두 서비스가 데이터를 함께 씁니다.</p>
+        </div>
+      </div>
+      <div class="mission m3">
+        <div class="mk" aria-hidden="true">📸</div>
+        <div>
+          <span class="who">사진을 비교해</span>
+          <h3>이상 지점 판별</h3>
+          <p>드론 예찰 사진과 시민이 안전신문고 등으로 올린 사진에서 침사지 가득 참, 임시 배수로 끊김, 방수포 없는 흙더미, 옹벽 균열·배부름·배수구 막힘을 찾습니다. 같은 지점의 이전 사진과 비교해 무엇이 바뀌었는지 표시합니다.</p>
+          <div class="ex"><b>판단 방식</b> 한 장으로만 보인 이상은 "미확정", 두 장 이상 일치하면 "확정", 애매하면 "현장 확인 필요"로 넘깁니다.</div>
+        </div>
+      </div>
+      <div class="mission m4">
+        <div class="mk" aria-hidden="true">✍️</div>
+        <div>
+          <span class="who">사람이 보낼 문서로</span>
+          <h3>조치 요청서와 주민 안내문 초안</h3>
+          <p>판별 결과와 사진을 붙여 시공사에 보낼 조치 요청서, 옹벽 주변 주민에게 보낼 주의 안내문 초안을 씁니다. 담당자가 확인한 뒤에만 나가고, 대피 판단은 재난 부서가 합니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>비슷한 사업과 무엇이 다른가요</h2>
+    <p class="intro">위성과 AI로 재난 위험을 미리 찾는 사업은 이미 있습니다. 가장 가까운 것은 바로 옆 연천군의 경기도 AI 챌린지 과제입니다. 같은 범주로 읽힐 위험을 알고 있고, 그래서 겨누는 대상을 분명히 다르게 잡았습니다.</p>
+    <div class="tbl"><table>
+      <tr><th>구분</th><th>연천 위성 지반침하 예측<small>경기도 AI 챌린지</small></th><th>행정안전부 급경사지<small>드론·SAR 점검</small></th><th>제주 위성 싱크홀 예측<small>우주항공청·NIA 공모</small></th><th class="me">비 오기 전 지도</th></tr>
+      <tr class="key"><td>보는 대상</td><td>산사태 위험지역, 교량·급경사지</td><td>지정된 급경사지</td><td>도시 지반침하</td><td class="me">공사 중인 현장과 주택 옹벽</td></tr>
+      <tr><td>위험의 속도</td><td>천천히 움직이는 땅 (mm 단위)</td><td>정기 점검 주기</td><td>지하 공동의 진행</td><td class="me">며칠마다 바뀌는 임시 시설</td></tr>
+      <tr><td>주된 수단</td><td>위성 레이더(InSAR)와 AI</td><td>드론·위성 레이더</td><td>위성 레이더, 지하수위, 관로 정보</td><td class="me">예보, 시가 이미 띄우는 드론 사진, 시민 사진</td></tr>
+      <tr><td>그 지역의 사정</td><td>비행제한·지뢰로 드론과 인력 투입이 어려움</td><td>전국</td><td>용암동굴·화산암반</td><td class="me">택지 공사가 주택가 바로 옆에서 이어짐</td></tr>
+      <tr><td>결과물</td><td>위험 징후 경보, 3D 디지털 트윈</td><td>점검 대상 선정</td><td>격자별 위험도</td><td class="me">비 오기 전 48시간 점검 순서와 시공사 조치 요청</td></tr>
+    </table></div>
+    <p class="tblnote">연천은 드론을 띄우기 어려워 위성을 택했고, 양주는 시가 이미 드론 예찰을 운영합니다. 산지처럼 위성 방식이 맞는 곳은 그 성과를 그대로 활용하고, 이 안은 공사 현장에 집중합니다.</p>
+    <div class="prin">
+      <span>순위는 점검 순서일 뿐 안전을 보증하지 않음</span>
+      <span>자동으로 발송하지 않음</span>
+      <span>시공사 이름으로 공개 망신 주지 않음</span>
+      <span>드론 사진의 사람·차량번호는 가림</span>
+    </div>
+  </section>
+
+  <div class="part" id="p3"><span class="pn">PART 3 · 심사기준 3</span><h2>실행계획의 현실성</h2><p>예보·지형·착공 정보는 공개되어 있고, 드론은 시가 이미 운영합니다. 올해 7월의 비로 먼저 되짚어 봅니다.</p></div>
+
+  <section>
+    <h2>시가 이미 가진 것</h2>
+    <div class="grid g3">
+      <div class="card"><span class="ic">🚁</span><h3>드론 예찰 운영 경험</h3><p>6월부터 의용소방대와 함께 드론 폭염 예찰을 시작했고, 8~9월에는 K-드론배송 상용화 사업으로 산불·불법소각·폭염 예찰을 하며 고해상도 영상을 관련 부서와 실시간 공유했습니다. 드론봇인재교육센터가 운영 역량을 맡습니다.</p></div>
+      <div class="card"><span class="ic">🤝</span><h3>여러 부서가 함께 움직인 선례</h3><p>올해 하천·계곡 불법 점용시설 정비 전담팀은 부시장을 단장으로 건설·허가·농업정책·건축·위생 부서가 함께 전수조사를 했고, 안전신문고 신고를 안내했습니다. 같은 협업 구조를 우기 점검에 쓸 수 있습니다.</p></div>
+      <div class="card"><span class="ic">📝</span><h3>시장의 지시</h3><p>회정동 피해 뒤 공사장 배수시설과 토사 유출 방지시설 관리 실태를 계속 점검하고 미흡한 곳은 즉시 보완하겠다고 했습니다. 이 안은 그 점검을 어디부터 할지 정합니다.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>누가 운영하고, 무엇을 하나</h2>
+    <div class="tbl"><table>
+      <tr><th>역할</th><th>주체</th><th>하는 일</th></tr>
+      <tr><td>주관</td><td class="h">시민안전 담당부서 (재난)</td><td>호우 예보 시 점검 목록 확인, 대피·주의 안내 판단</td></tr>
+      <tr><td>공사장 점검</td><td class="h">허가 담당부서, 건축 담당부서</td><td>공사장 배수·토사 관리 점검, 시공사 조치 요청</td></tr>
+      <tr><td>촬영</td><td class="h">드론봇인재교육센터, 의용소방대</td><td>예찰 비행에 우기 점검 지점 추가</td></tr>
+      <tr><td>현장 확인</td><td class="h">읍면동 행정복지센터</td><td>"현장 확인 필요" 지점 방문, 주민 안내</td></tr>
+      <tr><td>조치</td><td class="h">시공사</td><td>요청 사항 조치 후 사진 회신</td></tr>
+      <tr><td>보안·개인정보</td><td class="h">정보화 담당부서</td><td>드론 영상 보관·가림 기준, 클라우드 보안</td></tr>
+    </table></div>
+    <p class="tblnote">부서명은 기능 기준이며 실제 소관은 시 조직에 맞춥니다.</p>
+  </section>
+
+  <section>
+    <h2>쓰는 데이터</h2>
+    <div class="card data" style="padding:0;margin-top:24px;overflow:hidden">
+      <div class="row"><b>강우 예보</b><span>기상청 단기예보·초단기예보 (공공데이터포털 API)</span><span class="st ok">공개</span></div>
+      <div class="row"><b>과거 강우 관측</b><span>기상청 기상자료개방포털 자동기상관측 자료. 7월 되짚기에 사용</span><span class="st ok">공개</span></div>
+      <div class="row"><b>지형</b><span>국토지리정보원 수치표고모델로 경사와 빗물이 모이는 범위 계산</span><span class="st ok">공개</span></div>
+      <div class="row"><b>산사태 위험</b><span>산림청 산사태위험지도</span><span class="st ok">공개</span></div>
+      <div class="row"><b>착공 현장</b><span>국토교통부 건축 인허가·착공 정보 (공공데이터포털)</span><span class="st ok">공개</span></div>
+      <div class="row"><b>공사장 계획</b><span>개발행위허가, 공사장 배수·토사 관리 계획</span><span class="st chk">시 협조</span></div>
+      <div class="row"><b>드론 사진</b><span>시 예찰 비행 영상</span><span class="st chk">시 협조</span></div>
+      <div class="row"><b>피해·민원 이력</b><span>호우 피해 위치, 토사·배수 민원</span><span class="st chk">시 협조</span></div>
+      <div class="row"><b>급경사지 대장</b><span>지정 급경사지 위치와 등급</span><span class="st chk">비공개 · 협조</span></div>
+    </div>
+    <p class="note"><b>공개 데이터만으로 첫 목록을 만들 수 있습니다.</b> 예보, 지형, 착공 정보로 "흙을 다루는 현장 가운데 빗물이 모이는 곳"까지는 시 자료 없이 계산됩니다. 시 협조 자료는 순서를 더 정확하게 하는 데 씁니다.</p>
+  </section>
+
+  <section>
+    <h2>본선 전에 7월로 되짚어 봅니다</h2>
+    <p class="intro">10월 5~12일에 공개 자료로 확인합니다. 결과는 맞든 틀리든 숫자 그대로 발표합니다.</p>
+    <div class="proc">
+      <div><div><b>7월 강우 재구성</b><span>2026년 7월 16~23일 양주 일대 자동기상관측 강우량 정리</span></div></div>
+      <div><div><b>그때의 착공 현장 목록</b><span>건축 착공 정보로 7월 당시 공사 중이던 현장과 위치 정리</span></div></div>
+      <div><div><b>그때 만들었을 목록</b><span>강우·지형·착공 정보만으로 점검 순서를 계산</span></div></div>
+      <div><div><b>실제 피해와 비교</b><span>회정동·옹벽 붕괴 지점, 2024년 덕계동 지점이 목록 상위에 들었는지 확인</span></div></div>
+      <div><div><b>사진 판별 정확도</b><span>공개 도로에서 팀이 찍은 공사장 외곽 사진과 공개 사진으로 침사지·방수포·흙더미 판별을 정답표와 비교</span></div></div>
+      <div><div><b>화면 시연</b><span>예비특보 → 먼저 볼 곳 → 사진 판별 → 조치 요청서 → 조치 사진 확인까지</span></div></div>
+    </div>
+    <p class="note"><b>되짚기는 정직하게 합니다.</b> 피해 지점이 목록 상위에 들지 않았다면 어떤 정보가 빠져 있었는지 밝히고 계산식을 고칩니다. 팀은 드론을 직접 띄우지 않고, 시연용 사진은 공개된 장소에서만 찍습니다.</p>
+  </section>
+
+  <section>
+    <h2>행정 절차, 단계별 계획, 예산</h2>
+    <div class="proc">
+      <div><div><b>시범사업 지정, 주관 부서 결정</b><span>시민안전 부서 주관, 허가·건축·드론 운영 부서 협조</span></div></div>
+      <div><div><b>시공사 협조 구조</b><span>허가 조건 범위 안의 조치 요청, 사진 회신 방식 합의</span></div></div>
+      <div><div><b>드론 영상 기준</b><span>비행 승인, 사람·차량번호 가림, 보관 기간</span></div></div>
+      <div><div><b>예산 반영</b><span>본예산 또는 추경, 재난안전 특별교부세·경기도 AI 사업 매칭</span></div></div>
+    </div>
+    <div class="phases">
+      <div class="ph now"><span class="w">0단계 · 2026.10</span><h3>공모전</h3><ul><li>7월 되짚기</li><li>사진 판별 정확도</li><li>시연 화면</li></ul><div class="x">산출: 피해 지점 순위, 판별 정확도</div></div>
+      <div class="ph"><span class="w">1단계 · 2027.4~6</span><h3>우기 전 준비</h3><ul><li>회천·옥정 공사장 목록</li><li>예찰 비행에 점검 지점 추가</li></ul><div class="x">다음 단계 조건: 사진 판별 정확도 85%</div></div>
+      <div class="ph"><span class="w">2단계 · 2027 우기</span><h3>시청 내부 시범</h3><ul><li>호우 예보마다 목록</li><li>조치 요청과 회신</li></ul><div class="x">다음 단계 조건: 요청 뒤 48시간 조치율 70%</div></div>
+      <div class="ph"><span class="w">3단계 · 이후</span><h3>전역과 다른 계절</h3><ul><li>양주 전역, 주민 안내</li><li>해빙기·폭염 점검</li><li>경기 신도시 시군 공유</li></ul><div class="x">검증: 우기마다 피해 지점 사후 대조 공개</div></div>
+    </div>
+    <div class="tbl"><table>
+      <tr><th>예산 항목</th><th>내용</th><th>규모 (추정)</th></tr>
+      <tr><td>구축 (1~2단계)</td><td>점검 순서 계산, 서류 추출, 사진 판별, 요청서 작성, 담당자 화면</td><td class="nw">3천만~5천만 원</td></tr>
+      <tr><td>연간 운영</td><td>클라우드, AI 이용료, 모델 보정, 유지보수</td><td class="nw">연 1천만~2천만 원</td></tr>
+      <tr><td>드론 촬영</td><td>기존 예찰 사업에 점검 지점 추가</td><td class="nw">별도 구입 없음</td></tr>
+    </table></div>
+    <p class="tblnote">개략 추정입니다. 공사 레이더와 서류 추출 엔진을 함께 쓰면 구축비가 줄고, 시범사업 계획 단계에서 견적으로 확정합니다.</p>
+  </section>
+
+  <section>
+    <h2>예상되는 어려움과 대응</h2>
+    <div class="tbl"><table>
+      <tr><th>어려움</th><th>대응</th></tr>
+      <tr><td>목록에 없던 곳에서 사고</td><td>순위는 점검 순서이지 안전 보증이 아님을 명시, 시민 사진 제보로 빈칸 보완, 사고마다 사후 대조해 계산식 수정</td></tr>
+      <tr><td>"연천의 양주판"으로 보임</td><td>대상(공사 현장), 속도(며칠), 수단(이미 뜨는 드론), 결과(시공사 조치)의 차이를 비교표로 제시</td></tr>
+      <tr><td>시공사 반발</td><td>요청은 기존 허가 조건 범위 안에서만, 시공사 이름은 공개하지 않음</td></tr>
+      <tr><td>사진 판별 오류</td><td>단독 사진은 "미확정", 애매하면 "현장 확인 필요", 담당자 확인 뒤 발송</td></tr>
+      <tr><td>드론 비행 제한과 사생활</td><td>시 비행 기준 안에서만, 사람·차량번호는 자동 가림</td></tr>
+      <tr><td>비공개 급경사지 대장</td><td>1단계는 공개 지형으로 계산, 지정 급경사지는 협조 뒤 반영</td></tr>
+    </table></div>
+  </section>
+
+  <div class="part" id="p4"><span class="pn">PART 4 · 심사기준 4</span><h2>기대효과·확장 가능성</h2><p>한정된 점검 인력을 비 오기 전 하루 이틀에 가장 위험한 곳으로 보내고, 그 경험을 다른 신도시와 다른 계절로 넓힙니다.</p></div>
+
+  <section>
+    <h2>누가 무엇을 얻나</h2>
+    <div class="grid g3">
+      <div class="card"><span class="ic">🏠</span><h3>공사장·옹벽 주변 주민</h3><p>비가 오기 전에 우리 동네 공사장이 점검됐는지 알고, 위험하면 미리 안내를 받습니다. 눈에 띈 위험은 사진 한 장으로 알릴 수 있습니다.</p></div>
+      <div class="card"><span class="ic">🏛️</span><h3>양주시</h3><p>"사전 점검 강화"를 실제 순서와 기록으로 바꿉니다. 재난·허가·건축 부서가 같은 목록을 보고, 피해가 나면 그 전에 무엇을 했는지 설명할 수 있습니다.</p></div>
+      <div class="card"><span class="ic">🏗️</span><h3>시공사</h3><p>비 오기 전에 무엇을 고치면 되는지 사진과 함께 받습니다. 사고 뒤의 원인 조사와 복구 비용보다 훨씬 쌉니다.</p></div>
+    </div>
+    <div class="tbl"><table>
+      <tr><th>지표</th><th>측정 방법</th><th>2단계 종료 시 목표</th></tr>
+      <tr><td>되짚기 적중</td><td>호우 피해 지점이 그 전 목록의 상위 20% 안에 있었던 비율</td><td>기준선 공개 뒤 개선</td></tr>
+      <tr><td>사진 판별</td><td>침사지·배수로·흙더미·옹벽 이상 판별 정확도</td><td>85% 이상</td></tr>
+      <tr><td>조치율</td><td>조치 요청 뒤 48시간 안에 조치 사진이 회신된 비율</td><td>70% 이상</td></tr>
+      <tr><td>점검 효율</td><td>예보부터 상위 지점 점검 완료까지 걸린 시간</td><td>기록·공개</td></tr>
+      <tr><td>관련 피해·민원</td><td>공사장 토사·배수 민원과 피해 건수, 도입 전 대비</td><td>감소 추이 확인</td></tr>
+    </table></div>
+    <p class="tblnote">목표치는 가설이며 0단계 되짚기 결과로 다시 정합니다. 강우량이 해마다 달라 피해 건수만으로 성과를 판단하지 않습니다.</p>
+  </section>
+
+  <section>
+    <h2>어디까지 넓힐 수 있나</h2>
+    <div class="grid g3">
+      <div class="card"><span class="ic">🗺️</span><h3>지역: 택지를 짓는 모든 도시로</h3><p>예보·지형·착공 정보가 전국 단위라 3기 신도시와 경기도 택지지구에 그대로 쓸 수 있습니다. 바뀌는 것은 드론 운영 방식뿐입니다.</p></div>
+      <div class="card"><span class="ic">❄️</span><h3>계절: 해빙기와 폭염으로</h3><p>해빙기에는 같은 옹벽과 절개지를, 폭염에는 시가 이미 하는 드론 폭염 예찰을 같은 목록 구조로 운영합니다.</p></div>
+      <div class="card"><span class="ic">🚧</span><h3>서비스: 공사 레이더와 한 엔진으로</h3><p>공사 레이더는 공사의 소음·교통 영향을, 비 오기 전 지도는 우기 안전을 봅니다. 같은 공사 정보에서 두 가지 시민 안전을 함께 챙깁니다.</p></div>
+    </div>
+  </section>
+
+  <div class="part"><span class="pn">부록</span><h2>본선 준비와 팀</h2></div>
+
+  <section>
+    <h2>본선까지의 일정</h2>
+    <div class="flow">
+      <div class="fstep"><div class="dt">10.5 ~ 10.7</div><h3>데이터 수집</h3><p>7월 강우 관측, 착공 정보, 지형, 공사장 외곽 사진</p></div>
+      <div class="fstep"><div class="dt">10.8</div><h3>멘토링 2회차</h3><p>되짚기 방법과 점검 순서 계산식 점검</p></div>
+      <div class="fstep"><div class="dt">10.8 ~ 10.12</div><h3>검증과 구현</h3><p>7월 되짚기, 사진 판별, 요청서 작성</p></div>
+      <div class="fstep"><div class="dt">10.13</div><h3>멘토링 3회차</h3><p>시연 흐름과 발표 구성</p></div>
+      <div class="fstep"><div class="dt">10.14 ~ 10.15</div><h3>다듬기와 제출</h3><p>검증 결과 정리, 발표자료 제출</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>팀 이로움의 역할</h2>
+    <p class="intro">본선 결과물 제작 역할 분담 제안입니다. 팀 회의에서 확정합니다.</p>
+    <div class="team">
+      <div class="mem"><span class="role">프론트엔드</span><h3>황상진</h3><ul><li>먼저 볼 곳 지도와 목록 화면</li><li>사진 업로드와 판별 결과 화면</li><li>조치 요청·회신 흐름</li></ul></div>
+      <div class="mem"><span class="role">백엔드·데이터·AI</span><h3>이소미</h3><ul><li>7월 되짚기와 점검 순서 계산</li><li>착공 정보 추출, 사진 판별</li><li>요청서·안내문 초안</li></ul></div>
+      <div class="mem"><span class="role">UI</span><h3>이승재</h3><ul><li>"오늘 점검·내일 오전·사후 확인" 표현</li><li>담당자 대시보드</li><li>발표자료와 되짚기 결과 시각화</li></ul></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>양주 비 오기 전 지도(가제), 팀 이로움 — 황상진, 이소미, 이승재. 화면 속 현장·강우량·순위는 설명용 가상 수치이며, 실제 값은 데이터 수집과 검증 뒤 계산합니다.</p>
+    <p>출처: 2026년 7월 18일 주택 옹벽 붕괴 (YTN·연합뉴스TV 2026.7.18), 7월 23일 회정동 침수·토사 유입과 시장 지시 (아시아경제·데일리안 2026.7.23), 2024년 7월 덕계동 공사장 토사 유실 (한국경제 2024.7.17), 드론 폭염 예찰 (연합뉴스 2026.6.25), K-드론배송 상용화 사업 예찰 (아시아경제 2026.8.6), 하천·계곡 불법 점용시설 정비 전담팀 (경기일보 2026.3.19, 대한경제 2026.4.9), 연천 위성 지반침하 예측 (파이낸셜뉴스 2026.4.21, 경기신문 2026.6), 제주 위성 싱크홀 예측 (서울신문 2026.6.30), 행정안전부 급경사지 드론·SAR 점검. 데이터: 기상청 단기예보와 기상자료개방포털, 국토지리정보원 수치표고모델, 산림청 산사태위험지도, 국토교통부 건축 인허가 정보. 비용과 목표치는 가설이며 착수 시점에 다시 확인합니다.</p>
+  </footer>
+
+</div>
+<script>
+  (function(){
+    var root=document.documentElement, btn=document.getElementById('themeToggle');
+    var saved=null; try{saved=localStorage.getItem('bj-theme');}catch(e){}
+    if(saved){root.setAttribute('data-theme',saved);}
+    btn.addEventListener('click',function(){
+      var cur=root.getAttribute('data-theme');
+      var isDark=cur?cur==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var next=isDark?'light':'dark';
+      root.setAttribute('data-theme',next);
+      try{localStorage.setItem('bj-theme',next);}catch(e){}
+    });
+  })();
+</script>
+</body>
+</html>

@@ -3,349 +3,708 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="양주 장바구니 — 시민 영수증·가격표 기반 크라우드 물가지도. 2026 양주시 미래인재 AI 공모전 프로젝트 개요서">
+<meta name="description" content="양주 장바구니 — 시민의 영수증·가격표·전단 사진을 AI가 읽어 생활권 최저가와 가격표시 불일치를 찾고, 시에 생활권 물가 데이터를 주는 서비스. 2026 양주시 미래인재 AI 공모전">
 <title>양주 장바구니 · 프로젝트 개요</title>
-<link rel="preconnect" href="https://cdn.jsdelivr.net">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
 <style>
   :root{
-    --ground:#F3F6F2; --canvas:#E9EFE8;
-    --card:#FFFFFF; --card-2:#EEF3ED;
-    --ink:#17241D; --muted:#63746B; --faint:#93A29A;
-    --line:#E1E8E0;
-    --accent:#12885A; --accent-soft:#DBF0E5; --accent-ink:#0B6B45;
-    --sale:#DE4630; --sale-soft:#FBE3DE;
-    --amber:#B9781A; --amber-soft:#F6E9D2;
-    --blue:#2F7BE5; --blue-soft:#E0ECFB;
-    --shadow:0 18px 40px -22px rgba(20,45,33,.45);
-    --radius:18px;
+    --bg:#F4F6FA; --card:#FFFFFF; --card-2:#EAF2FD;
+    --ink:#1D2B3A; --muted:#5A6B7D; --faint:#93A2B3; --line:#DCE6F2;
+    --sun:#F2A516; --sun-soft:#FDF0D5; --sun-ink:#8A5A00;
+    --sky:#3554D1; --sky-soft:#E1E7FB;
+    --grass:#22A45D; --grass-soft:#DAF4E5;
+    --alert:#F2544A; --alert-soft:#FFE3E0;
+    --shadow:0 1px 2px rgba(29,43,58,.05),0 14px 30px -18px rgba(29,43,58,.3);
+    --display:"Do Hyeon","Noto Sans KR",system-ui,sans-serif;
+    --body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   }
-  :root:not([data-theme="light"]){
-    @media (prefers-color-scheme: dark){
-      --ground:#0C1210; --canvas:#0A0F0D;
-      --card:#161E1A; --card-2:#111813;
-      --ink:#E8F1EB; --muted:#93A69C; --faint:#5F6F67;
-      --line:#25322C;
-      --accent:#3FBE85; --accent-soft:#152C21; --accent-ink:#7FD9AC;
-      --sale:#FF6F58; --sale-soft:#371914;
-      --amber:#E1A64B; --amber-soft:#2E2413;
-      --blue:#6FA8F2; --blue-soft:#13233B;
-      --shadow:0 18px 44px -22px rgba(0,0,0,.7);
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0F1620; --card:#18222E; --card-2:#1F2C3B;
+      --ink:#E9F0F8; --muted:#A3B2C2; --faint:#6D7C8D; --line:#2A3746;
+      --sun:#FFD25E; --sun-soft:#3A2F12; --sun-ink:#FFD25E;
+      --sky:#6FA8FF; --sky-soft:#15283F;
+      --grass:#4CCB84; --grass-soft:#13301F;
+      --alert:#FF7A70; --alert-soft:#3A1A18;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 16px 34px -18px rgba(0,0,0,.7);
+      color-scheme:dark;
     }
   }
   :root[data-theme="dark"]{
-    --ground:#0C1210; --canvas:#0A0F0D;
-    --card:#161E1A; --card-2:#111813;
-    --ink:#E8F1EB; --muted:#93A69C; --faint:#5F6F67;
-    --line:#25322C;
-    --accent:#3FBE85; --accent-soft:#152C21; --accent-ink:#7FD9AC;
-    --sale:#FF6F58; --sale-soft:#371914;
-    --amber:#E1A64B; --amber-soft:#2E2413;
-    --blue:#6FA8F2; --blue-soft:#13233B;
-    --shadow:0 18px 44px -22px rgba(0,0,0,.7);
+    --bg:#0F1620; --card:#18222E; --card-2:#1F2C3B;
+    --ink:#E9F0F8; --muted:#A3B2C2; --faint:#6D7C8D; --line:#2A3746;
+    --sun:#FFD25E; --sun-soft:#3A2F12; --sun-ink:#FFD25E;
+    --sky:#6FA8FF; --sky-soft:#15283F;
+    --grass:#4CCB84; --grass-soft:#13301F;
+    --alert:#FF7A70; --alert-soft:#3A1A18;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 16px 34px -18px rgba(0,0,0,.7);
+    color-scheme:dark;
   }
-  *{box-sizing:border-box}
+  :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  html{scroll-padding-top:env(safe-area-inset-top,0px)}
+  *,*::before,*::after{box-sizing:border-box}
   html,body{margin:0}
-  body{
-    background:
-      radial-gradient(1200px 600px at 12% -8%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 60%),
-      radial-gradient(1000px 500px at 100% 0%, color-mix(in srgb, var(--blue) 10%, transparent), transparent 55%),
-      var(--canvas);
-    color:var(--ink);
-    font-family:"Pretendard","Apple SD Gothic Neo",system-ui,sans-serif;
-    line-height:1.65;
-    -webkit-font-smoothing:antialiased;
-  }
-  .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
-  a{color:inherit}
+  body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.7;-webkit-font-smoothing:antialiased;word-break:keep-all}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 20px}
+  h1,h2,h3{margin:0;text-wrap:balance}
+  p{margin:0}
+  :focus-visible{outline:2px solid var(--sky);outline-offset:2px}
 
-  /* ---- hero ---- */
-  .hero{padding:60px 0 44px}
-  .kicker{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);margin:0 0 14px}
-  .brandrow{display:flex;align-items:center;gap:16px;margin-bottom:18px}
-  .logo{width:56px;height:56px;border-radius:16px;background:linear-gradient(150deg,var(--accent),var(--accent-ink));display:grid;place-items:center;color:#fff;box-shadow:var(--shadow);flex:none}
-  .logo svg{width:30px;height:30px}
-  h1{font-size:clamp(30px,5.2vw,46px);line-height:1.12;margin:0;letter-spacing:-.02em}
-  .lede{max-width:64ch;color:var(--muted);font-size:17px;margin:16px 0 0}
-  .lede b{color:var(--ink);font-weight:600}
-  .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
-  .pill{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 13px;font-size:13px;font-weight:500;box-shadow:var(--shadow)}
-  .pill .dot{width:8px;height:8px;border-radius:50%}
-  .pill.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .top{display:flex;justify-content:space-between;align-items:center;padding:18px 0;font-size:13px;color:var(--muted)}
+  .themebtn{border:1px solid var(--line);background:var(--card);color:var(--muted);width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:15px}
 
-  /* ---- section ---- */
-  section{padding:30px 0}
-  .shead{display:flex;align-items:baseline;gap:12px;margin:0 0 20px}
-  .snum{font-variant-numeric:tabular-nums;font-weight:800;color:var(--accent);font-size:15px;letter-spacing:.04em}
-  h2{font-size:clamp(21px,3.4vw,27px);margin:0;letter-spacing:-.01em}
-  .sub{color:var(--muted);font-size:14.5px;margin:4px 0 0}
+  /* hero */
+  .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:30px 0 56px}
+  @media (max-width:820px){.hero{grid-template-columns:1fr;gap:30px}}
+  .badge{display:inline-flex;align-items:center;gap:10px}
+  .badge .paw{width:54px;height:54px;border-radius:50%;background:var(--sun);display:grid;place-items:center;box-shadow:inset 0 -4px 0 rgba(0,0,0,.08)}
+  .badge .paw svg{width:30px;height:30px;color:#1D2B3A}
+  .hero .name{font-family:var(--display);font-size:clamp(44px,7vw,64px);white-space:nowrap;line-height:1;color:var(--ink)}
+  .hero h1{font-size:clamp(22px,3.4vw,30px);font-weight:900;line-height:1.4;margin-top:20px;letter-spacing:-.015em}
+  .hero h1 .h1l{display:inline-block}
+  .hero h1 em{font-style:normal;background:linear-gradient(transparent 60%,var(--sun) 0)}
+  .hero .lede{color:var(--muted);font-size:16px;margin-top:14px;max-width:52ch}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .chip{font-size:13px;font-weight:500;padding:6px 12px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
+  .chip b{color:var(--sky);font-weight:700}
 
-  .grid{display:grid;gap:14px}
+  /* alert mock (signature) */
+  .phone{background:var(--card);border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow);padding:16px;max-width:380px;margin-left:auto}
+  @media (max-width:820px){.phone{margin:0 auto}}
+  .alertcard{background:var(--alert-soft);border-radius:18px;padding:16px}
+  .alertcard .h{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--alert)}
+  .alertcard .h::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--alert);box-shadow:0 0 0 4px color-mix(in srgb,var(--alert) 25%,transparent)}
+  .pet{display:flex;gap:12px;align-items:center;margin-top:10px}
+  .pet .pic{width:64px;height:64px;border-radius:16px;background:var(--sun-soft);display:grid;place-items:center;font-size:34px;flex:none}
+  .pet strong{font-family:var(--display);font-size:24px;font-weight:400;line-height:1.1;display:block}
+  .pet span{font-size:13px;color:var(--muted)}
+  .match{margin-top:12px;border:2px dashed var(--line);border-radius:18px;padding:14px}
+  .match .t{font-size:12.5px;font-weight:700;color:var(--muted)}
+  .match .row{display:flex;align-items:center;gap:10px;margin-top:8px}
+  .match .pic2{width:48px;height:48px;border-radius:12px;background:var(--card-2);display:grid;place-items:center;font-size:24px;flex:none}
+  .match .lv{margin-left:auto;font-size:12.5px;font-weight:700;color:var(--grass);background:var(--grass-soft);border-radius:999px;padding:4px 10px;white-space:nowrap}
+  .match p{font-size:13px;color:var(--muted)}
+  .btns{display:flex;gap:8px;margin-top:12px}
+  .btns span{flex:1;text-align:center;font-size:13px;font-weight:700;border-radius:12px;padding:10px 6px}
+  .btns .yes{background:var(--sky);color:#fff}
+  .btns .no{background:var(--card-2);color:var(--muted)}
+  .demo{font-size:12px;color:var(--faint);text-align:center;margin-top:10px}
+
+  section{padding:46px 0;border-top:1px solid var(--line)}
+  h2{font-size:clamp(22px,3.4vw,29px);font-weight:900;letter-spacing:-.015em}
+  .intro{color:var(--muted);margin-top:10px;max-width:64ch;font-size:15px}
+  .grid{display:grid;gap:14px;margin-top:24px}
   .g2{grid-template-columns:repeat(2,1fr)}
   .g3{grid-template-columns:repeat(3,1fr)}
   .g4{grid-template-columns:repeat(4,1fr)}
-  @media (max-width:760px){.g2,.g3,.g4{grid-template-columns:1fr}}
+  @media (max-width:820px){.g3,.g4{grid-template-columns:1fr 1fr}}
+  @media (max-width:560px){.g2,.g3,.g4{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
+  .card h3{font-size:16.5px;font-weight:700;letter-spacing:-.01em}
+  .card p{color:var(--muted);font-size:14px;margin-top:7px}
+  .card .ic{font-size:24px;display:block;margin-bottom:10px}
 
-  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
-  .card h3{margin:0 0 7px;font-size:16px;letter-spacing:-.01em}
-  .card p{margin:0;color:var(--muted);font-size:14px}
-  .card .big{font-size:30px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
-  .card .big small{font-size:14px;font-weight:600;color:var(--muted);margin-left:3px}
-  .eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:0 0 9px}
+  /* policy timeline */
+  .policy{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch;margin-top:24px}
+  @media (max-width:720px){.policy{grid-template-columns:1fr}.policy .arrow{transform:rotate(90deg);justify-self:center}}
+  .pol{border-radius:18px;padding:20px;border:1px solid var(--line);background:var(--card)}
+  .pol.now{background:var(--sun-soft);border-color:transparent}
+  .pol .when{font-size:13px;font-weight:700;color:var(--muted)}
+  .pol.now .when{color:var(--sun-ink)}
+  .pol h3{font-size:17px;font-weight:700;margin-top:4px}
+  .pol ul{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:14px}
+  .pol ul li+li{margin-top:4px}
+  .arrow{display:grid;place-items:center;font-size:22px;color:var(--faint);font-weight:700}
 
-  /* data layers flow */
-  .flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:10px}
-  .node{flex:1 1 150px;min-width:140px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;box-shadow:var(--shadow)}
-  .node .tag{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
-  .node .nm{font-weight:700;font-size:15px;margin-top:3px}
-  .node .ds{color:var(--muted);font-size:12.5px;margin-top:4px}
-  .arrow{display:grid;place-items:center;color:var(--faint);font-weight:700;font-size:20px;flex:none}
-  @media (max-width:760px){.arrow{transform:rotate(90deg)}}
+  /* missions */
+  .missions{display:grid;gap:16px;margin-top:24px}
+  .mission{display:grid;grid-template-columns:auto 1fr;gap:18px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:var(--shadow)}
+  @media (max-width:560px){.mission{grid-template-columns:1fr}}
+  .mission .mk{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;font-size:30px}
+  .m1 .mk{background:var(--alert-soft)} .m2 .mk{background:var(--sky-soft)} .m3 .mk{background:var(--grass-soft)}
+  .mission .who{font-size:13px;font-weight:700}
+  .m1 .who{color:var(--alert)} .m2 .who{color:var(--sky)} .m3 .who{color:var(--grass)}
+  .mission h3{font-size:19px;font-weight:900;margin-top:2px}
+  .mission p{color:var(--muted);font-size:14.5px;margin-top:6px}
+  .mission .ai{margin-top:12px;font-size:13.5px;background:var(--card-2);border-radius:12px;padding:10px 14px;color:var(--ink)}
+  .mission .ai b{color:var(--sky)}
 
-  .badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:12.5px;font-weight:600;border:1px solid}
-  .b-rc{background:var(--accent-soft);color:var(--accent-ink);border-color:transparent}
-  .b-tg{background:var(--amber-soft);color:var(--amber);border-color:transparent}
-  .b-fl{background:var(--blue-soft);color:var(--blue);border-color:transparent}
+  /* flow */
+  .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:24px;counter-reset:f}
+  @media (max-width:860px){.flow{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.flow{grid-template-columns:1fr}}
+  .fstep{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .fstep::before{counter-increment:f;content:counter(f);display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--sun);color:#1D2B3A;font-weight:900;font-size:14px;margin-bottom:10px}
+  .fstep h3{font-size:15px;font-weight:700}
+  .fstep p{color:var(--muted);font-size:13px;margin-top:5px}
 
-  ul.clean{margin:10px 0 0;padding:0;list-style:none}
-  ul.clean li{position:relative;padding-left:18px;margin:7px 0;color:var(--muted);font-size:14px}
-  ul.clean li::before{content:"";position:absolute;left:2px;top:9px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
-  ul.clean li b{color:var(--ink);font-weight:600}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+  @media (max-width:560px){.split{grid-template-columns:1fr}}
+  .split div{border-radius:14px;padding:14px 16px;font-size:14px}
+  .split .a{background:var(--sky-soft);color:var(--sky)}
+  .split .p{background:var(--sun-soft);color:var(--sun-ink)}
+  .split b{display:block;font-size:13px;margin-bottom:4px}
 
-  /* pipeline */
-  .steps{counter-reset:s;display:grid;gap:10px}
-  .step{display:flex;gap:14px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
-  .step .n{counter-increment:s;flex:none;width:30px;height:30px;border-radius:9px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px}
-  .step .n::before{content:counter(s)}
-  .step .t{font-weight:700;font-size:14.5px}
-  .step .d{color:var(--muted);font-size:13.5px;margin-top:2px}
+  .life{display:grid;grid-template-columns:repeat(4,1fr);margin-top:24px;background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}
+  @media (max-width:820px){.life{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.life{grid-template-columns:1fr}}
+  .life > div{padding:18px;border-right:1px solid var(--line)}
+  .life > div:last-child{border-right:0;background:var(--grass-soft)}
+  @media (max-width:820px){.life > div{border-bottom:1px solid var(--line)}}
+  .life .s{font-weight:900;color:var(--grass);font-size:14px}
+  .life h3{font-size:15px;font-weight:700;margin-top:4px}
+  .life p{color:var(--muted);font-size:13.5px;margin-top:6px}
 
-  /* table */
-  .tablecard{overflow:hidden;border-radius:var(--radius);border:1px solid var(--line);box-shadow:var(--shadow)}
-  table{width:100%;border-collapse:collapse;background:var(--card);font-size:14px}
-  th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line)}
-  th{background:var(--card-2);font-weight:700;font-size:12.5px;letter-spacing:.02em;color:var(--muted)}
-  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .tbl{overflow-x:auto;margin-top:24px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
+  table{width:100%;border-collapse:collapse;font-size:14px;min-width:600px}
+  th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:13px;color:var(--muted);font-weight:700;background:var(--card-2)}
   tr:last-child td{border-bottom:0}
-  .hi td{background:color-mix(in srgb,var(--accent) 7%,var(--card))}
-  .tagline{font-weight:700;color:var(--accent-ink)}
+  td.me,th.me{background:color-mix(in srgb,var(--sun) 16%,var(--card))}
+  th small{display:block;font-size:12px;font-weight:500;margin-top:2px}
+  tr.key td:first-child,tr.key td.me{font-weight:700;color:var(--ink)}
+  .tblnote{margin-top:10px;font-size:12.5px;color:var(--muted)}
 
-  /* bars */
-  .bars{display:grid;gap:9px}
-  .bar{display:grid;grid-template-columns:92px 1fr 64px;align-items:center;gap:10px;font-size:13px}
-  .bar .lab{color:var(--muted);font-weight:600}
-  .bar .track{height:12px;border-radius:999px;background:var(--card-2);overflow:hidden}
-  .bar .fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent-ink))}
-  .bar .val{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600}
+  .data .row{display:grid;grid-template-columns:34% 1fr auto;gap:14px;align-items:start;padding:13px 18px;border-top:1px solid var(--line);font-size:14px}
+  .data .row:first-child{border-top:0}
+  @media (max-width:560px){.data .row{grid-template-columns:1fr}}
+  .data .row b{font-weight:700}
+  .data .row span{color:var(--muted)}
+  .data .st{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap;justify-self:start}
+  .st.ok{background:var(--grass-soft);color:var(--grass)}
+  .st.chk{background:var(--sun-soft);color:var(--sun-ink)}
 
-  .note{background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:14px;padding:14px 16px;color:var(--accent-ink);font-size:14px;font-weight:500}
-  .foot{color:var(--faint);font-size:12.5px;padding:34px 0 50px;border-top:1px solid var(--line);margin-top:24px}
-  .divider{height:1px;background:var(--line);margin:4px 0}
-  .lead-k{font-size:13px;color:var(--amber);font-weight:700}
+  .note{margin-top:18px;background:var(--card-2);border-radius:14px;padding:14px 18px;font-size:14px;color:var(--muted)}
+  .note b{color:var(--ink)}
+  footer{border-top:1px solid var(--line);padding:30px 0 50px;color:var(--faint);font-size:12.5px}
+  footer p+p{margin-top:6px}
+  /* coordinator mock */
+  .coord{margin-top:12px;border:2px dashed var(--line);border-radius:18px;padding:14px}
+  .coord .t{font-size:12.5px;font-weight:700;color:var(--sky)}
+  .coord ol{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+  .coord li{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted);line-height:1.5}
+  .coord li .k{flex:none;font-size:11.5px;font-weight:700;border-radius:8px;padding:2px 8px;margin-top:1px}
+  .k.zone{background:var(--sky-soft);color:var(--sky)} .k.clue{background:var(--grass-soft);color:var(--grass)} .k.call{background:var(--sun-soft);color:var(--sun-ink)}
+  .m4 .mk{background:var(--sun-soft)} .m4 .who{color:var(--sun-ink)}
+  .mission .ex{margin-top:10px;font-size:13.5px;border-left:3px solid var(--line);padding-left:12px;color:var(--muted)}
+  .mission .ex b{color:var(--ink);font-weight:700}
+  .side2 .card{box-shadow:none;background:var(--card-2);border-color:transparent}
+  td.h{color:var(--muted)}
+  /* route card */
+  .route{margin-top:12px;border-radius:18px;padding:14px;background:var(--sky-soft)}
+  .route .t{font-size:12.5px;font-weight:700;color:var(--sky)}
+  .route strong{display:block;font-family:var(--display);font-weight:400;font-size:23px;line-height:1.15;margin-top:4px;color:var(--ink)}
+  .route .meta{font-size:13px;color:var(--muted);margin-top:2px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .tags span{font-size:12px;font-weight:700;border-radius:999px;padding:3px 9px;background:var(--card);color:var(--ink)}
+  .why{margin-top:10px;font-size:13px;color:var(--ink);background:var(--card);border-radius:12px;padding:10px 12px;line-height:1.55}
+  .why b{color:var(--sky)}
+  .mission-chip{display:flex;align-items:center;gap:10px;margin-top:10px;background:var(--sun-soft);border-radius:14px;padding:10px 12px;font-size:13px;color:var(--sun-ink);font-weight:700}
+  .mission-chip span{font-size:20px}
+  /* event bridge */
+  .bridge{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch;margin-top:24px}
+  @media (max-width:720px){.bridge{grid-template-columns:1fr}.bridge .arrow{transform:rotate(90deg);justify-self:center}}
+  .ev{border-radius:18px;padding:20px;border:1px solid var(--line);background:var(--card)}
+  .ev.after{background:var(--grass-soft);border-color:transparent}
+  .ev .when{font-size:13px;font-weight:700;color:var(--muted)}
+  .ev.after .when{color:var(--grass)}
+  .ev h3{font-size:17px;font-weight:700;margin-top:4px}
+  .ev ul{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:14px}
+  .ev ul li+li{margin-top:4px}
+  .facts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+  @media (max-width:720px){.facts{grid-template-columns:1fr 1fr}}
+  .fact{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .fact .n{font-family:var(--display);font-size:28px;line-height:1;color:var(--sky)}
+  .fact .l{font-size:12.5px;color:var(--muted);margin-top:6px}
+  /* badges */
+  .badges{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}
+  @media (max-width:820px){.badges{grid-template-columns:1fr 1fr}}
+  @media (max-width:420px){.badges{grid-template-columns:1fr}}
+  .bd{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;text-align:center;box-shadow:var(--shadow)}
+  .bd .medal{width:62px;height:62px;border-radius:50%;margin:0 auto 10px;display:grid;place-items:center;font-size:28px;background:var(--sun);box-shadow:inset 0 -4px 0 rgba(0,0,0,.08)}
+  .bd:nth-child(2) .medal{background:var(--sky-soft)} .bd:nth-child(3) .medal{background:var(--grass-soft)} .bd:nth-child(4) .medal{background:var(--alert-soft)}
+  .bd h3{font-size:15.5px;font-weight:700}
+  .bd p{font-size:13px;color:var(--muted);margin-top:6px}
+
+  /* track badge */
+  .track{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--grass);background:var(--grass-soft);border-radius:999px;padding:6px 12px;margin-bottom:16px}
+  .fit3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+  @media (max-width:820px){.fit3{grid-template-columns:1fr}}
+  .fitc{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
+  .fitc .k{font-size:13px;font-weight:700;color:var(--grass)}
+  .fitc h3{font-size:16.5px;font-weight:700;margin-top:4px}
+  .fitc p{color:var(--muted);font-size:14px;margin-top:6px}
+  /* architecture */
+  .arch{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}
+  @media (max-width:860px){.arch{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.arch{grid-template-columns:1fr}}
+  .an{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px}
+  .an .h{font-weight:700;font-size:15px}
+  .an .d{color:var(--muted);font-size:13.5px}
+  .an .sec{margin-top:auto;font-size:12.5px;font-weight:700;color:var(--grass);background:var(--grass-soft);border-radius:10px;padding:8px 10px;line-height:1.5}
+  /* screens */
+  .screens{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:20px}
+  @media (max-width:860px){.screens{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.screens{grid-template-columns:1fr}}
+  .scr{background:var(--card);border:2px solid var(--line);border-radius:22px;padding:14px 12px;text-align:center}
+  .scr .ic{font-size:24px}
+  .scr h3{font-size:14.5px;font-weight:700;margin-top:6px}
+  .scr p{font-size:12.5px;color:var(--muted);margin-top:4px}
+  .scr.web{border-style:dashed}
+  /* team */
+  .team{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+  @media (max-width:820px){.team{grid-template-columns:1fr}}
+  .mem{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
+  .mem .role{display:inline-block;font-size:12.5px;font-weight:700;border-radius:999px;padding:3px 10px}
+  .mem:nth-child(1) .role{background:var(--sky-soft);color:var(--sky)}
+  .mem:nth-child(2) .role{background:var(--sun-soft);color:var(--sun-ink)}
+  .mem:nth-child(3) .role{background:var(--alert-soft);color:var(--alert)}
+  .mem h3{font-size:19px;font-weight:900;margin-top:8px}
+  .mem ul{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:14px}
+  .mem ul li+li{margin-top:5px}
+  .fstep .dt{font-size:12.5px;font-weight:700;color:var(--sky)}
+
+  /* yearly timeline */
+  .tl{list-style:none;margin:24px 0 0;padding:0;position:relative}
+  .tl::before{content:"";position:absolute;left:74px;top:6px;bottom:6px;width:2px;background:var(--line)}
+  .tl li{display:grid;grid-template-columns:88px 1fr;gap:18px;padding:0 0 18px;position:relative}
+  .tl li:last-child{padding-bottom:0}
+  .tl .yr{font-family:var(--display);font-size:22px;line-height:1.2;color:var(--muted);text-align:left}
+  .tl li::after{content:"";position:absolute;left:69px;top:8px;width:12px;height:12px;border-radius:50%;background:var(--card);border:3px solid var(--sky)}
+  .tl li.now::after{background:var(--sun);border-color:var(--sun)}
+  .tl li.now .yr{color:var(--ink)}
+  .tl .bx{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-left:8px}
+  .tl li.now .bx{background:var(--sun-soft);border-color:transparent}
+  .tl .bx h3{font-size:15.5px;font-weight:700}
+  .tl .bx p{color:var(--muted);font-size:13.5px;margin-top:4px}
+  @media (max-width:560px){.tl::before{left:6px}.tl li{grid-template-columns:1fr;gap:4px;padding-left:24px}.tl li::after{left:1px}.tl .bx{margin-left:0}}
+
+  /* prototype-style phone mock (fixed light app colors) */
+  .pm{max-width:360px;margin-left:auto;background:#F5F9FF;border-radius:36px;box-shadow:0 0 0 8px #1D2B3A,0 24px 50px -20px rgba(29,43,58,.5);overflow:hidden;color:#1D2B3A;font-family:var(--body)}
+  @media (max-width:820px){.pm{margin:0 auto}}
+  .pm svg.pi{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+  .pm-screen{padding:16px 16px 12px;display:flex;flex-direction:column;gap:10px}
+  .pm-top{display:flex;align-items:center;justify-content:space-between}
+  .pm-when{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#5A6B7D}
+  .pm-av{width:36px;height:36px;border-radius:50%;background:#FFC93C;display:grid;place-items:center}
+  .pm-av svg.pi{width:18px;height:18px}
+  .pm-title{font-family:var(--display);font-size:26px;line-height:1.15}
+  .pm-chips{display:flex;flex-wrap:wrap;gap:5px}
+  .pm-chips span{font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:999px;background:#FFFFFF;border:1px solid #DCE6F2}
+  .pm-say{display:flex;gap:6px}
+  .pm-input{flex:1;height:38px;border:1px solid #DCE6F2;border-radius:10px;background:#FFFFFF;display:flex;align-items:center;padding:0 12px;font-size:12px;color:#6B7B8C}
+  .pm-mic{width:38px;height:38px;border-radius:10px;background:#1D2B3A;color:#FFFFFF;display:grid;place-items:center}
+  .pm-mic svg.pi{width:16px;height:16px}
+  .pm-card{background:#FFFFFF;border:1px solid #DCE6F2;border-radius:16px;overflow:hidden}
+  .pm-map{height:96px;background:#E9F0E6}
+  .pm-map svg{display:block;width:100%;height:100%}
+  .pm-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px}
+  .pm-lbl{font-size:11px;font-weight:700;color:#1F64D1}
+  .pm-name{font-size:15.5px;font-weight:900;line-height:1.3;margin-top:1px}
+  .pm-meta{font-size:12px;color:#5A6B7D;margin-top:1px}
+  .pm-tags{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  .pm-tags span{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:6px 8px;border-radius:9px;background:#F5F9FF}
+  .pm-tags span.tx,.pm-today span.tx{display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:0;border-radius:0;background:none;line-height:1.25;min-width:0}
+  .pm-tags small,.pm-today small{font-size:9.5px;font-weight:500;color:#5A6B7D}
+  .pm-today{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+  .pm-today .k{width:100%;font-size:10.5px;font-weight:700;color:#5A6B7D}
+  .pm-today .c{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:5px 8px;border-radius:9px;background:#FFF3CF;color:#7A5400}
+  .pm-ai{background:#EAF2FD;border-radius:10px;padding:8px 10px}
+  .pm-ai b{display:flex;align-items:center;gap:4px;font-size:11px;color:#1F64D1}
+  .pm-ai p{margin:3px 0 0;font-size:12px;line-height:1.5;color:#1D2B3A}
+  .pm-btns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .pm-btns span{height:38px;border-radius:11px;border:1px solid #DCE6F2;background:#FFFFFF;font-size:12.5px;font-weight:700;display:grid;place-items:center}
+  .pm-btns .pri{background:#1F64D1;border-color:#1F64D1;color:#FFFFFF}
+  .pm-mission{display:flex;align-items:center;gap:6px;min-height:38px;border-radius:11px;background:#FFF3CF;color:#7A5400;font-size:11.5px;font-weight:700;padding:0 12px}
+  .pm-tab{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));height:58px;background:#FFFFFF;border-top:1px solid #DCE6F2}
+  .pm-tab span{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:700;color:#5A6B7D}
+  .pm-tab svg.pi{width:18px;height:18px}
+  .pm-tab .on{color:#1F64D1}
+  .demo a{color:var(--sky);font-weight:700}
+  /* prototype link */
+  .protolink{display:flex;align-items:center;gap:14px;margin-top:16px;padding:16px 18px;border-radius:16px;background:var(--sun);color:#1D2B3A;text-decoration:none}
+  .protolink:hover{filter:brightness(.97)}
+  .protolink .pl-ic{width:44px;height:44px;border-radius:50%;background:#1D2B3A;color:#FFFFFF;display:grid;place-items:center;flex-shrink:0}
+  .protolink .pl-ic svg{width:20px;height:20px;fill:currentColor}
+  .protolink b{display:block;font-size:16px}
+  .protolink span.s{display:block;font-size:13px;margin-top:2px}
+
+  /* ---- v2: criteria structure ---- */
+  .crit{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:-20px 0 30px}
+  @media (max-width:860px){.crit{grid-template-columns:1fr 1fr}}
+  @media (max-width:480px){.crit{grid-template-columns:1fr}}
+  .crit a{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-top:4px solid var(--sun);border-radius:14px;padding:13px 15px;box-shadow:var(--shadow);min-width:0}
+  .crit a:hover{border-color:var(--sky)}
+  .crit .w{font-size:12px;font-weight:700;color:var(--sun-ink)}
+  .crit b{display:block;font-size:15px;margin:3px 0 4px}
+  .crit span.d{display:block;font-size:12.8px;color:var(--muted);line-height:1.55}
+  .part{margin:40px 0 0;padding:20px 24px;border-radius:20px;background:var(--ink);color:var(--bg)}
+  .part .pn{font-size:13px;font-weight:700;color:var(--sun)}
+  .part h2{color:var(--bg);margin-top:4px}
+  .part p{font-size:14.5px;opacity:.8;margin-top:6px;max-width:70ch}
+  .part + section{border-top:0}
+  .ev .big{font-family:var(--display);font-size:32px;line-height:1.1;color:var(--sky)}
+  .ev .big small{font-family:var(--body);font-size:14px;color:var(--muted);margin-left:2px}
+  .ev .src{display:block;font-size:12px;color:var(--faint);margin-top:8px}
+  .phases{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}
+  @media (max-width:860px){.phases{grid-template-columns:1fr 1fr}}
+  @media (max-width:480px){.phases{grid-template-columns:1fr}}
+  .ph{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);min-width:0}
+  .ph.now{border-top-color:var(--sun)}
+  .ph .w{font-size:12.5px;font-weight:700;color:var(--muted)}
+  .ph h3{font-size:15.5px;margin:3px 0 6px}
+  .ph ul{margin:0;padding-left:17px;font-size:13.5px;color:var(--muted)}
+  .ph .x{margin-top:10px;padding-top:8px;border-top:1px dashed var(--line);font-size:13px}
+  .proc{counter-reset:p;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:24px}
+  @media (max-width:700px){.proc{grid-template-columns:1fr}}
+  .proc > div{display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .proc > div::before{counter-increment:p;content:counter(p);flex:none;width:28px;height:28px;border-radius:50%;background:var(--sky);color:#fff;font-weight:900;font-size:14px;display:grid;place-items:center}
+  .proc b{display:block;font-size:14.5px}
+  .proc span{font-size:13.5px;color:var(--muted)}
+
+  /* ---- v3: 자금 없이 출시 (제품 기획서 컴포넌트) ---- */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}
+  @media (max-width:820px){.kpis{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.kpis{grid-template-columns:1fr}}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);min-width:0}
+  .kpi .n{font-family:var(--display);font-size:30px;line-height:1.1;color:var(--sky)}
+  .kpi .n small{font-family:var(--body);font-size:14px;color:var(--muted);margin-left:2px}
+  .kpi p{font-size:13.5px;color:var(--muted);margin-top:6px}
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+  @media (max-width:820px){.plans{grid-template-columns:1fr}}
+  .plan{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow);min-width:0}
+  .plan .who{font-size:12.5px;font-weight:700;color:var(--sun-ink)}
+  .plan h3{font-size:17px;margin-top:4px}
+  .plan .price{font-family:var(--display);font-size:24px;margin-top:8px}
+  .plan .price small{font-family:var(--body);font-size:13px;color:var(--muted)}
+  .plan ul{margin:10px 0 0;padding-left:18px;font-size:14px;color:var(--muted)}
+  .plan li{margin:4px 0}
+  .plan li b{color:var(--ink)}
+  .prin{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .prin span{font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;background:var(--grass-soft);color:var(--grass)}
+  tr.sum td{background:var(--card-2)}
+  tr.sum td:first-child,tr.sum td.me{font-weight:700;color:var(--ink)}
+  tr.sum td.me{background:color-mix(in srgb,var(--sun) 30%,var(--card))}
+  .nw{white-space:nowrap}
+
+  /* forecast card (hero) */
+  .fc{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:18px;max-width:420px;margin-left:auto}
+  @media (max-width:820px){.fc{margin:0 auto}}
+  .fc-top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-family:var(--display);font-size:19px;color:var(--ink)}
+  .fc-ex{font-family:var(--body);font-size:11.5px;color:var(--faint);align-self:center}
+  .fc-base{font-size:12.5px;color:var(--muted);margin:4px 0 12px}
+  .fc-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+  .fc-row b{display:block;font-size:14.5px}
+  .fc-row span{font-size:12.5px;color:var(--muted)}
+  .fc .lv{flex:none;font-size:13px;font-weight:700;padding:4px 12px;border-radius:999px}
+  .lv.bad{background:var(--alert-soft);color:var(--alert)}
+  .lv.mid{background:var(--sun-soft);color:var(--sun-ink)}
+  .lv.ok{background:var(--grass-soft);color:var(--grass)}
+  .fc-wave{margin:2px 0 6px}.fc-wave svg{display:block;width:100%;height:auto}.fc-wave text{font-size:10.5px;fill:var(--muted)}.fc-wave .lb{font-size:11px;font-weight:700}
+  .fc-why{margin-top:12px;font-size:13px;line-height:1.6;background:var(--sky-soft);border-radius:12px;padding:10px 12px}
+  .fc-why b{display:block;color:var(--sky);font-size:12.5px;margin-bottom:2px}
 </style>
+
 </head>
 <body>
 <div class="wrap">
 
-  <!-- ===== HERO ===== -->
+  <div class="top">
+    <span>2026 양주시 미래인재 AI 공모전, 팀 이로움</span>
+    <button class="themebtn" id="themeToggle" aria-label="밝게/어둡게 전환">◐</button>
+  </div>
+
   <header class="hero">
-    <p class="kicker">2026 양주시 미래인재 AI 공모전 · 똑똑하고 편리한 양주</p>
-    <div class="brandrow">
-      <div class="logo" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18l-1.6 9.2a2 2 0 0 1-2 1.8H8.2"/><path d="M3 6 2 3H0"/><circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/><path d="M8 6l1 6"/></svg>
+    <div>
+      <div class="track">소주제 02 · 똑똑하고 편리한 양주</div>
+      <div class="badge"><span class="paw" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h2.2l2.3 10.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 1.9-1.5L21 8H7.1L6.6 5.6A2 2 0 0 0 4.7 4H3zm7 15a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm7 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg></span><span class="name">양주 장바구니</span></div>
+      <h1>영수증 한 장이<br><span class="h1l">우리 동네 물가 센서가 됩니다</span></h1>
+      <p class="lede">고물가가 길어져도 "지금 우리 동네 어느 마트가 싼지"는 알 길이 없습니다. 공공 물가 조사는 거점 매장 몇 곳을 정해진 주기로 사람이 찾아가 기록하는 방식이라, 옥정·회천·덕정의 작은 마트 가격은 비어 있습니다. 양주 장바구니는 시민이 올린 영수증·매대 가격표·전단 사진을 AI가 읽어 품목과 가격을 뽑고, 생활권별 최저가를 지도에 보여 줍니다. 같은 매장의 가격표와 영수증이 다르면 찾아내고, 시에는 생활권 물가 데이터와 가격표시 점검이 필요한 곳을 알려 줍니다. 참여한 시민에게는 양주사랑상품권으로 돌려줍니다.</p>
+      <div class="chips">
+        <span class="chip">대상 <b>장보는 시민과 양주시 지역경제 부서</b></span>
+        <span class="chip">핵심 <b>전단·가격표·영수증 세 가지 가격</b></span>
+        <span class="chip">검증 <b>영수증 1장 약 2원, 1주 데모</b></span>
       </div>
-      <div><h1>양주 장바구니</h1></div>
     </div>
-    <p class="lede"><b>“영수증 한 장이 곧 물가 센서.”</b> 시민이 영수증·매대 가격표·전단을 사진으로 올리면 AI가 품목·가격을 읽어 <b>동네·마트별 실시간 물가</b>를 지도로 보여주는 모바일 앱. 정부 통계의 느린 집계 대신, 시민이 매일 만드는 구매 데이터를 모아 ‘지금 가장 싼 곳’을 알려주고 양주사랑상품권으로 참여를 보상합니다.</p>
-    <div class="pills">
-      <span class="pill"><span class="dot" style="background:var(--amber)"></span>전단 · 예고가</span>
-      <span class="pill"><span class="dot" style="background:var(--blue)"></span>매대 · 현재가</span>
-      <span class="pill"><span class="dot" style="background:var(--accent)"></span>영수증 · 실구매가</span>
-      <span class="pill on">AI OCR + 크라우드소싱</span>
+    <div>
+      <div class="fc" role="img" aria-label="양주 장바구니 화면 예시: 옥정 생활권 이번 주 품목별 최저가와 가격표·영수증 불일치 알림">
+        <div class="fc-top"><span>옥정 생활권 · 이번 주</span><span class="fc-ex">화면 예시 · 매장과 가격 모두 가상</span></div>
+        <div class="fc-base">시민 제보 412건 · 확정 가격 186개 품목</div>
+        <div class="fc-row"><div><b>달걀 30구 6,980원</b><span>○○마트 · 영수증 3건 일치 · 어제</span></div><span class="lv ok">최저가</span></div>
+        <div class="fc-row"><div><b>라면 5개입 다음 주 특가 예상</b><span>전단 할인 이력 6주 · △△마트</span></div><span class="lv mid">기다리기</span></div>
+        <div class="fc-row"><div><b>우유 900ml 가격표 2,580원</b><span>같은 날 영수증 2,780원 · 2건</span></div><span class="lv bad">불일치</span></div>
+        <div class="fc-row"><div><b>상품권 가맹 매장 7곳</b><span>이번 주 최저가 품목 22개</span></div><span class="lv ok">상품권</span></div>
+        <div class="fc-why"><b>이 가격의 근거</b> 영수증은 실제 낸 값, 가격표는 매대에 붙은 값으로 구분했습니다. 한 건만 있는 가격은 "미확정", 두 건 이상 일치하면 "확정"입니다.</div>
+      </div>
     </div>
   </header>
 
-  <!-- ===== 01 문제 ===== -->
+  <nav class="crit" aria-label="심사 기준별 바로가기">
+    <a href="#p1"><span class="w">문제정의 25점</span><b>작은 마트 가격은 공백</b><span class="d">옥정·회천 생활권만 18.4만 명. 공공 물가 조사는 거점 매장 위주이고, 상품권 가맹점은 8,700여 곳이다.</span></a>
+    <a href="#p2"><span class="w">창의성 25점</span><b>세 가지 가격이 서로를 검증한다</b><span class="d">전단·가격표·영수증을 AI가 읽고 구분해 최저가와 특가를 내고, 가격표와 결제 금액의 불일치를 찾는다.</span></a>
+    <a href="#p3"><span class="w">실행계획 25점</span><b>비용이 아니라 참여가 관건</b><span class="d">전 세대가 써도 월 30만 원 이내. 첫 데이터는 시와 팀이 채우고, 상품권으로 참여를 모은다.</span></a>
+    <a href="#p4"><span class="w">효과·확장 25점</span><b>지역 물가 플랫폼으로</b><span class="d">행정 물가 대시보드, 착한가격업소 발굴, 전통시장·공공급식, 다른 시군으로.</span></a>
+  </nav>
+
+  <div class="part" id="p1"><span class="pn">PART 1 · 심사기준 1</span><h2>문제정의의 타당성</h2><p>신도시 양주는 생활권이 빠르게 갈라지고 있습니다. 동네마다 마트도 가격도 다르지만, 그 차이를 보여 주는 데이터는 없습니다.</p></div>
+
   <section>
-    <div class="shead"><span class="snum">01</span><div><h2>제안 배경 · 문제 현황</h2><p class="sub">양주시 생활권 기준의 실제 공백</p></div></div>
-    <div class="grid g4">
-      <div class="card"><p class="eyebrow">체감 물가</p><h3>어디가 싼지 모른다</h3><p>고물가 장기화에도 ‘지금 우리 동네 어느 마트가 싼지’ 확인할 방법이 없다.</p></div>
-      <div class="card"><p class="eyebrow">공공 데이터 공백</p><h3>소규모 마트 사각</h3><p>공공 물가정보는 대형 품목·거점 위주 → 옥정·회천·덕정 생활권 소규모 마트 가격은 공백.</p></div>
-      <div class="card"><p class="eyebrow">전단 분산</p><h3>비교 불가</h3><p>전단지는 종이·SNS에 흩어져 비교가 어렵고, 할인 주기도 알 수 없다.</p></div>
-      <div class="card"><p class="eyebrow">신도시 특수성</p><h3>동네별 편차 ↑</h3><p>신도시 개발로 인구 급증·생활권 분화 → 동네별 물가 편차 크고 지역화폐 연계 수요도 크다.</p></div>
+    <h2>양주의 장바구니</h2>
+    <div class="facts">
+      <div class="fact"><div class="n">29.8만</div><div class="l">양주 인구(2026년 8월). 11.5만 세대</div></div>
+      <div class="fact"><div class="n">18.4만</div><div class="l">옥정·회천 생활권 인구. 마트가 몰리고 젊은 가구가 많은 곳</div></div>
+      <div class="fact"><div class="n">8,700여</div><div class="l">양주사랑카드 가맹점. 시는 지역사랑상품권 발행 우수 지자체로 선정됨</div></div>
+      <div class="fact"><div class="n">9월</div><div class="l">종이형 양주사랑상품권 첫 발행. 디지털 취약계층의 지역 소비를 넓히려는 조치</div></div>
     </div>
+    <div class="tbl"><table>
+      <tr><th>생활권(행정동)</th><th>인구 (2026.8)</th><th>생활권(행정동)</th><th>인구 (2026.8)</th></tr>
+      <tr><td>옥정2동</td><td>59,281</td><td>회천2동</td><td>46,821</td></tr>
+      <tr><td>양주2동</td><td>49,055</td><td>회천3동</td><td>24,675</td></tr>
+      <tr><td>옥정1동</td><td>42,627</td><td>회천1동</td><td>10,600</td></tr>
+    </table></div>
   </section>
 
-  <!-- ===== 02 솔루션 · 데이터 4층 ===== -->
   <section>
-    <div class="shead"><span class="snum">02</span><div><h2>솔루션 — 4층 가격 데이터</h2><p class="sub">‘예고 → 현장 → 실제’의 가격 흐름을 시민 제보로 완성</p></div></div>
-    <div class="flow">
-      <div class="node"><div class="tag">1층 · 예고</div><div class="nm">전단</div><div class="ds">다가올 특가, 할인 기간</div></div>
-      <div class="arrow">→</div>
-      <div class="node"><div class="tag">2층 · 현재</div><div class="nm">매대 가격표</div><div class="ds">지금 진열된 현재가</div></div>
-      <div class="arrow">→</div>
-      <div class="node"><div class="tag">3층 · 실제</div><div class="nm">영수증</div><div class="ds">할인·멤버십 반영 실구매가</div></div>
-      <div class="arrow">→</div>
-      <div class="node" style="border-color:color-mix(in srgb,var(--accent) 45%,var(--line))"><div class="tag" style="color:var(--accent-ink)">4층 · 예측</div><div class="nm">추이 · 특가예측</div><div class="ds">6주 추이로 다음 특가 예상</div></div>
-    </div>
-    <div class="note" style="margin-top:14px">세 입력(전단·매대·영수증)이 <b>상호보완</b>하면서 민간 물가앱이 못 하는 ‘안 산 품목·실시간 현재가·특가 예측’까지 커버합니다.</div>
-  </section>
-
-  <!-- ===== 03 입력 우선순위 ===== -->
-  <section>
-    <div class="shead"><span class="snum">03</span><div><h2>입력 우선순위 · 출처 표기</h2><p class="sub">AI가 올린 사진을 자동 분류하고, 가장 신뢰도 높은 값을 노출</p></div></div>
-    <div class="grid g2">
-      <div class="card">
-        <p class="eyebrow">표시 규칙</p>
-        <h3>품목 × 매장별 ‘최선값’ 1개</h3>
-        <p style="margin-bottom:12px">각 가격에 출처 배지와 갱신 시각을 함께 표기합니다.</p>
-        <div style="display:flex;flex-direction:column;gap:9px">
-          <div style="display:flex;align-items:center;gap:9px"><span class="badge b-rc">🧾 영수증</span><span style="font-size:13px;color:var(--muted)">1순위 · <b style="color:var(--ink)">실구매가</b></span></div>
-          <div style="display:flex;align-items:center;gap:9px"><span class="badge b-fl">🏷️ 가격표</span><span style="font-size:13px;color:var(--muted)">2순위 · 매대 표시가 (영수증 없을 때)</span></div>
-          <div style="display:flex;align-items:center;gap:9px"><span class="badge b-tg">📄 전단</span><span style="font-size:13px;color:var(--muted)">예고가 · 유효기간 관리</span></div>
-        </div>
-      </div>
-      <div class="card">
-        <p class="eyebrow">보정 규칙</p>
-        <h3>최신성 역전 · 의미 구분</h3>
-        <ul class="clean">
-          <li><b>최신성 역전</b> — 2주 전 영수증보다 2시간 전 가격표가 더 정확할 수 있다. 상위 출처가 오래되면 최신 하위 출처에 양보.</li>
-          <li><b>의미 라벨</b> — 영수증 = 실제 낸 값(할인 반영) / 가격표 = 매대 표시가. 혼동 없게 구분 표기.</li>
-          <li><b>교차검증</b> — 단독 1건은 ‘미확정’, 2건 이상 일치 시 ‘확정’ 배지.</li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===== 04 핵심 기능 ===== -->
-  <section>
-    <div class="shead"><span class="snum">04</span><div><h2>핵심 기능</h2><p class="sub">업로드 → OCR → 지도 한 줄기가 실제로 도는 앱</p></div></div>
-    <div class="grid g4">
-      <div class="card"><p class="eyebrow">홈</p><h3>물가지도</h3><p>위치 기준 마트별 가격 핀 + 주간 ‘장바구니 지수’. 최저가 초록, 특가 빨강.</p></div>
-      <div class="card"><p class="eyebrow">올리기</p><h3>현장 모드</h3><p>사진을 올리면 영수증/가격표/전단 자동 분류·인식, 개인정보 즉시 마스킹. 매대 가격표 연속 스캔.</p></div>
-      <div class="card"><p class="eyebrow">비교</p><h3>품목 줄세우기</h3><p>한 품목을 동네 마트별 최저가로 정렬 + 6주 추이로 다음 특가 예측.</p></div>
-      <div class="card"><p class="eyebrow">마트 상세</p><h3>가격 3종 분리</h3><p>전단 특가·매대 현재가·영수증 실구매가를 분리 표시, 만료 시 자동 이력화.</p></div>
-    </div>
-  </section>
-
-  <!-- ===== 05 AI 파이프라인 ===== -->
-  <section>
-    <div class="shead"><span class="snum">05</span><div><h2>AI 처리 파이프라인</h2><p class="sub">단순 OCR을 넘어 ‘판단·예측’까지</p></div></div>
-    <div class="steps">
-      <div class="step"><div class="n"></div><div><div class="t">수집</div><div class="d">시민이 영수증·가격표·전단 촬영 업로드 (현장 실시간 카메라 우선).</div></div></div>
-      <div class="step"><div class="n"></div><div><div class="t">입력 자동분류</div><div class="d">올린 사진을 영수증 / 가격표 / 전단으로 판별해 각기 다른 파이프라인으로 분기.</div></div></div>
-      <div class="step"><div class="n"></div><div><div class="t">인식 · 정규화</div><div class="d">OCR+LLM으로 제각각 표기(‘農心신라면멀티5’)를 표준명(‘신라면 5개입’)으로. 바코드로 상품 특정, 단위가격(원/100g) 환산해 공정 비교. 긴 영수증은 분할 촬영 병합 후 소계·할인·결제정보는 걸러 품목만 추출.</div></div></div>
-      <div class="step"><div class="n"></div><div><div class="t">검증 · 보안</div><div class="d">개인정보 즉시 마스킹 + 복수 제보 교차검증으로 허위·이상치 제거. GPS·EXIF·사업자번호 대조.</div></div></div>
-      <div class="step"><div class="n"></div><div><div class="t">집계 · 지도화</div><div class="d">품목×매장 최선값 산출 → 생활권 물가 히트맵·장바구니 지수.</div></div></div>
-      <div class="step"><div class="n"></div><div><div class="t">예측 · 추천</div><div class="d">전단 할인 이력 학습으로 품목별 ‘다음 특가 예상일’ 산출, 최저가 장보기 추천.</div></div></div>
-    </div>
-  </section>
-
-  <!-- ===== 06 AI 엔진 비용 ===== -->
-  <section>
-    <div class="shead"><span class="snum">06</span><div><h2>AI OCR 엔진 · 영수증 1장당 비용</h2><p class="sub">환율 ₩1,400/$ 기준 추정 · 2026년 확인값</p></div></div>
-    <div class="tablecard">
-      <table>
-        <thead><tr><th>엔진</th><th>유형</th><th class="num">1장당</th><th>비고</th></tr></thead>
-        <tbody>
-          <tr class="hi"><td><b>Gemini 2.5 Flash</b></td><td>LLM 비전</td><td class="num">약 2원</td><td>인식+정규화 올인원, 최저가</td></tr>
-          <tr><td>Google Vision / Upstage</td><td>전용 OCR</td><td class="num">약 2원</td><td>텍스트만(정규화 별도), 한글 강함(Upstage)</td></tr>
-          <tr><td>Claude Haiku 4.5</td><td>LLM 비전</td><td class="num">약 6원</td><td>Batch 50% 할인 시 3원</td></tr>
-          <tr><td>Claude Sonnet 5.5 / GPT-4o</td><td>LLM 비전</td><td class="num">약 12~13원</td><td>정확도 ↑</td></tr>
-          <tr><td>CLOVA 영수증 특화</td><td>전용 OCR</td><td class="num">약 50~80원</td><td>한글 영수증 전용·정확도 안정, 고가</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="note" style="margin-top:14px"><b>추천 구조</b> — 데모·대량은 <b>Gemini Flash 단독</b>(무료~월 2만원), 한글 정확도 이슈 영수증만 <b>Upstage/CLOVA로 라우팅</b>하는 2단계 하이브리드. 업로드 전 <b>엣지 마스킹</b>으로 프라이버시 확보.</div>
-  </section>
-
-  <!-- ===== 07 양주 인구 기반 시장 ===== -->
-  <section>
-    <div class="shead"><span class="snum">07</span><div><h2>양주 인구 기반 시장 · 비용 시나리오</h2><p class="sub">양주시 약 29.8만 명 · 11.5만 세대 (2026.08)</p></div></div>
-    <div class="grid g2">
-      <div class="card">
-        <p class="eyebrow">생활권별 인구 (행정동)</p>
-        <div class="bars" style="margin-top:4px">
-          <div class="bar"><span class="lab">옥정2동</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">59,281</span></div>
-          <div class="bar"><span class="lab">양주2동</span><span class="track"><span class="fill" style="width:83%"></span></span><span class="val">49,055</span></div>
-          <div class="bar"><span class="lab">회천2동</span><span class="track"><span class="fill" style="width:79%"></span></span><span class="val">46,821</span></div>
-          <div class="bar"><span class="lab">옥정1동</span><span class="track"><span class="fill" style="width:72%"></span></span><span class="val">42,627</span></div>
-          <div class="bar"><span class="lab">회천3동</span><span class="track"><span class="fill" style="width:42%"></span></span><span class="val">24,675</span></div>
-          <div class="bar"><span class="lab">회천1동</span><span class="track"><span class="fill" style="width:18%"></span></span><span class="val">10,600</span></div>
-        </div>
-        <p style="margin-top:12px;font-size:13px;color:var(--muted)">옥정·회천 신도시 생활권만 <b style="color:var(--ink)">~18.4만 명</b>, 마트 밀집·젊은 세대 다수로 앱 타깃 적합.</p>
-      </div>
-      <div class="card">
-        <p class="eyebrow">보급 시나리오별 월 비용 (Gemini Flash 기준)</p>
-        <div class="tablecard" style="box-shadow:none;margin-top:4px">
-          <table>
-            <thead><tr><th>보급</th><th class="num">활성 세대</th><th class="num">월 처리량</th><th class="num">월 비용</th></tr></thead>
-            <tbody>
-              <tr><td>보수 1%</td><td class="num">~1,150</td><td class="num">1만 장</td><td class="num">2만원</td></tr>
-              <tr class="hi"><td>현실 5%</td><td class="num">~5,750</td><td class="num">5만 장</td><td class="num">10만원</td></tr>
-              <tr><td>전시 15%</td><td class="num">~17,250</td><td class="num">15만 장</td><td class="num">30만원</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <p style="margin-top:12px;font-size:13px;color:var(--muted)">세대당 주 2장 제보 가정. <b style="color:var(--ink)">전 세대가 써도 월 30만원 이내</b> — 이 서비스의 병목은 비용이 아니라 <span class="lead-k">보급률</span>.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===== 08 고도화 로드맵 ===== -->
-  <section>
-    <div class="shead"><span class="snum">08</span><div><h2>고도화 로드맵</h2><p class="sub">‘물가 앱’에서 ‘지역 물가 플랫폼’으로</p></div></div>
-    <div class="grid g2">
-      <div class="card"><p class="eyebrow">A · AI 판단</p><h3>읽기 → 예측·추천</h3><ul class="clean">
-        <li><b>단위 환산 최저가</b> — 용량 다른 상품도 원/100g로 공정 비교</li>
-        <li><b>특가 예측 캘린더</b> — 품목별 ‘다음 할인 D-day’</li>
-        <li><b>AI 장보기 에이전트</b> — “2만원 3일치 식단” → 최저가 쇼핑리스트</li>
-        <li><b>재구매 주기 예측</b> — 떨어질 때쯤 특가 알림</li>
-      </ul></div>
-      <div class="card"><p class="eyebrow">B · 공공 연계 (가산점)</p><h3>지역 선순환</h3><ul class="clean">
-        <li><b>양주사랑상품권 연계</b> — 최저가+가맹점 우선 추천</li>
-        <li><b>행정 물가 대시보드</b> — 생활권 히트맵을 정책 근거로 제공</li>
-        <li><b>취약계층·전통시장</b> — 물가 부담 지도, 특가 노출</li>
-        <li><b>공공 API 개방</b> — 타 지자체 복제 가능</li>
-      </ul></div>
-      <div class="card"><p class="eyebrow">C · 데이터 신뢰</p><h3>크라우드 품질 관리</h3><ul class="clean">
-        <li>사업자번호·GPS·시간 교차검증, 이상치 자동 제거</li>
-        <li>기여 랭킹·배지·상품권 리워드로 데이터 밀도 확보</li>
-      </ul></div>
-      <div class="card"><p class="eyebrow">D · 기술 완성도</p><h3>비용·프라이버시</h3><ul class="clean">
-        <li>하이브리드 OCR 라우팅(Flash↔Upstage/CLOVA)</li>
-        <li>업로드 전 엣지 마스킹, 상품 매칭 벡터DB/RAG</li>
-      </ul></div>
-    </div>
-  </section>
-
-  <!-- ===== 09 기대효과 ===== -->
-  <section>
-    <div class="shead"><span class="snum">09</span><div><h2>기대효과</h2></div></div>
-    <div class="grid g4">
-      <div class="card"><p class="eyebrow">시민</p><p style="color:var(--ink);font-size:14.5px">최저가 탐색으로 지출 절감, 특가 예측으로 계획 구매.</p></div>
-      <div class="card"><p class="eyebrow">행정</p><p style="color:var(--ink);font-size:14.5px">생활권별 실시간 물가 데이터로 민생·소상공인 정책 근거 확보.</p></div>
-      <div class="card"><p class="eyebrow">지역경제</p><p style="color:var(--ink);font-size:14.5px">양주사랑상품권 사용 유도, 소규모 마트 노출 확대.</p></div>
-      <div class="card"><p class="eyebrow">확장성</p><p style="color:var(--ink);font-size:14.5px">전통시장·공공급식·타 지자체로 복제 가능한 범용 ‘크라우드 물가지도’ 모델.</p></div>
-    </div>
-  </section>
-
-  <!-- ===== 10 실현 계획 ===== -->
-  <section>
-    <div class="shead"><span class="snum">10</span><div><h2>실현 계획 — 1주 데모</h2><p class="sub">핵심 플로우만 실제 구현 + 나머지는 시드데이터·목업</p></div></div>
+    <h2>왜 우리 동네 가격을 모르나</h2>
     <div class="grid g3">
-      <div class="card"><p class="eyebrow">진짜 구현</p><h3>업로드→OCR→지도</h3><p>Gemini Flash로 영수증·가격표 인식·정규화, 카카오맵 핀. ‘AI로 진짜 만들었다’를 증명하는 한 줄기.</p></div>
-      <div class="card"><p class="eyebrow">시드·목업</p><h3>비교·추이·예측</h3><p>6주 추이·특가 예측·상품권·랭킹은 샘플 데이터로 “이렇게 보인다” 시연.</p></div>
-      <div class="card"><p class="eyebrow">플랫폼</p><h3>모바일 웹(PWA)</h3><p>네이티브 2종 대신 반응형 웹 1개 — 현장 폰 시연 즉시 가능.</p></div>
+      <div class="card"><span class="ic">🏬</span><h3>공공 조사는 거점 위주</h3><p>지자체 물가 조사는 물가모니터 요원이 정해진 매장 몇 곳을 월 1~2회 찾아가 기록하는 방식이 일반적입니다. 생활권마다 다른 작은 마트의 가격까지 담기는 어렵습니다.</p></div>
+      <div class="card"><span class="ic">📰</span><h3>전단은 흩어지고 금방 지난다</h3><p>전단은 종이와 SNS에 흩어져 있고, 할인 기간이 지나면 사라집니다. 같은 품목을 매장끼리 비교하거나 할인 주기를 알기 어렵습니다.</p></div>
+      <div class="card"><span class="ic">🧾</span><h3>표시된 값과 낸 값이 다를 때</h3><p>매대 가격표와 실제 결제 금액이 다른 경우를 시민이 알아채도 알릴 곳이 마땅치 않고, 시는 가격표시 점검을 어디서부터 할지 근거가 없습니다.</p></div>
     </div>
-    <div class="note" style="margin-top:14px"><b>전체 완성은 1주 불가, 설득력 있는 핵심 프로토타입은 1주 가능.</b> 심사도 보통 후자를 평가합니다.</div>
+    <div class="tbl"><table>
+      <tr><th>구분</th><th>지금</th><th class="me">양주 장바구니가 바꾸는 것</th></tr>
+      <tr><td>조사 범위</td><td>거점 매장, 정해진 품목</td><td class="me">시민이 장 보는 모든 매장, 실제 산 품목</td></tr>
+      <tr><td>갱신 주기</td><td>월 1~2회</td><td class="me">제보가 올라올 때마다</td></tr>
+      <tr><td>가격의 종류</td><td>조사원이 본 표시 가격</td><td class="me">예고가(전단)·표시가(가격표)·실구매가(영수증) 구분</td></tr>
+      <tr><td>가격표시 점검</td><td>정기 점검, 민원</td><td class="me">가격표와 영수증이 반복해 다른 매장을 찾아 점검 우선순위로</td></tr>
+      <tr><td>지역화폐</td><td>가맹점 목록 따로</td><td class="me">최저가와 가맹점 정보를 함께</td></tr>
+    </table></div>
+    <p class="note"><b>공고문이 똑똑하고 편리한 양주의 예시로 든 "데이터 기반 행정"에 답합니다.</b> 시민에게는 지금 가장 싼 곳을 알려 장보기를 편하게 하고, 시에는 생활권별 물가 데이터를 민생 정책의 근거로 줍니다.</p>
   </section>
 
-  <footer class="foot">
-    양주 장바구니 · 2026 양주시 미래인재 AI 공모전 프로젝트 개요서 &nbsp;·&nbsp; 소주제: 똑똑하고 편리한 양주<br>
-    인구·세대 수치: 양주시 2026.08 기준 · 화면 속 가격은 설계 설명용 예시 · 비용은 2026년 공개 단가 기반 추정치.
+  <div class="part" id="p2"><span class="pn">PART 2 · 심사기준 2</span><h2>아이디어의 창의성·독창성</h2><p>크라우드 가격 앱은 익숙합니다. 양주 장바구니는 세 가지 가격을 구분해 서로 검증하게 하고, 그 결과를 시의 물가 행정으로 돌려주는 데서 다릅니다.</p></div>
+
+  <section>
+    <h2>AI가 하는 네 가지 일</h2>
+    <p class="intro">최선값 선택과 특가 예측은 정해진 규칙과 통계가 합니다. 사진을 읽고, 제각각인 상품명을 같은 품목으로 묶고, 불일치를 찾아 설명하는 일을 AI가 맡습니다.</p>
+    <div class="missions">
+      <div class="mission m1">
+        <div class="mk" aria-hidden="true">📸</div>
+        <div>
+          <span class="who">사진을 올리면</span>
+          <h3>자동 분류와 품목 정리</h3>
+          <p>올린 사진이 영수증인지, 매대 가격표인지, 전단인지 AI가 먼저 가립니다. 그다음 "農心신라면멀티5" 같은 표기를 "신라면 5개입"으로 바꾸고, 바코드로 상품을 특정하고, 100g당 가격으로 환산합니다. 영수증의 소계·할인·결제 정보는 걸러 품목만 남기고, 카드번호 같은 개인정보는 기기에서 먼저 가립니다.</p>
+        </div>
+      </div>
+      <div class="mission m2">
+        <div class="mk" aria-hidden="true">⚖️</div>
+        <div>
+          <span class="who">같은 매장, 같은 품목이 모이면</span>
+          <h3>세 가지 가격의 교차 검증</h3>
+          <p>영수증은 실제 낸 값, 가격표는 매대 표시값, 전단은 예고값으로 구분합니다. 한 건만 있는 값은 "미확정", 두 건 이상 일치하면 "확정"이고, 2주 전 영수증보다 2시간 전 가격표가 더 정확할 수 있어 오래된 값은 최신 값에 자리를 내줍니다.</p>
+          <div class="ex"><b>불일치 찾기:</b> 같은 날 같은 매장에서 가격표보다 영수증 금액이 반복해 높으면, 멤버십·묶음 할인 같은 정상 사유를 먼저 걸러 낸 뒤 "확인 필요"로 표시합니다.</div>
+        </div>
+      </div>
+      <div class="mission m3">
+        <div class="mk" aria-hidden="true">📈</div>
+        <div>
+          <span class="who">전단이 쌓이면</span>
+          <h3>다음 특가 예측</h3>
+          <p>매장별 전단 할인 이력을 품목마다 쌓아 "다음 할인이 언제쯤 올지"를 추정합니다. 시민은 지금 살지 기다릴지 정하고, 생활권별 장바구니 지수로 동네 물가 흐름을 봅니다.</p>
+        </div>
+      </div>
+      <div class="mission m4">
+        <div class="mk" aria-hidden="true">🏛️</div>
+        <div>
+          <span class="who">시에 돌려줄 때</span>
+          <h3>생활권 물가 리포트</h3>
+          <p>생활권별 장바구니 지수, 많이 오른 품목, 가격표시 불일치가 반복되는 매장, 낮은 가격을 꾸준히 유지하는 매장(착한가격업소 후보)을 담당 부서용 리포트로 정리합니다. 매장 이름은 시 내부 점검용으로만 쓰고 시민에게는 공개하지 않습니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>기존 서비스와 무엇이 다른가요</h2>
+    <div class="tbl"><table>
+      <tr><th>구분</th><th>공공 가격정보<small>지자체 물가 조사·참가격</small></th><th>민간 가계부·영수증 앱</th><th class="me">양주 장바구니</th></tr>
+      <tr class="key"><td>가격의 출처</td><td>조사원이 거점 매장에서 기록</td><td>내 영수증</td><td class="me">시민의 전단·가격표·영수증, 출처별 구분</td></tr>
+      <tr><td>동네 단위</td><td>거점 매장</td><td>없음</td><td class="me">생활권별 작은 마트까지</td></tr>
+      <tr><td>안 산 품목</td><td>조사 품목만</td><td>없음</td><td class="me">가격표와 전단으로 안 산 품목도</td></tr>
+      <tr><td>불일치 찾기</td><td>정기 점검</td><td>없음</td><td class="me">가격표와 영수증 교차 검증</td></tr>
+      <tr><td>시에 돌아가는 것</td><td>조사 결과 게시</td><td>없음</td><td class="me">생활권 물가 리포트, 점검 우선순위</td></tr>
+    </table></div>
+    <div class="prin">
+      <span>매장 이름으로 불일치를 공개하지 않음</span>
+      <span>개인정보는 업로드 전에 가림</span>
+      <span>단독 제보는 "미확정"</span>
+      <span>제휴 혜택은 광고로 표시, 순위에 영향 없음</span>
+    </div>
+  </section>
+
+  <div class="part" id="p3"><span class="pn">PART 3 · 심사기준 3</span><h2>실행계획의 현실성</h2><p>기술과 비용은 이미 계산했습니다. 남은 관건은 참여이고, 첫 데이터는 시와 팀이 채운 뒤 상품권으로 시민 참여를 모읍니다.</p></div>
+
+  <section>
+    <h2>누가 운영하고, 무엇을 하나</h2>
+    <div class="tbl"><table>
+      <tr><th>역할</th><th>주체</th><th>하는 일</th></tr>
+      <tr><td>주관</td><td class="h">지역경제 담당부서 (물가·지역화폐)</td><td>서비스 운영, 상품권 보상, 생활권 물가 리포트 활용</td></tr>
+      <tr><td>첫 데이터</td><td class="h">물가 조사 인력, 제안팀</td><td>시범 생활권 매장의 전단·가격표를 먼저 채움</td></tr>
+      <tr><td>가격표시 점검</td><td class="h">지역경제 담당부서</td><td>불일치가 반복되는 매장 현장 확인</td></tr>
+      <tr><td>가맹점 연계</td><td class="h">지역화폐 운영 대행사, 농협</td><td>가맹점 정보, 종이형 상품권 사용처 연계</td></tr>
+      <tr><td>보안·개인정보</td><td class="h">정보화 담당부서</td><td>영수증 사진 처리 기준, 보관 기간</td></tr>
+    </table></div>
+    <p class="tblnote">부서명은 기능 기준이며 실제 소관은 시 조직에 맞춥니다. 양주시의 물가 조사 범위와 인력은 착수 시 지역경제 부서에서 확인합니다.</p>
+  </section>
+
+  <section>
+    <h2>AI OCR 비용</h2>
+    <div class="tbl"><table>
+      <tr><th>엔진</th><th>유형</th><th>1장당</th><th>비고</th></tr>
+      <tr><td>Gemini 2.5 Flash</td><td>LLM 비전</td><td>약 2원</td><td>인식과 정리를 한 번에, 가장 저렴</td></tr>
+      <tr><td>Google Vision / Upstage</td><td>전용 OCR</td><td>약 2원</td><td>글자만 읽음, 한글에 강함(Upstage)</td></tr>
+      <tr><td>Claude Haiku 4.5</td><td>LLM 비전</td><td>약 6원</td><td>배치 50% 할인 시 3원</td></tr>
+      <tr><td>CLOVA 영수증 특화</td><td>전용 OCR</td><td>약 50~80원</td><td>한글 영수증 정확도 안정, 고가</td></tr>
+    </table></div>
+    <div class="tbl"><table>
+      <tr><th>보급</th><th>활성 세대</th><th>월 처리량</th><th>월 비용 (Flash 기준)</th></tr>
+      <tr><td>보수 1%</td><td>약 1,150</td><td>1만 장</td><td>2만 원</td></tr>
+      <tr><td>현실 5%</td><td>약 5,750</td><td>5만 장</td><td>10만 원</td></tr>
+      <tr><td>전시 15%</td><td>약 17,250</td><td>15만 장</td><td>30만 원</td></tr>
+    </table></div>
+    <p class="tblnote">세대당 주 2장 제보 가정, 환율 1,400원/달러 기준 추정입니다. 대량은 저가 엔진으로, 정확도가 낮은 영수증만 한글 특화 엔진으로 넘기는 2단계 구조입니다. 병목은 비용이 아니라 보급률입니다.</p>
+  </section>
+
+  <section>
+    <h2>쓰는 데이터</h2>
+    <div class="card data" style="padding:0;margin-top:24px;overflow:hidden">
+      <div class="row"><b>시민 제보</b><span>영수증·가격표·전단 사진</span><span class="st chk">자체 생성</span></div>
+      <div class="row"><b>매장 위치</b><span>소상공인 상가(상권)정보, 대규모점포 현황</span><span class="st ok">공개</span></div>
+      <div class="row"><b>공공 가격정보</b><span>한국소비자원 생필품 가격정보, 지자체 물가 조사 결과</span><span class="st ok">공개</span></div>
+      <div class="row"><b>상품 식별</b><span>바코드(GTIN) 상품 정보</span><span class="st ok">공개</span></div>
+      <div class="row"><b>인구</b><span>행정안전부 주민등록 인구통계 (생활권 가중)</span><span class="st ok">공개</span></div>
+      <div class="row"><b>지역화폐 가맹점</b><span>양주사랑카드·상품권 가맹점</span><span class="st chk">시 협조</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>본선 전에 확인하는 것</h2>
+    <p class="intro">10월 5~12일에 실제로 만들고 잽니다. 결과는 숫자 그대로 발표합니다.</p>
+    <div class="proc">
+      <div><div><b>영수증 인식 정확도</b><span>팀원 영수증 50장에서 품목명·가격을 뽑아 정답표와 비교. 품목 단위 90% 이상이면 통과</span></div></div>
+      <div><div><b>생활권 3곳 실제 수집</b><span>옥정·회천·덕정 매장 전단과 가격표를 모아 품목 30개 가격 비교표 작성</span></div></div>
+      <div><div><b>불일치 찾기 시험</b><span>같은 매장 가격표와 영수증 쌍을 모아 정상 할인과 진짜 불일치를 가르는지 확인</span></div></div>
+      <div><div><b>1주 데모</b><span>업로드 → 인식 → 지도 한 줄기를 실제로 구현, 추이·특가 예측은 표본 데이터로 시연</span></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>행정 절차, 단계별 계획, 예산</h2>
+    <div class="proc">
+      <div><div><b>시범사업 지정</b><span>지역경제 부서 주관, 옥정 생활권부터</span></div></div>
+      <div><div><b>상품권 보상 기준</b><span>지역사랑상품권 운영 지침 안에서 제보 보상 가능 범위 확인</span></div></div>
+      <div><div><b>개인정보 검토</b><span>영수증 사진 기기 안 가림, 원본 미보관, 위치는 매장 단위</span></div></div>
+      <div><div><b>예산 반영</b><span>본예산 또는 추경, 민생경제·소상공인 사업 매칭</span></div></div>
+    </div>
+    <div class="phases">
+      <div class="ph now"><span class="w">0단계 · 2026.10</span><h3>공모전</h3><ul><li>인식 정확도</li><li>생활권 3곳 수집</li><li>1주 데모</li></ul><div class="x">산출: 정확도, 가격 비교표</div></div>
+      <div class="ph"><span class="w">1단계 · 3개월</span><h3>옥정 시범</h3><ul><li>시·팀이 첫 데이터</li><li>시민 제보 시작</li></ul><div class="x">다음 단계 조건: 확정 가격 300개 품목</div></div>
+      <div class="ph"><span class="w">2단계 · 6개월</span><h3>상품권 연계</h3><ul><li>제보 보상</li><li>가맹점 최저가</li><li>시 리포트</li></ul><div class="x">다음 단계 조건: 활성 세대 1%</div></div>
+      <div class="ph"><span class="w">3단계 · 이후</span><h3>지역 물가 플랫폼</h3><ul><li>전통시장·개인서비스요금</li><li>공공 API 개방</li><li>다른 시군 공유</li></ul><div class="x">검증: 장바구니 지수 공개</div></div>
+    </div>
+    <div class="tbl"><table>
+      <tr><th>예산 항목</th><th>내용</th><th>규모 (추정)</th></tr>
+      <tr><td>구축 (1~2단계)</td><td>사진 인식·정리, 교차 검증, 지도, 특가 예측, 시 리포트</td><td class="nw">3천만~5천만 원</td></tr>
+      <tr><td>연간 운영</td><td>클라우드, OCR·AI 이용료(월 30만 원 이내), 유지보수</td><td class="nw">연 1천만~1천5백만 원</td></tr>
+      <tr><td>참여 보상</td><td>상품권 보상 (기존 상품권 예산과 연계 검토)</td><td class="nw">별도 협의</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>예상되는 어려움과 대응</h2>
+    <div class="tbl"><table>
+      <tr><th>어려움</th><th>대응</th></tr>
+      <tr><td>아무도 안 올림</td><td>시범 생활권은 시와 팀이 먼저 채우고, 상품권 보상과 기여 배지로 참여 유도</td></tr>
+      <tr><td>허위·조작 제보</td><td>사업자번호·GPS·시간 대조, 단독 제보는 미확정, 이상치 자동 제거</td></tr>
+      <tr><td>매장 반발</td><td>불일치는 시 내부 점검용으로만, 시민에게는 확정 가격만 공개</td></tr>
+      <tr><td>개인정보</td><td>업로드 전 기기에서 카드번호·이름 가림, 원본 사진 보관하지 않음</td></tr>
+      <tr><td>전국 공통 문제로 보임</td><td>양주 생활권 데이터, 상품권 가맹점, 시의 가격표시 점검으로 양주 행정에 묶음</td></tr>
+    </table></div>
+  </section>
+
+  <div class="part" id="p4"><span class="pn">PART 4 · 심사기준 4</span><h2>기대효과·확장 가능성</h2><p>시민의 장보기와 시의 물가 행정을 같은 데이터로 잇고, 그 틀을 다른 품목과 다른 시군으로 넓힙니다.</p></div>
+
+  <section>
+    <h2>누가 무엇을 얻나</h2>
+    <div class="grid g3">
+      <div class="card"><span class="ic">🛒</span><h3>시민</h3><p>동네 최저가와 다음 특가를 알고 장보기 비용을 줄입니다. 제보하면 상품권으로 돌려받습니다.</p></div>
+      <div class="card"><span class="ic">🏛️</span><h3>양주시</h3><p>생활권별 물가 흐름을 상시로 보고, 가격표시 점검과 착한가격업소 발굴을 데이터로 합니다.</p></div>
+      <div class="card"><span class="ic">🏪</span><h3>동네 마트</h3><p>싼 가격을 유지하는 작은 마트가 대형마트만큼 눈에 띄고, 상품권 사용이 늘어납니다.</p></div>
+    </div>
+    <div class="tbl"><table>
+      <tr><th>지표</th><th>측정 방법</th><th>2단계 종료 시 목표</th></tr>
+      <tr><td>인식 정확도</td><td>영수증·가격표 표본의 품목·가격 대조</td><td>90% 이상</td></tr>
+      <tr><td>확정 가격</td><td>2건 이상 일치한 품목×매장 수</td><td>1,000개</td></tr>
+      <tr><td>활성 세대</td><td>월 1회 이상 제보한 세대</td><td>1% (약 1,150세대)</td></tr>
+      <tr><td>점검 연계</td><td>불일치 표시 뒤 시가 현장 확인한 건수</td><td>기록·공개</td></tr>
+      <tr><td>상품권 사용</td><td>앱에서 본 가맹점 최저가 품목의 상품권 결제</td><td>기록·공개</td></tr>
+    </table></div>
+    <p class="tblnote">목표치는 가설이며 0단계 결과로 다시 정합니다.</p>
+  </section>
+
+  <section>
+    <h2>어디까지 넓힐 수 있나</h2>
+    <div class="grid g3">
+      <div class="card"><span class="ic">🧺</span><h3>품목: 전통시장과 개인서비스요금</h3><p>같은 방식으로 전통시장 가격, 미용·세탁 같은 개인서비스요금, 공공급식 식재료 가격까지 담습니다.</p></div>
+      <div class="card"><span class="ic">📊</span><h3>행정: 지역 물가 대시보드</h3><p>생활권 히트맵을 민생 정책 근거로 쓰고, 공공 API로 열어 다른 서비스도 쓸 수 있게 합니다.</p></div>
+      <div class="card"><span class="ic">🗺️</span><h3>지역: 물가 조사를 하는 모든 시군</h3><p>사진 인식과 교차 검증 엔진은 지역과 상관없이 그대로 쓰고, 가맹점과 생활권 설정만 바꿉니다.</p></div>
+    </div>
+  </section>
+
+  <div class="part"><span class="pn">부록</span><h2>본선 준비와 팀</h2></div>
+
+  <section>
+    <h2>본선까지의 일정</h2>
+    <div class="flow">
+      <div class="fstep"><div class="dt">10.5 ~ 10.7</div><h3>데이터 수집</h3><p>영수증 50장, 생활권 3곳 전단·가격표</p></div>
+      <div class="fstep"><div class="dt">10.8</div><h3>멘토링 2회차</h3><p>인식 방식과 교차 검증 규칙 점검</p></div>
+      <div class="fstep"><div class="dt">10.8 ~ 10.12</div><h3>검증과 구현</h3><p>업로드 → 인식 → 지도, 불일치 찾기</p></div>
+      <div class="fstep"><div class="dt">10.13</div><h3>멘토링 3회차</h3><p>시연 흐름과 발표 구성</p></div>
+      <div class="fstep"><div class="dt">10.14 ~ 10.15</div><h3>다듬기와 제출</h3><p>검증 결과 정리, 발표자료 제출</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>팀 이로움의 역할</h2>
+    <p class="intro">본선 결과물 제작 역할 분담 제안입니다. 팀 회의에서 확정합니다.</p>
+    <div class="team">
+      <div class="mem"><span class="role">프론트엔드</span><h3>황상진</h3><ul><li>모바일 웹 업로드와 현장 모드</li><li>물가 지도와 품목 비교</li><li>기기 안 개인정보 가림</li></ul></div>
+      <div class="mem"><span class="role">백엔드·데이터·AI</span><h3>이소미</h3><ul><li>사진 분류와 OCR 라우팅</li><li>품목 정리와 교차 검증</li><li>특가 예측</li></ul></div>
+      <div class="mem"><span class="role">UI</span><h3>이승재</h3><ul><li>세 가지 가격과 확정 표시</li><li>시 물가 리포트</li><li>발표자료와 검증 결과 시각화</li></ul></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>양주 장바구니(가제), 팀 이로움 — 황상진, 이소미, 이승재. 화면 속 매장·가격·건수는 설명용 가상 수치이며, 실제 값은 데이터 수집과 검증 뒤 계산합니다.</p>
+    <p>출처: 양주시 인구·세대 (주민등록 인구통계 2026.8), 양주사랑카드 가맹점과 발행 우수 지자체 (쿠키뉴스 2025.11.27), 종이형 양주사랑상품권 발행 (경기일보 2026.7.9), 지자체 물가모니터 운영 방식 (경기일보 2026.3.31 양평군, 세계타임즈 2026.7 부천시), OCR 엔진 단가 (2026년 공개 단가, 환율 1,400원/달러 기준 추정). 비용과 목표치는 가설이며 착수 시점에 다시 확인합니다.</p>
   </footer>
 
 </div>
+<script>
+  (function(){
+    var root=document.documentElement, btn=document.getElementById('themeToggle');
+    var saved=null; try{saved=localStorage.getItem('jb-theme');}catch(e){}
+    if(saved){root.setAttribute('data-theme',saved);}
+    btn.addEventListener('click',function(){
+      var cur=root.getAttribute('data-theme');
+      var isDark=cur?cur==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var next=isDark?'light':'dark';
+      root.setAttribute('data-theme',next);
+      try{localStorage.setItem('jb-theme',next);}catch(e){}
+    });
+  })();
+</script>
 </body>
 </html>

@@ -1,0 +1,847 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="양주 멍냥길 — 반려견과 이웃을 함께 배려한 집 앞 산책 코스를 AI가 추천하고, 산책하는 이웃 길잡이가 사진으로 동네 산책 지도를 채워 시의 시설 개선으로 잇는 서비스. 2026 양주시 미래인재 AI 공모전 참가 뒤 팀 이로움이 시 예산 없이 옥정에서 직접 출시합니다.">
+<title>양주 멍냥길 · 프로젝트 개요</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+  :root{
+    --bg:#F5F9FF; --card:#FFFFFF; --card-2:#EAF2FD;
+    --ink:#1D2B3A; --muted:#5A6B7D; --faint:#93A2B3; --line:#DCE6F2;
+    --sun:#FFC93C; --sun-soft:#FFF3CF; --sun-ink:#9A6B00;
+    --sky:#2F7DF0; --sky-soft:#DCEBFF;
+    --grass:#22A45D; --grass-soft:#DAF4E5;
+    --alert:#F2544A; --alert-soft:#FFE3E0;
+    --shadow:0 1px 2px rgba(29,43,58,.05),0 14px 30px -18px rgba(29,43,58,.3);
+    --display:"Do Hyeon","Noto Sans KR",system-ui,sans-serif;
+    --body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0F1620; --card:#18222E; --card-2:#1F2C3B;
+      --ink:#E9F0F8; --muted:#A3B2C2; --faint:#6D7C8D; --line:#2A3746;
+      --sun:#FFD25E; --sun-soft:#3A2F12; --sun-ink:#FFD25E;
+      --sky:#6FA8FF; --sky-soft:#15283F;
+      --grass:#4CCB84; --grass-soft:#13301F;
+      --alert:#FF7A70; --alert-soft:#3A1A18;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 16px 34px -18px rgba(0,0,0,.7);
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0F1620; --card:#18222E; --card-2:#1F2C3B;
+    --ink:#E9F0F8; --muted:#A3B2C2; --faint:#6D7C8D; --line:#2A3746;
+    --sun:#FFD25E; --sun-soft:#3A2F12; --sun-ink:#FFD25E;
+    --sky:#6FA8FF; --sky-soft:#15283F;
+    --grass:#4CCB84; --grass-soft:#13301F;
+    --alert:#FF7A70; --alert-soft:#3A1A18;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 16px 34px -18px rgba(0,0,0,.7);
+    color-scheme:dark;
+  }
+  :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  html{scroll-padding-top:env(safe-area-inset-top,0px)}
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.7;-webkit-font-smoothing:antialiased;word-break:keep-all}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 20px}
+  h1,h2,h3{margin:0;text-wrap:balance}
+  p{margin:0}
+  :focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+
+  .top{display:flex;justify-content:space-between;align-items:center;padding:18px 0;font-size:13px;color:var(--muted)}
+  .themebtn{border:1px solid var(--line);background:var(--card);color:var(--muted);width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:15px}
+
+  /* hero */
+  .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:30px 0 56px}
+  @media (max-width:820px){.hero{grid-template-columns:1fr;gap:30px}}
+  .badge{display:inline-flex;align-items:center;gap:10px}
+  .badge .paw{width:54px;height:54px;border-radius:50%;background:var(--sun);display:grid;place-items:center;box-shadow:inset 0 -4px 0 rgba(0,0,0,.08)}
+  .badge .paw svg{width:30px;height:30px;color:#1D2B3A}
+  .hero .name{font-family:var(--display);font-size:clamp(50px,9vw,82px);line-height:1;color:var(--ink)}
+  .hero h1{font-size:clamp(22px,3.4vw,30px);font-weight:900;line-height:1.4;margin-top:20px;letter-spacing:-.015em}
+  .hero h1 .h1l{display:inline-block}
+  .hero h1 em{font-style:normal;background:linear-gradient(transparent 60%,var(--sun) 0)}
+  .hero .lede{color:var(--muted);font-size:16px;margin-top:14px;max-width:52ch}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .chip{font-size:13px;font-weight:500;padding:6px 12px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
+  .chip b{color:var(--sky);font-weight:700}
+
+  /* alert mock (signature) */
+  .phone{background:var(--card);border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow);padding:16px;max-width:380px;margin-left:auto}
+  @media (max-width:820px){.phone{margin:0 auto}}
+  .alertcard{background:var(--alert-soft);border-radius:18px;padding:16px}
+  .alertcard .h{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--alert)}
+  .alertcard .h::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--alert);box-shadow:0 0 0 4px color-mix(in srgb,var(--alert) 25%,transparent)}
+  .pet{display:flex;gap:12px;align-items:center;margin-top:10px}
+  .pet .pic{width:64px;height:64px;border-radius:16px;background:var(--sun-soft);display:grid;place-items:center;font-size:34px;flex:none}
+  .pet strong{font-family:var(--display);font-size:24px;font-weight:400;line-height:1.1;display:block}
+  .pet span{font-size:13px;color:var(--muted)}
+  .match{margin-top:12px;border:2px dashed var(--line);border-radius:18px;padding:14px}
+  .match .t{font-size:12.5px;font-weight:700;color:var(--muted)}
+  .match .row{display:flex;align-items:center;gap:10px;margin-top:8px}
+  .match .pic2{width:48px;height:48px;border-radius:12px;background:var(--card-2);display:grid;place-items:center;font-size:24px;flex:none}
+  .match .lv{margin-left:auto;font-size:12.5px;font-weight:700;color:var(--grass);background:var(--grass-soft);border-radius:999px;padding:4px 10px;white-space:nowrap}
+  .match p{font-size:13px;color:var(--muted)}
+  .btns{display:flex;gap:8px;margin-top:12px}
+  .btns span{flex:1;text-align:center;font-size:13px;font-weight:700;border-radius:12px;padding:10px 6px}
+  .btns .yes{background:var(--sky);color:#fff}
+  .btns .no{background:var(--card-2);color:var(--muted)}
+  .demo{font-size:12px;color:var(--faint);text-align:center;margin-top:10px}
+
+  section{padding:46px 0;border-top:1px solid var(--line)}
+  h2{font-size:clamp(22px,3.4vw,29px);font-weight:900;letter-spacing:-.015em}
+  .intro{color:var(--muted);margin-top:10px;max-width:64ch;font-size:15px}
+  .grid{display:grid;gap:14px;margin-top:24px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  @media (max-width:820px){.g3,.g4{grid-template-columns:1fr 1fr}}
+  @media (max-width:560px){.g2,.g3,.g4{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
+  .card h3{font-size:16.5px;font-weight:700;letter-spacing:-.01em}
+  .card p{color:var(--muted);font-size:14px;margin-top:7px}
+  .card .ic{font-size:24px;display:block;margin-bottom:10px}
+
+  /* policy timeline */
+  .policy{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch;margin-top:24px}
+  @media (max-width:720px){.policy{grid-template-columns:1fr}.policy .arrow{transform:rotate(90deg);justify-self:center}}
+  .pol{border-radius:18px;padding:20px;border:1px solid var(--line);background:var(--card)}
+  .pol.now{background:var(--sun-soft);border-color:transparent}
+  .pol .when{font-size:13px;font-weight:700;color:var(--muted)}
+  .pol.now .when{color:var(--sun-ink)}
+  .pol h3{font-size:17px;font-weight:700;margin-top:4px}
+  .pol ul{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:14px}
+  .pol ul li+li{margin-top:4px}
+  .arrow{display:grid;place-items:center;font-size:22px;color:var(--faint);font-weight:700}
+
+  /* missions */
+  .missions{display:grid;gap:16px;margin-top:24px}
+  .mission{display:grid;grid-template-columns:auto 1fr;gap:18px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:var(--shadow)}
+  @media (max-width:560px){.mission{grid-template-columns:1fr}}
+  .mission .mk{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;font-size:30px}
+  .m1 .mk{background:var(--alert-soft)} .m2 .mk{background:var(--sky-soft)} .m3 .mk{background:var(--grass-soft)}
+  .mission .who{font-size:13px;font-weight:700}
+  .m1 .who{color:var(--alert)} .m2 .who{color:var(--sky)} .m3 .who{color:var(--grass)}
+  .mission h3{font-size:19px;font-weight:900;margin-top:2px}
+  .mission p{color:var(--muted);font-size:14.5px;margin-top:6px}
+  .mission .ai{margin-top:12px;font-size:13.5px;background:var(--card-2);border-radius:12px;padding:10px 14px;color:var(--ink)}
+  .mission .ai b{color:var(--sky)}
+
+  /* flow */
+  .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:24px;counter-reset:f}
+  @media (max-width:860px){.flow{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.flow{grid-template-columns:1fr}}
+  .fstep{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .fstep::before{counter-increment:f;content:counter(f);display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--sun);color:#1D2B3A;font-weight:900;font-size:14px;margin-bottom:10px}
+  .fstep h3{font-size:15px;font-weight:700}
+  .fstep p{color:var(--muted);font-size:13px;margin-top:5px}
+
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+  @media (max-width:560px){.split{grid-template-columns:1fr}}
+  .split div{border-radius:14px;padding:14px 16px;font-size:14px}
+  .split .a{background:var(--sky-soft);color:var(--sky)}
+  .split .p{background:var(--sun-soft);color:var(--sun-ink)}
+  .split b{display:block;font-size:13px;margin-bottom:4px}
+
+  .life{display:grid;grid-template-columns:repeat(4,1fr);margin-top:24px;background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}
+  @media (max-width:820px){.life{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.life{grid-template-columns:1fr}}
+  .life > div{padding:18px;border-right:1px solid var(--line)}
+  .life > div:last-child{border-right:0;background:var(--grass-soft)}
+  @media (max-width:820px){.life > div{border-bottom:1px solid var(--line)}}
+  .life .s{font-weight:900;color:var(--grass);font-size:14px}
+  .life h3{font-size:15px;font-weight:700;margin-top:4px}
+  .life p{color:var(--muted);font-size:13.5px;margin-top:6px}
+
+  .tbl{overflow-x:auto;margin-top:24px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
+  table{width:100%;border-collapse:collapse;font-size:14px;min-width:600px}
+  th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:13px;color:var(--muted);font-weight:700;background:var(--card-2)}
+  tr:last-child td{border-bottom:0}
+  td.me,th.me{background:color-mix(in srgb,var(--sun) 16%,var(--card))}
+  th small{display:block;font-size:12px;font-weight:500;margin-top:2px}
+  tr.key td:first-child,tr.key td.me{font-weight:700;color:var(--ink)}
+  .tblnote{margin-top:10px;font-size:12.5px;color:var(--muted)}
+
+  .data .row{display:grid;grid-template-columns:34% 1fr auto;gap:14px;align-items:start;padding:13px 18px;border-top:1px solid var(--line);font-size:14px}
+  .data .row:first-child{border-top:0}
+  @media (max-width:560px){.data .row{grid-template-columns:1fr}}
+  .data .row b{font-weight:700}
+  .data .row span{color:var(--muted)}
+  .data .st{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap;justify-self:start}
+  .st.ok{background:var(--grass-soft);color:var(--grass)}
+  .st.chk{background:var(--sun-soft);color:var(--sun-ink)}
+
+  .note{margin-top:18px;background:var(--card-2);border-radius:14px;padding:14px 18px;font-size:14px;color:var(--muted)}
+  .note b{color:var(--ink)}
+  footer{border-top:1px solid var(--line);padding:30px 0 50px;color:var(--faint);font-size:12.5px}
+  footer p+p{margin-top:6px}
+  /* coordinator mock */
+  .coord{margin-top:12px;border:2px dashed var(--line);border-radius:18px;padding:14px}
+  .coord .t{font-size:12.5px;font-weight:700;color:var(--sky)}
+  .coord ol{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+  .coord li{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted);line-height:1.5}
+  .coord li .k{flex:none;font-size:11.5px;font-weight:700;border-radius:8px;padding:2px 8px;margin-top:1px}
+  .k.zone{background:var(--sky-soft);color:var(--sky)} .k.clue{background:var(--grass-soft);color:var(--grass)} .k.call{background:var(--sun-soft);color:var(--sun-ink)}
+  .m4 .mk{background:var(--sun-soft)} .m4 .who{color:var(--sun-ink)}
+  .mission .ex{margin-top:10px;font-size:13.5px;border-left:3px solid var(--line);padding-left:12px;color:var(--muted)}
+  .mission .ex b{color:var(--ink);font-weight:700}
+  .side2 .card{box-shadow:none;background:var(--card-2);border-color:transparent}
+  td.h{color:var(--muted)}
+  /* route card */
+  .route{margin-top:12px;border-radius:18px;padding:14px;background:var(--sky-soft)}
+  .route .t{font-size:12.5px;font-weight:700;color:var(--sky)}
+  .route strong{display:block;font-family:var(--display);font-weight:400;font-size:23px;line-height:1.15;margin-top:4px;color:var(--ink)}
+  .route .meta{font-size:13px;color:var(--muted);margin-top:2px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .tags span{font-size:12px;font-weight:700;border-radius:999px;padding:3px 9px;background:var(--card);color:var(--ink)}
+  .why{margin-top:10px;font-size:13px;color:var(--ink);background:var(--card);border-radius:12px;padding:10px 12px;line-height:1.55}
+  .why b{color:var(--sky)}
+  .mission-chip{display:flex;align-items:center;gap:10px;margin-top:10px;background:var(--sun-soft);border-radius:14px;padding:10px 12px;font-size:13px;color:var(--sun-ink);font-weight:700}
+  .mission-chip span{font-size:20px}
+  /* event bridge */
+  .bridge{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch;margin-top:24px}
+  @media (max-width:720px){.bridge{grid-template-columns:1fr}.bridge .arrow{transform:rotate(90deg);justify-self:center}}
+  .ev{border-radius:18px;padding:20px;border:1px solid var(--line);background:var(--card)}
+  .ev.after{background:var(--grass-soft);border-color:transparent}
+  .ev .when{font-size:13px;font-weight:700;color:var(--muted)}
+  .ev.after .when{color:var(--grass)}
+  .ev h3{font-size:17px;font-weight:700;margin-top:4px}
+  .ev ul{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:14px}
+  .ev ul li+li{margin-top:4px}
+  .facts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+  @media (max-width:720px){.facts{grid-template-columns:1fr 1fr}}
+  .fact{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .fact .n{font-family:var(--display);font-size:28px;line-height:1;color:var(--sky)}
+  .fact .l{font-size:12.5px;color:var(--muted);margin-top:6px}
+  /* badges */
+  .badges{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}
+  @media (max-width:820px){.badges{grid-template-columns:1fr 1fr}}
+  @media (max-width:420px){.badges{grid-template-columns:1fr}}
+  .bd{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;text-align:center;box-shadow:var(--shadow)}
+  .bd .medal{width:62px;height:62px;border-radius:50%;margin:0 auto 10px;display:grid;place-items:center;font-size:28px;background:var(--sun);box-shadow:inset 0 -4px 0 rgba(0,0,0,.08)}
+  .bd:nth-child(2) .medal{background:var(--sky-soft)} .bd:nth-child(3) .medal{background:var(--grass-soft)} .bd:nth-child(4) .medal{background:var(--alert-soft)}
+  .bd h3{font-size:15.5px;font-weight:700}
+  .bd p{font-size:13px;color:var(--muted);margin-top:6px}
+
+  /* track badge */
+  .track{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--grass);background:var(--grass-soft);border-radius:999px;padding:6px 12px;margin-bottom:16px}
+  .fit3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+  @media (max-width:820px){.fit3{grid-template-columns:1fr}}
+  .fitc{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
+  .fitc .k{font-size:13px;font-weight:700;color:var(--grass)}
+  .fitc h3{font-size:16.5px;font-weight:700;margin-top:4px}
+  .fitc p{color:var(--muted);font-size:14px;margin-top:6px}
+  /* architecture */
+  .arch{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}
+  @media (max-width:860px){.arch{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.arch{grid-template-columns:1fr}}
+  .an{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px}
+  .an .h{font-weight:700;font-size:15px}
+  .an .d{color:var(--muted);font-size:13.5px}
+  .an .sec{margin-top:auto;font-size:12.5px;font-weight:700;color:var(--grass);background:var(--grass-soft);border-radius:10px;padding:8px 10px;line-height:1.5}
+  /* screens */
+  .screens{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:20px}
+  @media (max-width:860px){.screens{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.screens{grid-template-columns:1fr}}
+  .scr{background:var(--card);border:2px solid var(--line);border-radius:22px;padding:14px 12px;text-align:center}
+  .scr .ic{font-size:24px}
+  .scr h3{font-size:14.5px;font-weight:700;margin-top:6px}
+  .scr p{font-size:12.5px;color:var(--muted);margin-top:4px}
+  .scr.web{border-style:dashed}
+  /* team */
+  .team{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+  @media (max-width:820px){.team{grid-template-columns:1fr}}
+  .mem{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
+  .mem .role{display:inline-block;font-size:12.5px;font-weight:700;border-radius:999px;padding:3px 10px}
+  .mem:nth-child(1) .role{background:var(--sky-soft);color:var(--sky)}
+  .mem:nth-child(2) .role{background:var(--sun-soft);color:var(--sun-ink)}
+  .mem:nth-child(3) .role{background:var(--alert-soft);color:var(--alert)}
+  .mem h3{font-size:19px;font-weight:900;margin-top:8px}
+  .mem ul{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:14px}
+  .mem ul li+li{margin-top:5px}
+  .fstep .dt{font-size:12.5px;font-weight:700;color:var(--sky)}
+
+  /* yearly timeline */
+  .tl{list-style:none;margin:24px 0 0;padding:0;position:relative}
+  .tl::before{content:"";position:absolute;left:74px;top:6px;bottom:6px;width:2px;background:var(--line)}
+  .tl li{display:grid;grid-template-columns:88px 1fr;gap:18px;padding:0 0 18px;position:relative}
+  .tl li:last-child{padding-bottom:0}
+  .tl .yr{font-family:var(--display);font-size:22px;line-height:1.2;color:var(--muted);text-align:left}
+  .tl li::after{content:"";position:absolute;left:69px;top:8px;width:12px;height:12px;border-radius:50%;background:var(--card);border:3px solid var(--sky)}
+  .tl li.now::after{background:var(--sun);border-color:var(--sun)}
+  .tl li.now .yr{color:var(--ink)}
+  .tl .bx{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-left:8px}
+  .tl li.now .bx{background:var(--sun-soft);border-color:transparent}
+  .tl .bx h3{font-size:15.5px;font-weight:700}
+  .tl .bx p{color:var(--muted);font-size:13.5px;margin-top:4px}
+  @media (max-width:560px){.tl::before{left:6px}.tl li{grid-template-columns:1fr;gap:4px;padding-left:24px}.tl li::after{left:1px}.tl .bx{margin-left:0}}
+
+  /* prototype-style phone mock (fixed light app colors) */
+  .pm{max-width:360px;margin-left:auto;background:#F5F9FF;border-radius:36px;box-shadow:0 0 0 8px #1D2B3A,0 24px 50px -20px rgba(29,43,58,.5);overflow:hidden;color:#1D2B3A;font-family:var(--body)}
+  @media (max-width:820px){.pm{margin:0 auto}}
+  .pm svg.pi{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+  .pm-screen{padding:16px 16px 12px;display:flex;flex-direction:column;gap:10px}
+  .pm-top{display:flex;align-items:center;justify-content:space-between}
+  .pm-when{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#5A6B7D}
+  .pm-av{width:36px;height:36px;border-radius:50%;background:#FFC93C;display:grid;place-items:center}
+  .pm-av svg.pi{width:18px;height:18px}
+  .pm-title{font-family:var(--display);font-size:26px;line-height:1.15}
+  .pm-chips{display:flex;flex-wrap:wrap;gap:5px}
+  .pm-chips span{font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:999px;background:#FFFFFF;border:1px solid #DCE6F2}
+  .pm-say{display:flex;gap:6px}
+  .pm-input{flex:1;height:38px;border:1px solid #DCE6F2;border-radius:10px;background:#FFFFFF;display:flex;align-items:center;padding:0 12px;font-size:12px;color:#6B7B8C}
+  .pm-mic{width:38px;height:38px;border-radius:10px;background:#1D2B3A;color:#FFFFFF;display:grid;place-items:center}
+  .pm-mic svg.pi{width:16px;height:16px}
+  .pm-card{background:#FFFFFF;border:1px solid #DCE6F2;border-radius:16px;overflow:hidden}
+  .pm-map{height:96px;background:#E9F0E6}
+  .pm-map svg{display:block;width:100%;height:100%}
+  .pm-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px}
+  .pm-lbl{font-size:11px;font-weight:700;color:#1F64D1}
+  .pm-name{font-size:15.5px;font-weight:900;line-height:1.3;margin-top:1px}
+  .pm-meta{font-size:12px;color:#5A6B7D;margin-top:1px}
+  .pm-tags{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  .pm-tags span{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:6px 8px;border-radius:9px;background:#F5F9FF}
+  .pm-tags span.tx,.pm-today span.tx{display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:0;border-radius:0;background:none;line-height:1.25;min-width:0}
+  .pm-tags small,.pm-today small{font-size:9.5px;font-weight:500;color:#5A6B7D}
+  .pm-today{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+  .pm-today .k{width:100%;font-size:10.5px;font-weight:700;color:#5A6B7D}
+  .pm-today .c{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:5px 8px;border-radius:9px;background:#FFF3CF;color:#7A5400}
+  .pm-ai{background:#EAF2FD;border-radius:10px;padding:8px 10px}
+  .pm-ai b{display:flex;align-items:center;gap:4px;font-size:11px;color:#1F64D1}
+  .pm-ai p{margin:3px 0 0;font-size:12px;line-height:1.5;color:#1D2B3A}
+  .pm-btns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .pm-btns span{height:38px;border-radius:11px;border:1px solid #DCE6F2;background:#FFFFFF;font-size:12.5px;font-weight:700;display:grid;place-items:center}
+  .pm-btns .pri{background:#1F64D1;border-color:#1F64D1;color:#FFFFFF}
+  .pm-mission{display:flex;align-items:center;gap:6px;min-height:38px;border-radius:11px;background:#FFF3CF;color:#7A5400;font-size:11.5px;font-weight:700;padding:0 12px}
+  .pm-tab{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));height:58px;background:#FFFFFF;border-top:1px solid #DCE6F2}
+  .pm-tab span{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:700;color:#5A6B7D}
+  .pm-tab svg.pi{width:18px;height:18px}
+  .pm-tab .on{color:#1F64D1}
+  .demo a{color:var(--sky);font-weight:700}
+  /* prototype link */
+  .protolink{display:flex;align-items:center;gap:14px;margin-top:16px;padding:16px 18px;border-radius:16px;background:var(--sun);color:#1D2B3A;text-decoration:none}
+  .protolink:hover{filter:brightness(.97)}
+  .protolink .pl-ic{width:44px;height:44px;border-radius:50%;background:#1D2B3A;color:#FFFFFF;display:grid;place-items:center;flex-shrink:0}
+  .protolink .pl-ic svg{width:20px;height:20px;fill:currentColor}
+  .protolink b{display:block;font-size:16px}
+  .protolink span.s{display:block;font-size:13px;margin-top:2px}
+
+  /* ---- v2: criteria structure ---- */
+  .crit{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:-20px 0 30px}
+  @media (max-width:860px){.crit{grid-template-columns:1fr 1fr}}
+  @media (max-width:480px){.crit{grid-template-columns:1fr}}
+  .crit a{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-top:4px solid var(--sun);border-radius:14px;padding:13px 15px;box-shadow:var(--shadow);min-width:0}
+  .crit a:hover{border-color:var(--sky)}
+  .crit .w{font-size:12px;font-weight:700;color:var(--sun-ink)}
+  .crit b{display:block;font-size:15px;margin:3px 0 4px}
+  .crit span.d{display:block;font-size:12.8px;color:var(--muted);line-height:1.55}
+  .part{margin:40px 0 0;padding:20px 24px;border-radius:20px;background:var(--ink);color:var(--bg)}
+  .part .pn{font-size:13px;font-weight:700;color:var(--sun)}
+  .part h2{color:var(--bg);margin-top:4px}
+  .part p{font-size:14.5px;opacity:.8;margin-top:6px;max-width:70ch}
+  .part + section{border-top:0}
+  .ev .big{font-family:var(--display);font-size:32px;line-height:1.1;color:var(--sky)}
+  .ev .big small{font-family:var(--body);font-size:14px;color:var(--muted);margin-left:2px}
+  .ev .src{display:block;font-size:12px;color:var(--faint);margin-top:8px}
+  .phases{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}
+  @media (max-width:860px){.phases{grid-template-columns:1fr 1fr}}
+  @media (max-width:480px){.phases{grid-template-columns:1fr}}
+  .ph{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);min-width:0}
+  .ph.now{border-top-color:var(--sun)}
+  .ph .w{font-size:12.5px;font-weight:700;color:var(--muted)}
+  .ph h3{font-size:15.5px;margin:3px 0 6px}
+  .ph ul{margin:0;padding-left:17px;font-size:13.5px;color:var(--muted)}
+  .ph .x{margin-top:10px;padding-top:8px;border-top:1px dashed var(--line);font-size:13px}
+  .proc{counter-reset:p;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:24px}
+  @media (max-width:700px){.proc{grid-template-columns:1fr}}
+  .proc > div{display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .proc > div::before{counter-increment:p;content:counter(p);flex:none;width:28px;height:28px;border-radius:50%;background:var(--sky);color:#fff;font-weight:900;font-size:14px;display:grid;place-items:center}
+  .proc b{display:block;font-size:14.5px}
+  .proc span{font-size:13.5px;color:var(--muted)}
+
+  /* ---- v3: 자금 없이 출시 (제품 기획서 컴포넌트) ---- */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}
+  @media (max-width:820px){.kpis{grid-template-columns:1fr 1fr}}
+  @media (max-width:460px){.kpis{grid-template-columns:1fr}}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);min-width:0}
+  .kpi .n{font-family:var(--display);font-size:30px;line-height:1.1;color:var(--sky)}
+  .kpi .n small{font-family:var(--body);font-size:14px;color:var(--muted);margin-left:2px}
+  .kpi p{font-size:13.5px;color:var(--muted);margin-top:6px}
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}
+  @media (max-width:820px){.plans{grid-template-columns:1fr}}
+  .plan{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow);min-width:0}
+  .plan .who{font-size:12.5px;font-weight:700;color:var(--sun-ink)}
+  .plan h3{font-size:17px;margin-top:4px}
+  .plan .price{font-family:var(--display);font-size:24px;margin-top:8px}
+  .plan .price small{font-family:var(--body);font-size:13px;color:var(--muted)}
+  .plan ul{margin:10px 0 0;padding-left:18px;font-size:14px;color:var(--muted)}
+  .plan li{margin:4px 0}
+  .plan li b{color:var(--ink)}
+  .prin{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .prin span{font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;background:var(--grass-soft);color:var(--grass)}
+  tr.sum td{background:var(--card-2)}
+  tr.sum td:first-child,tr.sum td.me{font-weight:700;color:var(--ink)}
+  tr.sum td.me{background:color-mix(in srgb,var(--sun) 30%,var(--card))}
+  .nw{white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <span>2026 양주시 미래인재 AI 공모전, 팀 이로움</span>
+    <button class="themebtn" id="themeToggle" aria-label="밝게/어둡게 전환">◐</button>
+  </div>
+
+  <header class="hero">
+    <div>
+      <div class="track">소주제 03 · 함께하는 양주</div>
+      <div class="badge">
+        <span class="paw" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="6" cy="9" rx="2.2" ry="2.8"/><ellipse cx="10" cy="5.6" rx="2.1" ry="2.7"/><ellipse cx="14.2" cy="5.6" rx="2.1" ry="2.7"/><ellipse cx="18.2" cy="9" rx="2.2" ry="2.8"/><path d="M12 11.2c-3 0-6 3.6-6 6.2 0 1.8 1.4 2.6 3 2.6 1.2 0 2-.6 3-.6s1.8.6 3 .6c1.6 0 3-.8 3-2.6 0-2.6-3-6.2-6-6.2z"/></svg></span>
+        <span class="name">양주 멍냥길</span>
+      </div>
+      <h1>매일 걷는 집 앞 산책길을,<br><span class="h1l">AI가 <em>반려견의 오늘</em>에 맞춥니다</span></h1>
+      <p class="lede">반려견 산책은 매일 집 앞에서 시작해 집으로 돌아옵니다. 집 주변 반경 안에서 오늘의 날씨와 시간대, 반려견의 상태에 맞는 순환 코스를 골라 주고, AI가 왜 이 길인지 설명합니다. 하원 시간의 어린이 놀이터처럼 이웃이 쓰는 공간은 처음부터 비켜 갑니다. 이웃 "멍냥 길잡이"가 평소 산책길에서 찍은 사진은 우리 동네 산책 지도를 채우고, 어두운 길이나 부족한 배변봉투함은 시로 전달돼 고쳐지면 "개선됨"으로 돌아옵니다. 시 예산 없이 옥정 한 생활권에서 시범을 시작하고, 지표가 기준을 넘으면 시범사업으로 넘깁니다.</p>
+      <div class="chips">
+        <span class="chip">대상 <b>양주의 반려인과 이웃</b></span>
+        <span class="chip">핵심 <b>이웃 배려 AI 코스·길잡이 지도</b></span>
+        <span class="chip">연계 <b>민선 9기 반려동물광장 공약</b></span>
+        <span class="chip">시범 <b>시 예산 없이 옥정부터</b></span>
+      </div>
+    </div>
+    <div>
+      <div class="pm" role="img" aria-label="양주 멍냥길 앱 첫 화면 예시: 콩이의 오늘 산책 코스 추천">
+        <div class="pm-screen">
+          <div class="pm-top">
+            <span class="pm-when"><svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>오늘 오후 4시 · 집 주변 1km</span>
+            <span class="pm-av"><svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="9" r="1.8"/><circle cx="10.5" cy="5.5" r="1.8"/><circle cx="14.5" cy="5.5" r="1.8"/><circle cx="18" cy="9" r="1.8"/><path d="M12 11c-2.8 0-5 3.2-5 5.6 0 1.6 1.3 2.4 2.7 2.4 1 0 1.6-.5 2.3-.5s1.3.5 2.3.5c1.4 0 2.7-.8 2.7-2.4 0-2.4-2.2-5.6-5-5.6z"/></svg></span>
+          </div>
+          <div>
+            <div class="pm-title">콩이의 오늘 산책</div>
+            <div class="pm-chips" style="margin-top:6px"><span>3살 믹스견</span><span>중형</span><span>다른 개를 조금 무서워해요</span></div>
+          </div>
+          <div class="pm-say"><span class="pm-input">예: 40분쯤, 그늘 많은 길로</span><span class="pm-mic"><svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span></div>
+          <div class="pm-card">
+            <div class="pm-map"><svg viewBox="0 0 350 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="350" height="200" fill="#E9F0E6"/><path d="M220 50C262 30 336 44 342 92C348 140 300 170 252 160C210 152 190 96 220 50Z" fill="#CFE3F6"/><rect x="16" y="40" width="60" height="40" rx="5" fill="#DDE4EE"/><rect x="16" y="120" width="60" height="50" rx="5" fill="#DDE4EE"/><rect x="100" y="124" width="80" height="44" rx="8" fill="#CFE8D2"/><rect x="104" y="66" width="70" height="20" rx="4" fill="#E4DED3"/><path d="M0 100H350M88 0V200M88 182H350" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/><circle cx="140" cy="54" r="18" fill="#FBE4E1" stroke="#C9352B" stroke-width="1.8" stroke-dasharray="5 4"/><path d="M48 100C76 134 116 150 158 148C198 146 212 126 230 134C260 146 298 138 304 110C310 82 280 66 246 74C208 84 174 90 138 96C104 102 74 92 48 100Z" fill="none" stroke="#1F64D1" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="48" cy="100" r="9" fill="#1D2B3A"/><circle cx="48" cy="100" r="3.5" fill="#FFC93C"/><circle cx="158" cy="148" r="5.5" fill="#7A5400"/><circle cx="304" cy="110" r="5.5" fill="#7A5400"/><rect x="223" y="127" width="13" height="13" rx="4" fill="#156B3B"/></svg></div>
+            <div class="pm-body">
+              <div class="pm-today"><span class="k">오늘의 조건</span><span class="c"><svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 14.76V5a2 2 0 0 0-4 0v9.76a4 4 0 1 0 4 0z"/></svg><span class="tx">29℃ · 햇볕 강함<small>기상청 예보</small></span></span><span class="c"><svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg><span class="tx">하원 시간 · 어린이 놀이터 피함<small>시간대 규칙</small></span></span></div>
+              <div>
+                <div class="pm-lbl">AI 추천 코스</div>
+                <div class="pm-name">아파트 뒤 산책로에서 호수공원 동쪽 흙길로</div>
+                <div class="pm-meta">집에서 출발해 돌아오는 2.4km 순환 · 약 40분</div>
+              </div>
+              <div class="pm-tags">
+                <span><svg class="pi" viewBox="0 0 24 24" aria-hidden="true" style="color:#156B3B"><path d="M12 21v-5"/><path d="M12 3 6.5 11H9l-3 5h12l-3-5h2.5z"/></svg><span class="tx">그늘 많음<small>길잡이 사진 12장</small></span></span>
+                <span><svg class="pi" viewBox="0 0 24 24" aria-hidden="true" style="color:#7A5400"><path d="M3 16c3-2 6-2 9 0s6 2 9 0"/><path d="M3 11c3-2 6-2 9 0s6 2 9 0"/></svg><span class="tx">흙길 위주<small>길잡이 사진 9장</small></span></span>
+                <span><svg class="pi" viewBox="0 0 24 24" aria-hidden="true" style="color:#7A5400"><path d="M6 9h12l-1 11H7z"/><path d="M9 9V7a3 3 0 0 1 6 0v2"/></svg><span class="tx">배변봉투함 2곳<small>길잡이 확인</small></span></span>
+                <span><svg class="pi" viewBox="0 0 24 24" aria-hidden="true" style="color:#1F64D1"><circle cx="7" cy="9" r="1.8"/><circle cx="10.5" cy="5.5" r="1.8"/><circle cx="14.5" cy="5.5" r="1.8"/><circle cx="18" cy="9" r="1.8"/><path d="M12 11c-2.8 0-5 3.2-5 5.6 0 1.6 1.3 2.4 2.7 2.4 1 0 1.6-.5 2.3-.5s1.3.5 2.3.5c1.4 0 2.7-.8 2.7-2.4 0-2.4-2.2-5.6-5-5.6z"/></svg><span class="tx">반려견 놀이터 피함<small>콩이 정보</small></span></span>
+              </div>
+              <div class="pm-ai"><b><svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>이 코스인 이유</b><p>다른 개를 무서워해서 반려견 놀이터 쪽은 뺐어요. 햇볕이 강해 그늘 많은 길 위주로 골랐어요. 단지 어린이 놀이터 앞은 하원 시간이라 돌아가요.</p></div>
+              <div class="pm-btns"><span>코스 자세히</span><span class="pri">산책 시작</span></div>
+            </div>
+          </div>
+          <div class="pm-mission"><svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="5"/><path d="M9.5 13.3 8 21l4-2.5 4 2.5-1.5-7.7"/></svg>오늘의 길잡이 임무: 늘 지나는 갈림길 사진 1장</div>
+        </div>
+        <div class="pm-tab">
+          <span class="on"><svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5v-5.5H9V20H4z"/></svg>오늘의 코스</span>
+          <span><svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3.5l2-3h5l2 3H20v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>길잡이</span>
+          <span><svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v10h16V10"/><path d="M3 10l2.5-6h13L21 10z"/><path d="M10 20v-5h4v5"/></svg>동네 생활</span>
+          <span><svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1.2-3.6 4.2-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></svg>내 정보</span>
+        </div>
+      </div>
+      <p class="demo">동작하는 프로토타입의 첫 화면입니다. <a href="yangju-meongnyanggil-prototype.html" target="_blank" rel="noopener">직접 눌러 보기</a></p>
+    </div>
+  </header>
+
+  <nav class="crit" aria-label="심사 기준별 바로가기">
+    <a href="#p1"><span class="w">문제정의 25점</span><b>매일의 산책길에 데이터가 없다</b><span class="d">양주 반려 가구 3만여 추정, 갈등은 산책길에서, 시 정책은 1년에 한 번의 행사에 머문다.</span></a>
+    <a href="#p2"><span class="w">창의성 25점</span><b>이웃을 먼저 빼고 고르는 코스</b><span class="d">AI가 말·사진·안내문을 읽고, 길잡이 제보가 맞는 관리 주체를 거쳐 “개선됨”으로 돌아온다.</span></a>
+    <a href="#p3"><span class="w">실행계획 25점</span><b>시 예산 없이 옥정 시범부터</b><span class="d">시에는 자료와 안내 협조만, 단계마다 통과 기준을 넘으면 시범사업으로.</span></a>
+    <a href="#p4"><span class="w">효과·확장 25점</span><b>보행약자의 길까지</b><span class="d">경기 31개 시군, 유아차·휠체어·어르신 산책, 생활권 시설 배치 기준으로.</span></a>
+  </nav>
+
+  <div class="part" id="p1"><span class="pn">PART 1 · 심사기준 1</span><h2>문제정의의 타당성</h2><p>반려 가구가 빠르게 늘어난 신도시 양주에서, 매일의 산책이 어디서 막히고 누가 그 비용을 치르는지 짚습니다.</p></div>
+  <!-- 양주시의 문제 -->
+  <section>
+    <h2>양주시가 풀어야 할 문제</h2>
+    <p class="intro">옥정·회천 신도시로 인구가 들어오며 반려 가구도 함께 늘었습니다. 시가 챙겨야 할 일은 늘었지만, 시가 가진 정보와 수단은 그 속도를 따라가지 못하고 있습니다.</p>
+    <div class="grid g3 ev">
+      <div class="card"><div class="big">약 3.4<small>만 가구 (추정)</small></div><p>2025년 반려동물 양육가구 비율 29.2%를 양주 세대 수(약 11.5만)에 적용한 추정치. 시범 동안 동물등록 자료와 대조합니다.</p><span class="src">농림축산식품부 2025 반려동물 양육현황조사 (데일리벳 2026.2)</span></div>
+      <div class="card"><div class="big">71.3<small>%</small></div><p>2025년 동물보호법 위반 적발 1,281건 중 목줄 미착용 등 관리 미흡의 비중. 갈등의 현장은 산책길입니다.</p><span class="src">농림축산식품부 2025 동물보호·복지 실태조사 (2026.6)</span></div>
+      <div class="card"><div class="big">10만<small>㎡ 이상</small></div><p>반려견 놀이터는 큰 공원에만 둘 수 있어, 집 앞 작은 공원과 산책로의 일상은 놀이터로 해결되지 않습니다.</p><span class="src">양천구 반려견 쉼터 확충 계획 (뉴스서울 2023.1)</span></div>
+    </div>
+    <div class="grid g3">
+      <div class="card"><span class="ic">🏘️</span><h3>산책은 집 앞인데, 근거가 없다</h3><p>반려 시설 수요는 생활권마다 따로 생기지만, 배변봉투함·안내판·조명이 어느 동네에 필요한지 판단할 생활권 단위 데이터는 없습니다.</p></div>
+      <div class="card"><span class="ic">🤝</span><h3>같은 공원, 다른 시선</h3><p>좁은 길에서의 마주침, 어린이 곁을 지나는 반려견처럼 규칙만으로 풀리지 않는 마찰이 남고, 시의 대응은 민원이 올라온 뒤에야 닿습니다.</p></div>
+      <div class="card"><span class="ic">🐾</span><h3>친화 정책이 일상에서 안 보인다</h3><p>축제에 3천여 명이 모일 만큼 관심은 크지만, 대부분 1년에 한 번 열리는 행사라 매일 체감할 접점은 드뭅니다.</p></div>
+    </div>
+  </section>
+
+  
+
+  <!-- 문제 구조 -->
+  <section>
+    <h2>세 주체, 하나의 원인</h2>
+    <p class="intro">반려인, 반려동물을 키우지 않는 이웃, 양주시가 각자 다른 이유로 막혀 있지만 원인은 하나입니다. 생활권 단위의 산책길 정보가 없어 대응이 늘 민원 뒤에 옵니다.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>주체</th><th>지금 겪는 문제</th><th class="me">양주 멍냥길이 주는 것</th></tr></thead>
+        <tbody>
+          <tr><td><b>반려인</b></td><td class="h">지도 앱은 사람 걸음 기준이라, 그늘·노면·배변봉투함을 몇 달 걸어 봐야 앎</td><td class="me">반려견의 오늘에 맞춘 집 앞 순환 코스와 이유</td></tr>
+          <tr><td><b>비반려 이웃</b></td><td class="h">놀이터·좁은 길에서의 마주침, 배설물</td><td class="me">앱을 쓰지 않아도 받는 배려 (어린이 공간·붐비는 시간 회피)</td></tr>
+          <tr><td><b>양주시</b></td><td class="h">시설을 어디에 둘지 근거 부족, 갈등은 민원 뒤에 앎</td><td class="me">생활권 리포트, 제보 → 조치 → “개선됨” 순환</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <!-- 시 정책 -->
+  <section>
+    <h2>양주시는 해마다 반려동물과 함께해 왔습니다</h2>
+    <p class="intro">양주시는 2020년 첫 반려견 놀이터부터 조례, 축제, 공약까지 반려동물 정책을 한 해도 빠짐없이 이어 왔습니다. 양주 멍냥길은 새 사업을 벌이는 대신, 이 흐름에 필요한 데이터와 시민 참여를 만듭니다.</p>
+    <ol class="tl">
+      <li><div class="yr">2020</div><div class="bx"><h3>옥정동 반려견 놀이터 개장</h3><p>이후 수요가 늘어 회천지구 추가와 이동식 놀이터까지 계획했습니다.</p></div></li>
+      <li><div class="yr">2024</div><div class="bx"><h3>반려문화 조례 정비, 제1회 문화축제</h3><p>2023년 사회적 약자 진료비 지원조례에 이어, 3천여 명이 모인 첫 축제를 열었습니다.</p></div></li>
+      <li><div class="yr">2025</div><div class="bx"><h3>제2회 반려동물 문화축제 "By 멍냥시장"</h3><p>"멍냥"이라는 이름을 시의 축제가 먼저 썼고, 멍냥길은 그 이름을 매일의 산책으로 잇습니다.</p></div></li>
+      <li class="now"><div class="yr">2026</div><div class="bx"><h3>반려동물광장 공약, 마라톤 반려견 동반 걷기</h3><p>민선 9기는 은현면에 반려동물광장 조성을 공약했고, 10월 천일홍 마라톤에는 반려견 동반 걷기 종목이 생겼습니다.</p></div></li>
+    </ol>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>시 정책</th><th class="me">양주 멍냥길이 하는 일</th></tr></thead>
+        <tbody>
+          <tr><td><b>반려동물광장</b><br><span class="h" style="font-size:13px">민선 9기 공약</span></td><td class="me">생활권별 산책 수요와 시설 공백 리포트로 광장 구성과 집 앞 작은 시설 배치의 근거를 제공</td></tr>
+          <tr><td><b>시민참여 문화도시</b><br><span class="h" style="font-size:13px">민선 9기 시정목표</span></td><td class="me">길잡이가 산책하며 찍은 사진으로 시민이 직접 동네 산책 지도를 만듦</td></tr>
+          <tr><td><b>지속가능 안전도시</b><br><span class="h" style="font-size:13px">민선 9기 시정목표</span></td><td class="me">어두운 길, 파손된 보도 같은 위험 요소를 산책 중 제보해 맞는 곳으로 연결</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><b>남은 빈칸은 "매일"입니다.</b> 축제는 1년에 한 번이지만, 산책은 나머지 364일 집 앞 길에서 일어납니다.</p>
+  </section>
+
+  <!-- 함께하는 양주 -->
+  <section>
+    <h2>왜 "함께하는 양주"인가</h2>
+    <p class="intro">함께하는 양주는 소통과 시민참여처럼 사람과 행정을 잇는 문제를 다룹니다. 멍냥길은 산책이라는 매일의 일상으로 답합니다.</p>
+    <div class="fit3">
+      <div class="fitc"><div class="k">정보 공백 해소</div><h3>흩어진 정보를 집 앞 기준으로</h3><p>공원, 보안등, 동물병원, 출입 제한 구역처럼 기관마다 흩어진 정보를 집 앞 반경의 "오늘의 코스" 하나로 묶습니다.</p></div>
+      <div class="fitc"><div class="k">주민 참여 채널</div><h3>시민이 함께 만드는 산책 지도</h3><p>길잡이의 사진 한 장이 지도의 빈칸을 채우고, 애매한 곳은 다음 길잡이가 이어받아 바로잡습니다.</p></div>
+      <div class="fitc"><div class="k">사람과 행정을 잇기</div><h3>제보하면 돌아오는 소통</h3><p>앱이 위치로 관리 주체를 먼저 확인해 맞는 신고 창구로 안내하고, 고쳐지면 지도에 "개선됨"으로 표시해 제보한 길잡이에게 알립니다.</p></div>
+    </div>
+  </section>
+
+  <div class="part" id="p2"><span class="pn">PART 2 · 심사기준 2</span><h2>아이디어의 창의성·독창성</h2><p>이웃을 먼저 빼고 고르는 코스, 사진이 지도가 되는 길잡이, 제보가 시를 거쳐 돌아오는 흐름. AI가 없으면 돌아가지 않는 세 가지입니다.</p></div>
+  <!-- AI 네 가지 일 -->
+  <section>
+    <h2>AI가 하는 네 가지 일</h2>
+    <p class="intro">길을 고르는 건 지도 엔진이, 말과 사진과 글을 정보로 바꾸고 이유를 설명하는 건 AI가 맡습니다.</p>
+    <div class="missions">
+      <div class="mission m2">
+        <div class="mk" aria-hidden="true">🧭</div>
+        <div>
+          <div class="who">매일의 산책</div>
+          <h3>집 앞에서 시작하는 오늘의 코스</h3>
+          <p>반려인이 말하듯 입력하면 AI가 조건을 정리하고, 엔진이 이웃 배려 기준으로 먼저 거른 후보 순환 코스 중 오늘의 기온·시간대와 반려견에게 맞는 코스를 고르며, AI가 이유를 한두 문장으로 설명합니다.</p>
+          <div class="ex"><b>반려인 입력</b> "세 살 믹스견이에요. 다른 개를 조금 무서워하고, 오후에 40분쯤 걷고 싶어요."<br><b>AI 정리</b> 40분 안팎 순환 코스, 그늘 많은 길, 반려견 놀이터와 좁은 길은 피하기</div>
+        </div>
+      </div>
+      <div class="mission m3">
+        <div class="mk" aria-hidden="true">📸</div>
+        <div>
+          <div class="who">길잡이가 찍고, AI가 읽고</div>
+          <h3>사진으로 만드는 산책 지도</h3>
+          <p>길잡이의 사진에서 AI가 노면, 그늘, 배변봉투함, 음수대, 깨진 유리나 공사 같은 위험 요소를 판별해 길 위에 기록합니다.</p>
+          <div class="ex"><b>판단 방식</b> 한 장으로만 확인된 정보는 “미확정”, 두 장 이상 일치하면 “확정”. 애매하면 "확인 필요"로 다음 길잡이에게 넘깁니다.</div>
+        </div>
+      </div>
+      <div class="mission m4">
+        <div class="mk" aria-hidden="true">☕</div>
+        <div>
+          <div class="who">산책의 끝</div>
+          <h3>함께 들어갈 수 있는 가게와 병원</h3>
+          <p>매장 안내문과 공개 리뷰에서 AI가 동반 조건(실내·테라스, 크기 제한, 켄넬)을 뽑고, 동물병원·미용실의 받는 조건도 같은 방식으로 정리합니다. 진료비 지원 대상이 될 수 있는 가구에는 시 지원 제도를 함께 안내합니다.</p>
+        </div>
+      </div>
+      <div class="mission m1">
+        <div class="mk" aria-hidden="true">📊</div>
+        <div>
+          <div class="who">양주시를 위해</div>
+          <h3>산책 수요 리포트</h3>
+          <p>생활권별로 언제 어디로 많이 걷는지, 그늘·배변봉투함·조명이 어디에 비어 있는지, 반려인이 물었지만 답하지 못한 질문(예: "밤에 여는 동물병원 있나요?")이 어느 동네에 몰리는지를 담당 부서별 리포트로 정리합니다.</p>
+          <div class="ex"><b>쓰이는 곳</b> 반려동물광장 구성, 배변봉투함·안내판 설치 우선순위, 동물 의료 공백 확인. 시범 동안 견본 리포트를 시에 무상으로 공유합니다.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 이웃 배려 -->
+  <section>
+    <h2>이웃을 먼저 생각하는 코스</h2>
+    <p class="intro">반려동물을 키우지 않는 이웃은 이 앱을 쓰지 않습니다. 그래서 비반려인을 위한 기능을 따로 만드는 대신, 반려인에게 코스를 추천하는 AI가 처음부터 이웃을 배려하도록 설계했습니다. 비반려인은 사용자가 아니라 수혜자입니다.</p>
+    <p class="note"><b>이웃 배려는 점수가 아니라 조건입니다.</b> 반려견에게 좋은 길이라도 그 시간에 이웃의 공간을 지나면 고르지 않습니다. 아래 기준을 먼저 적용하고, 남은 길 가운데서 반려견에게 맞는 코스를 고릅니다.</p>
+    <div class="grid g3">
+      <div class="card"><span class="ic">🛝</span><h3>어린이의 공간을 피한다</h3><p>어린이 놀이터, 학교 앞, 어린이집 주변은 등하교·하원 시간대에 코스에서 뺍니다.</p></div>
+      <div class="card"><span class="ic">🚶</span><h3>좁은 길의 붐비는 시간을 피한다</h3><p>출퇴근 시간의 좁은 보도와 상가 앞은 다른 길로 돌아갑니다.</p></div>
+      <div class="card"><span class="ic">🚫</span><h3>출입 제한 구역은 넣지 않는다</h3><p>반려견 출입이 제한된 공원 구역과 잔디밭은 처음부터 경로에서 제외합니다.</p></div>
+      <div class="card"><span class="ic">🧻</span><h3>치우기 쉬운 길로 간다</h3><p>배변봉투함과 쓰레기통이 있는 구간을 경유하게 해 배변 방치를 줄입니다.</p></div>
+      <div class="card"><span class="ic">🦮</span><h3>목줄 구간은 미리 알린다</h3><p>목줄이 꼭 필요한 구간에 들어가기 직전에 알림을 줍니다.</p></div>
+      <div class="card"><span class="ic">🚧</span><h3>공사 구간과 공사차량 시간을 피한다</h3><p>공개된 공사 공고와 도로 통제 고시로 공사 구간을 확인하고, 공사차량이 드나드는 시간대에는 그 길을 코스에서 뺍니다.</p></div>
+    </div>
+    <p class="note"><b>앱을 몰라도 혜택을 받습니다.</b> 비반려인은 자기 공간에서 반려견과 덜 마주치고, 길은 더 깨끗해집니다. 계도가 아니라, 반려인이 편하게 따라가는 추천으로 상생을 만듭니다.</p>
+  </section>
+
+  
+
+  
+
+  <!-- 차별성 -->
+  <section>
+    <h2>기존 서비스와 무엇이 다른가요</h2>
+    <p class="intro">산책 기록·추천 코스·주변 동반 장소는 국내 앱에서도 볼 수 있습니다. 멍냥길은 기존 서비스가 다루지 않는 세 가지를 더합니다(굵게 표시한 줄).</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>구분</th><th>지도 앱 도보 길찾기</th><th>반려견 산책 앱<small>멍콕·펫핑 등</small></th><th>공공 반려동물 시설 지도</th><th class="me">양주 멍냥길</th></tr></thead>
+        <tbody>
+          <tr><td>무엇을 해 주나</td><td class="h">목적지까지 빠른 길</td><td class="h">산책 기록, 추천 코스, 주변 동반 장소</td><td class="h">동반 가능 시설 목록</td><td class="me">오늘 걸을 집 앞 코스를 골라 줌</td></tr>
+          <tr><td>반려견 맞춤</td><td class="h">없음</td><td class="h">추천 코스·기록 중심</td><td class="h">없음</td><td class="me">나이·체력·성격과 오늘의 기온·시간대 반영</td></tr>
+          <tr class="key"><td>이웃 배려</td><td class="h">없음</td><td class="h">없음</td><td class="h">일부 출입 제한 정보</td><td class="me">어린이 공간·좁은 길·공사 구간을 먼저 빼고 고름</td></tr>
+          <tr class="key"><td>시로 가는 제보</td><td class="h">없음</td><td class="h">없음</td><td class="h">없음</td><td class="me">관리 주체를 판정해 안내, 고쳐지면 "개선됨" 알림</td></tr>
+          <tr class="key"><td>시에 돌아가는 것</td><td class="h">없음</td><td class="h">없음</td><td class="h">없음</td><td class="me">생활권별 산책 수요·시설 공백 리포트</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tblnote">반려견 산책 앱 열은 멍콕·펫핑의 앱스토어 소개(2026년 10월 확인) 기준입니다.</p>
+    <p class="note"><b>앱보다 데이터가 오래 남습니다.</b> 이웃 배려 구간, 확인된 시설, "개선됨" 이력은 시와 함께 공공데이터로 공개해 기존 반려견 앱도 쓸 수 있게 합니다. 개인의 경로와 사진 원본은 포함하지 않습니다.</p>
+  </section>
+
+  <!-- 어드벤처 -->
+  <section>
+    <h2>길잡이는 매일 걷는 길에서 동네를 채웁니다</h2>
+    <p class="intro">멍냥 길잡이는 평소 걷는 집 앞 길에서 작은 임무를 수행하고 배지를 모읍니다. 임무가 곧 지도의 빈칸을 채우는 일입니다.</p>
+    <div class="badges">
+      <div class="bd"><div class="medal" aria-hidden="true">🧭</div><h3>우리 동네 기록가</h3><p>정보가 비어 있는 길을 사진으로 채우면 받습니다.</p></div>
+      <div class="bd"><div class="medal" aria-hidden="true">🌸</div><h3>천일홍 산책러</h3><p>천일홍 축제 기간 한정 배지입니다.</p></div>
+      <div class="bd"><div class="medal" aria-hidden="true">🔦</div><h3>동네 지킴이</h3><p>위험 요소를 제보해 고쳐지면 받습니다.</p></div>
+      <div class="bd"><div class="medal" aria-hidden="true">🤝</div><h3>펫티켓 이웃</h3><p>이웃을 배려한 코스를 꾸준히 걸으면 받습니다.</p></div>
+    </div>
+  </section>
+
+  <div class="part" id="p3"><span class="pn">PART 3 · 심사기준 3</span><h2>실행계획의 현실성</h2><p>시 예산을 기다리지 않고 옥정 한 생활권에서 시범을 시작합니다. 시에 요청하는 것은 예산이 아니라 자료와 안내 협조이고, 단계마다 정한 지표를 넘으면 시범사업으로 넘깁니다.</p></div>
+
+  <!-- 운영 주체 -->
+  <section>
+    <h2>누가 운영하고, 시는 무엇을 돕나</h2>
+    <p class="intro">시범 운영은 제안팀이 맡고, 시에는 예산 대신 자료와 안내 협조를 요청합니다.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>역할</th><th>주체</th><th class="me">하는 일</th></tr></thead>
+        <tbody>
+          <tr><td><b>시범 운영</b></td><td>제안팀 (팀 이로움)</td><td class="me">웹앱 개발과 배포, 사진 검수, 현장 안내</td></tr>
+          <tr><td><b>제보 처리</b></td><td>관리사무소 또는 안전신문고 등 공식 창구</td><td class="me">앱이 관리 주체를 안내하고 길잡이가 직접 신고, 담당 부서는 지금 하던 대로 조치</td></tr>
+          <tr><td><b>공원 자료 (협조)</b></td><td>공원녹지 담당부서</td><td class="me">출입 제한 구역, 배변봉투함·안내판 위치</td></tr>
+          <tr><td><b>길잡이 모집 (협조)</b></td><td>동물보호 담당부서</td><td class="me">문화교실·축제·마라톤 참가자에게 시범 안내</td></tr>
+          <tr><td><b>시범사업 전환</b></td><td>동물보호 담당부서</td><td class="me">시범 지표를 보고 지정 검토, 제보 직접 연동 협의</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><b>첫 6개월 동안 시가 새로 쓰는 돈은 없습니다.</b> 제보는 기존 창구로 들어가 담당 부서의 일하는 방식이 바뀌지 않습니다.</p>
+  </section>
+
+  <!-- 적은 비용으로 시작 -->
+  <section>
+    <h2>적은 비용으로 시작합니다</h2>
+    <div class="kpis">
+      <div class="kpi"><div class="n">0<small>원</small></div><p>첫 6개월 시 예산</p></div>
+      <div class="kpi"><div class="n">50만~100만<small>원</small></div><p>시범 6개월 운영비 추정</p></div>
+      <div class="kpi"><div class="n">1<small>개 생활권</small></div><p>옥정에 집중</p></div>
+      <div class="kpi"><div class="n">4~6<small>개월</small></div><p>옥정 시범 기간</p></div>
+    </div>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>항목</th><th>방법</th><th class="me">비용 (추정)</th></tr></thead>
+        <tbody>
+          <tr><td><b>서버·지도·날씨</b></td><td class="h">클라우드 무료 등급, 지도 API 무료 사용량, 후보 코스 미리 저장, 기상청 API</td><td class="me">0원~월 1만 원</td></tr>
+          <tr><td><b>AI</b></td><td class="h">저가 모델, 사진은 올라올 때만 판별, 1장당 처리 비용 기록</td><td class="me">시범 100명 기준 월 1만~3만 원</td></tr>
+          <tr><td><b>현장 안내</b></td><td class="h">놀이터·동물병원 QR 스티커</td><td class="me">10만~20만 원</td></tr>
+          <tr><td><b>예비비</b></td><td class="h">무료 사용량 초과, 소모품</td><td class="me">30만~50만 원</td></tr>
+          <tr class="sum"><td>시범 6개월 합계</td><td class="h">공모전 상금, 창업지원 프로그램 활용</td><td class="me">50만~100만 원</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tblnote">웹앱으로 시작해 앱스토어 비용이 없고, 처리방침·위치정보 신고 범위는 무료 창업·법률 상담으로 확인합니다. 요금은 착수 시점에 다시 확인합니다.</p>
+  </section>
+
+  <!-- 단계별 계획 -->
+  <section>
+    <h2>공모전에서 시범사업까지</h2>
+    <p class="intro">각 단계는 측정한 결과로 다음 단계 진입을 판단하고, 기준에 못 미치면 범위를 좁혀 다시 잽니다.</p>
+    <div class="phases">
+      <div class="ph now"><span class="w">2026.10</span><h3>공모전 본선</h3><ul><li>코스 추천·사진 판별을 실제 AI로 연결</li><li>옥정 후보 순환 코스 구축</li></ul><div class="x">산출: 동작하는 웹앱, 판별 정확도 실측치</div></div>
+      <div class="ph"><span class="w">2026.11 – 2027.4</span><h3>옥정 시범</h3><ul><li>창립 길잡이 100명 초대</li><li>2주마다 보호자 10명 인터뷰</li><li>견본 리포트 시에 공유</li></ul><div class="x">다음 단계 조건: 4주 리텐션 35%, 판별 정확도 90%</div></div>
+      <div class="ph"><span class="w">2027 상반기</span><h3>옥정 공개</h3><ul><li>옥정 보호자 누구나 사용</li><li>시범사업 지정 제안</li></ul><div class="x">다음 단계 조건: 제보 개선율, 관련 민원 추이</div></div>
+      <div class="ph"><span class="w">2027 하반기~</span><h3>회천·양주 전역</h3><ul><li>회천 확장, 리포트 정식 제공</li></ul><div class="x">조건: 시범사업 지정 또는 운영 재원 확보</div></div>
+    </div>
+    <p class="note"><b>핵심 기능은 계속 무료입니다.</b> 시범 이후 운영 재원은 시 시범사업, 공공 지원사업, 동네 가게 제휴에서 찾되, 제휴 혜택은 “광고”로 표시하고 코스 선택에는 영향을 주지 않습니다.</p>
+  </section>
+
+  
+
+  <!-- 데이터 -->
+  <section>
+    <h2>쓰는 양주시 데이터</h2>
+    <p class="intro">길잡이 사진이 쌓이기 전인 첫날부터 쓸 수 있도록, 공개된 실제 데이터로 뼈대를 만듭니다.</p>
+    <div class="card data" style="padding:0;margin-top:24px;overflow:hidden">
+      <div class="row"><b>산책 코스의 뼈대</b><span>전국도시공원정보표준데이터, 팀이 직접 걸어 만든 옥정 후보 순환 코스</span><span class="st ok">공개·자체 구축</span></div>
+      <div class="row"><b>밤에도 밝은 길</b><span>전국보안등정보·CCTV 표준데이터</span><span class="st ok">공개</span></div>
+      <div class="row"><b>이웃 배려 기준</b><span>경기 반려동물 생활동반지도의 출입금지 시설, 어린이놀이시설·학교 위치, 공원 내 출입 제한 구역</span><span class="st chk">공개·시 협조</span></div>
+      <div class="row"><b>공사 구간</b><span>국가철도공단·경기도 공사 공고, 교통 통제 고시</span><span class="st ok">공개</span></div>
+      <div class="row"><b>제보의 관리 주체</b><span>공동주택 단지 경계, 도로 구분(시도·국도·지방도), 택지 시설 인계 현황</span><span class="st chk">공개·시 협조</span></div>
+      <div class="row"><b>동물병원·미용업</b><span>LOCALDATA 인허가 영업 정보, 생활동반지도 시설 정보</span><span class="st ok">공개</span></div>
+      <div class="row"><b>날씨·붐비는 시간</b><span>기상청 단기예보, 등하교·하원·퇴근 시간대 규칙</span><span class="st ok">공개·자체 규칙</span></div>
+    </div>
+    <p class="note"><b>코스는 미리 만든 후보 가운데서 고릅니다.</b> 요청마다 길찾기 API로 경로를 새로 만들지 않아 무료 사용량 안에서 안정적으로 돌아가고, 보안등과 시간대 규칙만으로도 첫날부터 의미 있게 동작합니다.</p>
+  </section>
+
+  <!-- 개인정보 -->
+  <section>
+    <h2>개인정보 보호, 수집부터 파기까지</h2>
+    <p class="intro">집 앞 산책을 다루는 서비스라, 정보를 그대로 모으면 집 위치가 드러납니다. 이 점을 가장 먼저 막도록 설계했습니다.</p>
+    <div class="life">
+      <div><div class="s">수집</div><h3>집 위치는 기기에만</h3><p>서버에는 흐린 격자 위치만 보내고, 경로의 시작과 끝, 사진 속 얼굴과 번호판은 기기에서 지운 뒤 전송합니다.</p></div>
+      <div><div class="s">이용</div><h3>코스와 지도에만</h3><p>제보에는 지점과 내용만 담고, 제보자 정보는 시에 넘기지 않습니다. 광고에는 쓰지 않습니다.</p></div>
+      <div><div class="s">보관</div><h3>사람이 아니라 길 단위로</h3><p>여러 사람의 경로는 개인을 떼어 낸 길 구간 이용량으로만 합칩니다.</p></div>
+      <div><div class="s">파기</div><h3>오래된 기록은 지운다</h3><p>사진 원본은 판별 뒤 삭제하고, 탈퇴하면 기록을 즉시 지웁니다. 외부 AI에는 흐림 처리된 사진과 반려견 조건만 보냅니다.</p></div>
+    </div>
+  </section>
+
+  
+
+  <!-- 리스크 -->
+  <section>
+    <h2>예상되는 어려움과 대응</h2>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>어려움</th><th class="me">대응</th></tr></thead>
+        <tbody>
+          <tr><td><b>길잡이가 모이지 않음</b></td><td class="me">보안등·시간대 규칙으로 첫날부터 동작, 놀이터 QR과 시 행사 참가자로 100명부터, 임무는 사진 한 장 수준</td></tr>
+          <tr><td><b>사진 판별 오류</b></td><td class="me">단독 사진은 “미확정”, 애매하면 “확인 필요” 임무로, 출처와 날짜 표시</td></tr>
+          <tr><td><b>제보가 엉뚱한 곳으로 감</b></td><td class="me">위치로 관리 주체를 먼저 판정, 근거가 약하면 “확인 필요”로 표시하고 공식 창구 안내</td></tr>
+          <tr><td><b>추천 코스로 반려견이 몰림</b></td><td class="me">구간 이용량을 반영해 같은 시간대 추천을 분산</td></tr>
+          <tr><td><b>비반려인의 반감</b></td><td class="me">이웃 배려를 점수가 아닌 조건으로, 마찰 감소를 지표로 공개</td></tr>
+          <tr><td><b>운영이 멈춤</b></td><td class="me">코스 데이터와 운영 절차를 문서로 남기고, 이웃 배려 구간·시설 정보는 공공데이터로 공개</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <!-- 본선 결과물 -->
+  <section>
+    <h2>본선에서 만들 결과물: 시범 운영으로 이어지는 웹앱</h2>
+    <p class="intro">본선이 끝나면 그대로 옥정 시범에 쓰는 모바일 웹앱의 첫 버전입니다. 화면 흐름은 이미 프로토타입으로 만들어 두었고, 본선에서는 코스 추천과 사진 판별을 실제 AI로 연결합니다.</p>
+    <div class="screens">
+      <div class="scr"><div class="ic">🏠</div><h3>오늘의 코스</h3><p>오늘의 조건(기온·시간대)과 반려견 조건으로 집 앞 순환 코스 추천</p></div>
+      <div class="scr"><div class="ic">🗺️</div><h3>코스 상세</h3><p>이 코스인 이유, 이웃 배려 구간, 정보마다 출처 표시</p></div>
+      <div class="scr"><div class="ic">📸</div><h3>길잡이 사진</h3><p>사진을 찍으면 AI가 노면·시설·위험 요소 판별, 위험 요소는 관리 주체를 확인해 맞는 신고 창구로 넘기고 고쳐지는 과정 확인</p></div>
+      <div class="scr"><div class="ic">🏥</div><h3>동네 반려 생활</h3><p>공공데이터로 만든 동물병원·미용실 목록. 진료 중 여부와 동반 카페는 시연으로 보여 주고 검증 뒤 정식으로</p></div>
+      <div class="scr web"><div class="ic">📊</div><h3>시 리포트</h3><p>생활권별 산책 수요·시설 공백, 들어온 제보 조치 (시연용 웹 화면, 정식 제공은 시범사업 지정 뒤)</p></div>
+    </div>
+    
+    <a class="protolink" href="yangju-meongnyanggil-prototype.html" target="_blank" rel="noopener">
+      <span class="pl-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg></span>
+      <span><b>동작하는 프로토타입 열어 보기</b><span class="s">시간대 바꾸기, 코스 받기, 산책, 사진 판별, 제보가 시를 거쳐 "개선됨"으로 돌아오는 흐름, 동네 병원 찾기까지 직접 눌러 볼 수 있어요. 지금은 AI 판단을 정해 둔 규칙으로 흉내 냅니다.</span></span>
+    </a>
+    <p class="note"><b>시연 시나리오.</b> "3살 믹스견, 다른 개를 조금 무서워함, 오후 4시" 조건으로 코스를 받고, 하원 시간이라 어린이 놀이터 앞을 피해 가는 이유를 확인합니다. 산책 중 찍은 사진에서 배변봉투함 공백이 발견되면 시 리포트에 들어가고, 조치가 끝나면 길잡이 휴대폰에 "개선됨" 알림이 오는 장면까지 한 번에 보여줍니다.</p>
+  </section>
+
+  <div class="part" id="p4"><span class="pn">PART 4 · 심사기준 4</span><h2>기대효과·확장 가능성</h2><p>반려인, 이웃, 시가 함께 얻는 효과를 지표로 확인하고, 같은 엔진을 다른 시군과 다른 보행자에게 넓힙니다.</p></div>
+  <!-- 누가 얻는가 -->
+  <section>
+    <h2>양주 안과 밖이 함께 얻습니다</h2>
+    <div class="grid g4">
+      <div class="card"><span class="ic">🐾</span><h3>양주의 반려인</h3><p>이사 온 첫날부터 반려견에게 맞는 산책길을 압니다. 매일의 산책이 더 안전하고 즐거워집니다.</p></div>
+      <div class="card"><span class="ic">🏘️</span><h3>비반려인 이웃</h3><p>앱을 쓰지 않아도, 어린이 공간과 좁은 길에서 반려견과 덜 마주치고 더 깨끗하고 안전한 길을 걷습니다.</p></div>
+      <div class="card"><span class="ic">🧳</span><h3>반려견과 온 방문객</h3><p>천일홍 축제처럼 반려견과 함께하는 행사에 온 방문객은 행사장 주변 동반 가능 가게와 쉴 곳을 바로 찾습니다.</p></div>
+      <div class="card"><span class="ic">🏛️</span><h3>양주시</h3><p>예산을 먼저 쓰지 않고도 반려동물광장·시설 설치의 근거, 동물 의료 공백 리포트, 이웃 간 마찰 감소, 동네 병원·미용실·카페로 이어지는 소비를 얻습니다.</p></div>
+    </div>
+  </section>
+
+  <!-- 효용 확인 -->
+  <section>
+    <h2>효용은 이렇게 확인합니다</h2>
+    <p class="intro">팀원이 찍은 실제 양주 산책로 사진으로 판별 정확도를 재고(틀린 경우도 공개), 같은 조건에서 지도 앱 도보 경로와 추천 코스를 직접 걸어 비교합니다. 북극성 지표는 주간 완료된 추천 산책 수입니다.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>지표</th><th>측정 방법</th><th class="me">옥정 시범</th><th class="me">확장 6개월 뒤</th></tr></thead>
+        <tbody>
+          <tr><td><b>4주 리텐션</b></td><td class="h">가입 4주 뒤에도 주 1회 이상 사용</td><td class="me">35% (통과 기준)</td><td class="me">35%</td></tr>
+          <tr><td><b>사진 판별</b></td><td class="h">옥정 산책로 사진의 노면·그늘·시설 판별 정확도</td><td class="me">90% (통과 기준)</td><td class="me">90% 이상</td></tr>
+          <tr><td><b>이웃 공간 통행</b></td><td class="h">하원·등하교 시간 어린이 시설 주변 추천 코스 통과 비율</td><td class="me">0% (설계 원칙)</td><td class="me">0%</td></tr>
+          <tr><td><b>제보 조치</b></td><td class="h">제보 중 “개선됨” 비율과 걸린 기간</td><td class="me">기록·공개</td><td class="me">50% 이상</td></tr>
+          <tr><td><b>관련 민원</b></td><td class="h">옥정 배설물·목줄 민원, 도입 전 대비 (시 협조)</td><td class="me">기준선 확인</td><td class="me">감소 추이</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tblnote">목표치는 가설이며 옥정 시범 결과로 다시 정합니다.</p>
+  </section>
+
+  <!-- 확장 -->
+  <section>
+    <h2>어디까지 넓힐 수 있나</h2>
+    <p class="intro">엔진은 그대로 두고, 후보 코스와 이웃 배려 기준만 지역에 맞게 바꿉니다.</p>
+    <div class="grid g3">
+      <div class="card"><span class="ic">🗺️</span><h3>지역: 경기 31개 시군으로</h3><p>뼈대 데이터가 도 전체에 있어, 새 지역은 후보 코스와 출입 제한 구역만 더하면 됩니다.</p></div>
+      <div class="card"><span class="ic">🦽</span><h3>대상: 보행약자의 길로</h3><p>그늘, 노면, 조명, 계단 없는 길은 유아차·휠체어·어르신 산책에도 똑같이 중요합니다.</p></div>
+      <div class="card"><span class="ic">🏛️</span><h3>정책: 시설 배치 기준으로</h3><p>쌓인 리포트가 배변봉투함·안내판·조명을 어느 생활권에 둘지 정하는 기준이 됩니다.</p></div>
+    </div>
+  </section>
+
+  <div class="part"><span class="pn">부록</span><h2>본선 준비와 팀</h2></div>
+  <!-- 일정 -->
+  <section>
+    <h2>본선까지의 일정</h2>
+    <div class="flow">
+      <div class="fstep"><div class="dt">10.5 ~ 10.7</div><h3>설계와 데이터</h3><p>화면 설계, 공공데이터 수집·정리, 옥정 후보 순환 코스를 걸으며 구간 기록, 팀원 집 주변 사진 모으기</p></div>
+      <div class="fstep"><div class="dt">10.8</div><h3>멘토링 2회차</h3><p>설계와 데이터 구조 중간 점검</p></div>
+      <div class="fstep"><div class="dt">10.8 ~ 10.12</div><h3>핵심 기능 구현</h3><p>후보 코스 선택 엔진, 사진 판별, 지도 표시 연결</p></div>
+      <div class="fstep"><div class="dt">10.13</div><h3>멘토링 3회차</h3><p>시연 흐름과 발표 구성 점검</p></div>
+      <div class="fstep"><div class="dt">10.14 ~ 10.15</div><h3>다듬기와 제출</h3><p>효용 시험 결과 정리, 발표자료(PDF) 제출</p></div>
+    </div>
+    <p class="note"><b>본선 10월 17일.</b> 본선이 끝나면 11월부터 같은 웹앱으로 옥정 시범을 준비합니다.</p>
+  </section>
+
+  <!-- 팀 -->
+  <section>
+    <h2>팀 이로움의 역할</h2>
+    <p class="intro">본선 결과물 제작 역할 분담 제안입니다. 팀 회의에서 확정합니다.</p>
+    <div class="team">
+      <div class="mem"><span class="role">프론트엔드</span><h3>황상진</h3><ul><li>모바일 웹앱 화면과 지도 위 코스 표시</li><li>사진 촬영·업로드 흐름</li><li>기기 안 개인정보 처리</li></ul></div>
+      <div class="mem"><span class="role">백엔드</span><h3>이소미</h3><ul><li>공공데이터와 후보 코스 데이터 구조</li><li>이웃 배려 기준에 따른 코스 선택 엔진 설계</li><li>AI 연동과 사진 신뢰도 표시</li></ul></div>
+      <div class="mem"><span class="role">UI</span><h3>이승재</h3><ul><li>화면 흐름과 "이 코스인 이유" 표현</li><li>길잡이 임무·배지, 제보가 "개선됨"으로 돌아오는 흐름</li><li>시 리포트와 발표자료 시각화</li></ul></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>양주 멍냥길(가제), 팀 이로움 — 황상진, 이소미, 이승재</p>
+    <p>마라톤 정보: 2026 양주 천일홍 가을 페스타 마라톤 대회 보도(2026.9, 양주시 발표). 정책 출처: 민선 8기 반려동물 친화도시 추진 보도(2024.7), 양주시 반려동물 문화축제 보도(2024.9, 2025.10), 양주시 반려동물 친화도시 정책 보도(이데일리 2025.2, 경기일보 2025.7), 전국 반려 가구 수(KB금융그룹 2025 한국 반려동물 보고서), 민선 9기 시장 공약 보도(2026.5~6), 민선 9기 시정목표·공약사업 추진 보도(2026.9). 데이터: 공공데이터포털, 경기데이터드림 반려동물 생활동반지도(2023 개방). 화면과 예시는 설명용입니다.</p>
+    <p>추가 출처: 2025 반려동물 양육현황조사 양육가구 비율 29.2% (농림축산식품부, 데일리벳 2026.2), 2025 동물보호·복지 실태조사 (농림축산식품부 2026.6), 반려견 놀이터 공원 면적 제한 (양천구, 뉴스서울 2023.1), 공모전 시상 내역 (2026 양주시 미래인재 AI 공모전 공고), 청년 창업기업 성장지원 협약 (양주시, 2026.3 보도). 양주 반려 가구 수는 세대 수에 전국 비율을 적용한 추정치입니다. 시범 운영 비용과 목표치는 가설이며, 무료 사용량·요금·지원사업 일정은 착수 시점에 다시 확인합니다.</p>
+  </footer>
+
+</div>
+<script>
+  (function(){
+    var root=document.documentElement, btn=document.getElementById('themeToggle');
+    var saved=null; try{saved=localStorage.getItem('mn-theme');}catch(e){}
+    if(saved){root.setAttribute('data-theme',saved);}
+    btn.addEventListener('click',function(){
+      var cur=root.getAttribute('data-theme');
+      var isDark=cur?cur==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var next=isDark?'light':'dark';
+      root.setAttribute('data-theme',next);
+      try{localStorage.setItem('mn-theme',next);}catch(e){}
+    });
+  })();
+</script>
+</body>
+</html>
