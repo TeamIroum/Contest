@@ -1,0 +1,236 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>멘토링 질문지 · 양주 생활 접근성 지도</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#f5f4ee;--ink:#172f36;--muted:#5b6d70;--line:#d8ded8;--card:#fff;--teal:#096b5c;--pale:#e7f1eb;--ochre:#93601e;--sand:#f5ecdc;--track:#eceee7;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#11211f;--ink:#e6ece9;--muted:#9fb1ad;--line:#2c3f3c;--card:#172b28;--teal:#6cc7b2;--pale:#1d3833;--ochre:#e0b16f;--sand:#2f2a20;--track:#1f3330;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#11211f;--ink:#e6ece9;--muted:#9fb1ad;--line:#2c3f3c;--card:#172b28;--teal:#6cc7b2;--pale:#1d3833;--ochre:#e0b16f;--sand:#2f2a20;--track:#1f3330;color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Pretendard","Noto Sans KR","Malgun Gothic",sans-serif;font-size:15px;line-height:1.75;word-break:keep-all;overflow-wrap:anywhere}
+a{color:inherit;text-underline-offset:4px}a:hover{color:var(--teal)}
+.wrap{width:min(1120px,calc(100% - 64px));margin:auto}
+.masthead{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:24px 0;border-bottom:1px solid var(--line);font-size:13px}
+.brand{font-weight:800;letter-spacing:.04em}.brand b{color:var(--teal)}
+.masthead nav{display:flex;gap:18px}
+.eyebrow{font-size:12px;letter-spacing:.14em;font-weight:700;color:var(--teal);margin:0 0 12px}
+.hero{padding:56px 0 36px;display:grid;grid-template-columns:1.4fr 1fr;gap:48px;align-items:end}
+h1{font-size:clamp(32px,4.4vw,54px);line-height:1.22;letter-spacing:-.06em;margin:0 0 20px;font-weight:800}
+h1 span{color:var(--teal)}
+.intro{color:var(--muted);font-size:16px;margin:0;max-width:600px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12px;color:var(--muted);margin-top:20px}
+.kpis{display:grid;border-top:3px solid var(--teal)}
+.kpi{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.kpi span{font-size:13px;color:var(--muted)}
+.kpi strong{font-size:28px;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.kpi small{font-size:14px;font-weight:600;margin-left:3px}
+.section{padding:36px 0}
+.section-head{margin-bottom:20px}
+.section-head h2{font-size:26px;letter-spacing:-.045em;margin:0 0 4px}
+.section-head p{font-size:13px;color:var(--muted);margin:0}
+.label{font-size:11px;letter-spacing:.12em;color:var(--teal);font-weight:700;display:block;margin-bottom:4px}
+.findings{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.finding{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px;display:flex;flex-direction:column}
+.finding .top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.finding .tag{font-size:11px;font-weight:700;color:var(--teal);background:var(--pale);border-radius:4px;padding:3px 8px}
+.finding .no{font-size:13px;font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums}
+.finding h3{font-size:18px;line-height:1.5;letter-spacing:-.035em;margin:14px 0 10px}
+.finding p{font-size:14px;color:var(--muted);margin:0}
+.finding .nums{display:flex;gap:24px;margin-top:auto;padding-top:14px;border-top:1px solid var(--line)}
+.finding .gap{height:16px}
+.finding .nums div{font-size:12px;color:var(--muted)}
+.finding .nums b{display:block;font-size:15px;color:var(--ink)}
+.finding.key{border-color:var(--ochre)}
+.finding.key .tag{color:var(--ochre);background:var(--sand)}
+.table-wrap{overflow-x:auto;border-top:2px solid var(--ink)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+thead th{font-size:12px;color:var(--muted);font-weight:600;background:var(--track);white-space:nowrap}
+tbody th{white-space:nowrap}
+.cautions{display:grid;grid-template-columns:1fr 1fr;gap:12px 32px;padding:0;margin:28px 0 0;list-style:none;counter-reset:c}
+.cautions li{counter-increment:c;padding-left:30px;position:relative;font-size:14px}
+.cautions li::before{content:counter(c);position:absolute;left:0;top:2px;width:20px;height:20px;border-radius:50%;background:var(--sand);color:var(--ochre);font-size:11px;font-weight:700;display:grid;place-items:center}
+.cautions strong{display:block}
+.cautions span{color:var(--muted)}
+.closing{display:flex;justify-content:space-between;gap:16px;color:var(--muted);font-size:11px;padding:28px 0 36px;border-top:1px solid var(--line);margin-top:24px}
+@media(max-width:860px){.hero{grid-template-columns:1fr;gap:28px}.findings,@media(max-width:600px){.wrap{width:calc(100% - 32px)}.masthead nav{display:none}.hero{padding:36px 0 24px}.section{padding:24px 0}.section-head h2{font-size:22px}@media print{body{background:#fff}.masthead nav{display:none}.finding{break-inside:avoid}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style></head><body>
+<div class="wrap">
+<header class="masthead">
+  <div class="brand">YANGJU / <b>ACCESS MAP</b></div>
+  <nav><a href="#summary">기획안 요약</a><a href="#scope">2회차</a><a href="#final">3회차</a><a href="#plan">진행 방법</a></nav>
+</header>
+
+<section class="hero">
+  <div>
+    <p class="eyebrow">멘토링 질문지 · 2·3회차</p>
+    <h1>본선 전에,<br><span>멘토링으로</span> 점검합니다</h1>
+    <p class="intro">양주 생활 접근성 지도는 격자별 이동시간으로 의료·생활 인프라 공백을 진단하고, 담당자가 자연어로 질문하면 LLM이 분석 함수를 호출해 후보별 해소 인구를 보여 주는 웹 지도 대시보드입니다. 2회차에는 제작 범위·역할 분담·AI 활용을, 3회차에는 결과물 완성도와 발표 구성을 점검합니다. 각 회차 주제에 개인정보·보안 관점의 질문을 함께 준비했습니다.</p>
+    <div class="meta"><span>1차 기획안 제출 2026.10.04</span><span>팀 이로움</span><span>소주제 똑똑하고 편리한 양주</span></div>
+  </div>
+  <div class="kpis" aria-label="멘토링 개요">
+    <div class="kpi"><span>준비한 질문</span><strong>13<small>개</small></strong></div>
+    <div class="kpi"><span>2회차 · 범위·역할·AI</span><strong>10.9<small>금</small></strong></div>
+    <div class="kpi"><span>3회차 · 완성도·발표</span><strong>10.14<small>수</small></strong></div>
+    <div class="kpi"><span>시간</span><strong>20–22<small>시</small></strong></div>
+  </div>
+</section>
+
+<section class="section" id="summary">
+  <div class="section-head"><span class="label">PLAN SUMMARY</span><h2>최종 기획안 요약</h2><p>10월 4일 제출한 기획안 기준입니다. 질문은 모두 이 범위와 역할을 전제로 합니다.</p></div>
+  <div class="table-wrap"><table>
+    <tbody>
+      <tr><th scope="row">우선 구현</th><td>1순위: 약국 기준의 ① 격자 접근성 지도(도보, 느린 보행 0.7m/s 모드) · ② 약국 운영시간 기준의 야간·심야 시간대(공공심야약국 구분 표시) · ③ 기준 설정 · ④ 심야약국 후보 비교 · 버튼형 질의 · 자연어 질의(약국·심야 질문) · 템플릿 보고서 / 2순위: 의원·소아 진료기관·야간진료로 확장, 보고서의 LLM 문장 / 3순위: 차량 시간, 어린이집·학교·공원, 공공병원 후보, 시민 화면</td></tr>
+      <tr><th scope="row">확장 단계</th><td>② 약국 외 시설의 주간 운영시간까지 반영 · ⑤ 입주 시나리오 · 시민 화면의 운영시간 조회</td></tr>
+      <tr><th scope="row">배포 구조</th><td>GitHub Pages 정적 사이트(배포 저장소 공개, 원본 저장소 비공개) · LLM만 무료 서버리스 중계 함수 · 로그인 없음 · 비용 0원 원칙</td></tr>
+      <tr><th scope="row">일정</th><td>준비 10.6~10.9 · 구현 10.10~10.15 · 제출 10.15 22:59 · 본선 10.17</td></tr>
+      <tr><th scope="row">데이터</th><td>인구·도로명주소·시설 현황·진료과목·진료시간·공공심야약국·야간진료 지정 목록·격자 인구·도로망·행정동 경계, 모두 공개 데이터. 격자 인구는 개인정보 보호 처리된 집계 자료</td></tr>
+      <tr><th scope="row">AI 원칙</th><td>자연어 질의: LLM은 질문을 조건(JSON)으로만 바꾸고, 계산과 답변 문장은 브라우저가 함. 빠진 조건은 화면 설정값으로 채우고 지명·지점이 모두 없을 때만 다시 질문 · 보고서 초안: 템플릿 보고서(1순위), LLM 문장은 숫자 없이 자리표시자로만(2순위) · 정제 보조: 시설 목록 연결에서 규칙으로 안 되는 건만 공모전 제공 Claude 계정으로 후보를 내고 팀이 확정 · 최종 판단은 담당자</td></tr>
+      <tr><th scope="row">활용·운영 부서</th><td>보건행정과(의료기관·약국 관리, 의료취약지역 지원사업) · 스마트정보담당관(AI·빅데이터 정책 총괄)과 본선 이후 시범 운영 협의</td></tr>
+      <tr><th scope="row">팀 역할</th><td>이소미 기획·백엔드·DB·LLM 연동 · 이승재 디자인·프론트엔드·지도 시각화 · 황상진 데이터 분석·경로 탐색·이동시간 계산</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="section" id="scope">
+  <div class="section-head"><span class="label">SESSION 2 · SCOPE</span><h2>① 제작 범위·역할 분담</h2><p>2회차 공식 주제입니다. 구현을 시작하기 전에 범위와 분담이 6일 안에 가능한지 점검합니다.</p></div>
+  <div class="findings">
+    <article class="finding key">
+      <div class="top"><span class="tag">제작 범위</span><span class="no">Q1</span></div>
+      <h3>1순위에 약국 지도·분석과 자연어 질의, 템플릿 보고서까지 넣어 10.12에 완성하려 합니다. 현실적일까요? 부족하면 무엇부터 뺄까요?</h3>
+      <p>자연어 질의와 보고서는 기획안에서 약속한 AI 기능이라 1순위에 넣었습니다. 시간이 부족하면 자연어 질의를 2순위로 내리고 버튼형 질의로 시연합니다.</p>
+      <div class="gap"></div>
+      <div class="nums"><div>담당<b>이소미</b></div><div>회차<b>2회차</b></div><div>본선 심사 항목<b>기술적 구현·완성도</b></div></div>
+    </article>
+    <article class="finding">
+      <div class="top"><span class="tag">역할 분담</span><span class="no">Q2</span></div>
+      <h3>세 명의 역할 분담에서 일이 몰리거나 비는 곳이 있을까요?</h3>
+      <p>이소미는 기획·백엔드·DB·LLM 연동, 이승재는 디자인·프론트엔드·지도 시각화, 황상진은 데이터 분석·경로 탐색·이동시간 계산을 맡습니다. 이소미에게 일이 많은 편입니다.</p>
+      <div class="gap"></div>
+      <div class="nums"><div>담당<b>전원</b></div><div>회차<b>2회차</b></div><div>본선 심사 항목<b>기술적 구현·완성도</b></div></div>
+    </article>
+  </div>
+</section>
+
+<section class="section" id="ai">
+  <div class="section-head"><span class="label">SESSION 2 · AI</span><h2>② AI 활용 점검</h2><p>2회차 공식 주제입니다. 서비스 안의 자연어 질의와 보고서 초안 기능을 점검합니다.</p></div>
+  <div class="findings">
+    <article class="finding">
+      <div class="top"><span class="tag">프롬프트 인젝션</span><span class="no">Q3</span></div>
+      <h3>프롬프트 인젝션이나 의도하지 않은 기능 호출을 막으려면, 설계에 최소한 무엇을 넣어야 할까요?</h3>
+      <p>LLM은 질문을 조건(JSON)으로만 바꾸고, 브라우저가 형식 검사를 통과한 조건으로만 분석 함수를 실행합니다. 2순위에서는 보고서 초안 문장도 LLM이 씁니다.</p>
+      <div class="gap"></div>
+      <div class="nums"><div>담당<b>이소미</b></div><div>회차<b>2회차</b></div><div>본선 심사 항목<b>AI 도구 활용도</b></div></div>
+    </article>
+    <article class="finding key">
+      <div class="top"><span class="tag">수치 환각</span><span class="no">Q4</span></div>
+      <h3>LLM은 숫자를 쓰지 않고 보고서도 자리표시자로만 쓰게 하는 구조인데, 이것으로 충분할까요? 심사에서는 어떻게 보여 주면 좋을까요?</h3>
+      <p>숫자는 브라우저가 함수 결과로 채우고, "후보 A가 더 많다" 같은 비교 표현은 순위·증감 값과 맞는지 검사합니다. 검사를 통과하지 못하면 템플릿 보고서로 대체합니다. 행정 판단의 근거가 되는 숫자라 틀리면 서비스 신뢰가 무너집니다.</p>
+      <div class="gap"></div>
+      <div class="nums"><div>담당<b>이소미·황상진</b></div><div>회차<b>2회차</b></div><div>본선 심사 항목<b>AI 도구 활용도</b></div></div>
+    </article>
+    <article class="finding">
+      <div class="top"><span class="tag">무료 LLM</span><span class="no">Q5</span></div>
+      <h3>무료 등급 LLM은 입력이 모델 개선에 쓰일 수 있는데, 공개 데이터만 다루더라도 주의할 점이 있을까요? 실제 도입은 어떤 형태를 전제로 해야 할까요?</h3>
+      <p>비용 0원 원칙으로 무료 사용량 안에서만 LLM을 씁니다. 기획안은 스마트정보담당관이 운영을 맡는 것을 전제로 합니다.</p>
+      <div class="gap"></div>
+      <div class="nums"><div>담당<b>이소미</b></div><div>회차<b>2회차</b></div><div>본선 심사 항목<b>실무 적용 가능성</b></div></div>
+    </article>
+  </div>
+</section>
+
+<section class="section" id="privacy">
+  <div class="section-head"><span class="label">SESSION 2 · PRIVACY</span><h2>③ 개인정보</h2><p>2회차에 함께 점검합니다. 설계 단계에서 정해야 구현에 바로 반영할 수 있습니다.</p></div>
+  <div class="findings">
+    <article class="finding key">
+      <div class="top"><span class="tag">소수 인구 격자</span><span class="no">Q6</span></div>
+      <h3>인구가 아주 적은 격자에서 특정 가구가 추정될 위험이 있을까요? 가리는 기준과 안전한 격자 크기는 어느 정도일까요?</h3>
+      <p>은현면(4,866명), 양주1동(4,403명)처럼 인구가 적은 동일수록 격자 하나에 사는 사람이 적습니다. 250m를 우선 검토하고, 값을 가린 격자도 집계에는 포함할 계획입니다.</p>
+      <div class="gap"></div>
+      <div class="nums"><div>담당<b>황상진</b></div><div>회차<b>2회차</b></div><div>본선 심사 항목<b>실무 적용 가능성</b></div></div>
+    </article>
+    <article class="finding">
+      <div class="top"><span class="tag">위치 정보</span><span class="no">Q7</span></div>
+      <h3>"내 위치 기준 몇 분"을 서버에 저장하지 않고 브라우저에서만 계산하면, 별도 동의 없이 운영할 수 있을까요?</h3>
+      <p>기획안의 시민 활용은 "우리 동네에서 의원·약국까지의 추정 이동시간 조회"입니다. 위치를 받는 방식에 따라 시민 화면 설계가 달라집니다.</p>
+      <div class="gap"></div>
+      <div class="nums"><div>담당<b>이승재</b></div><div>회차<b>2회차</b></div><div>본선 심사 항목<b>실무 적용 가능성</b></div></div>
+    </article>
+    <article class="finding">
+      <div class="top"><span class="tag">데이터 결합</span><span class="no">Q8</span></div>
+      <h3>공개 집계 자료인 격자 인구와 시설 데이터를 결합한 결과물에도 개인정보 문제가 생길 수 있을까요?</h3>
+      <p>기획안의 "격자 인구는 개인정보 보호 처리된 집계 자료"라는 설명만으로 충분한지 확인받습니다.</p>
+      <div class="gap"></div>
+      <div class="nums"><div>담당<b>이소미</b></div><div>회차<b>2회차</b></div><div>본선 심사 항목<b>실무 적용 가능성</b></div></div>
+    </article>
+  </div>
+</section>
+
+<section class="section" id="final">
+  <div class="section-head"><span class="label">SESSION 3 · QUALITY</span><h2>④ 결과물 완성도</h2><p>3회차 공식 주제입니다. 동작하는 서비스를 보여 드리고 제출 전에 점검받습니다.</p></div>
+  <div class="findings">
+    <article class="finding">
+      <div class="top"><span class="tag">키·사용량 관리</span><span class="no">Q9</span></div>
+      <h3>화면은 GitHub Pages 정적 사이트이고 LLM만 무료 서버리스 중계 함수로 호출합니다. 이 구조에서 키와 사용량을 지키는 방법이 충분할까요?</h3>
+      <p>키는 중계 함수 환경 변수에만 두고, 허용 주소 목록·호출 횟수 제한·하루 사용 한도를 둡니다. 원본 코드는 비공개 저장소, 배포 결과물만 공개 저장소에 올립니다.</p>
+      <div class="gap"></div>
+      <div class="nums"><div>담당<b>이소미</b></div><div>회차<b>3회차</b></div><div>본선 심사 항목<b>기술적 구현·완성도</b></div></div>
+    </article>
+    <article class="finding">
+      <div class="top"><span class="tag">웹 취약점</span><span class="no">Q10</span></div>
+      <h3>본선 전에 공개 대시보드에서 꼭 점검해야 할 웹 취약점 항목이 있다면 알려 주세요.</h3>
+      <p>로그인 없이 공개되는 시연용 화면입니다. 동작하는 화면을 함께 보여 드립니다.</p>
+      <div class="gap"></div>
+      <div class="nums"><div>담당<b>이승재</b></div><div>회차<b>3회차</b></div><div>본선 심사 항목<b>기술적 구현·완성도</b></div></div>
+    </article>
+  </div>
+</section>
+
+<section class="section" id="pitch">
+  <div class="section-head"><span class="label">SESSION 3 · PITCH</span><h2>⑤ 발표 구성</h2><p>3회차 공식 주제입니다. 발표 자료 구성안을 보여 드리고 구성과 질의응답을 점검받습니다.</p></div>
+  <div class="findings">
+    <article class="finding key">
+      <div class="top"><span class="tag">발표 구성</span><span class="no">Q11</span></div>
+      <h3>10분 발표를 "문제 → 시연 → AI 활용 → 실무 적용" 순서로 구성하려는데, 심사 배점에 비춰 시간 배분이 적절할까요?</h3>
+      <p>본선 배점은 기술적 구현 30, AI 도구 활용 30, 실무 적용 25, 발표 15입니다. 시연은 3분 이내로 준비합니다.</p>
+      <div class="gap"></div>
+      <div class="nums"><div>담당<b>이소미</b></div><div>회차<b>3회차</b></div><div>본선 심사 항목<b>발표·질의응답</b></div></div>
+    </article>
+    <article class="finding">
+      <div class="top"><span class="tag">도입 절차</span><span class="no">Q12</span></div>
+      <h3>시청이 실제로 도입하려면 어떤 보안 절차(보안성 검토, 클라우드 보안 인증 등)를 거쳐야 하나요?</h3>
+      <p>기획안의 실행 계획은 본선 시연 후 보건행정과·스마트정보담당관과 시범 운영 협의입니다. 발표의 실무 적용 부분에 반영합니다.</p>
+      <div class="gap"></div>
+      <div class="nums"><div>담당<b>이소미</b></div><div>회차<b>3회차</b></div><div>본선 심사 항목<b>실무 적용 가능성</b></div></div>
+    </article>
+    <article class="finding">
+      <div class="top"><span class="tag">예상 질문</span><span class="no">Q13</span></div>
+      <h3>개인정보·보안 관점에서 심사위원이 이 프로젝트에 던질 만한 가장 날카로운 질문은 무엇일까요?</h3>
+      <p>본선 질의응답 5분을 대비합니다.</p>
+      <div class="gap"></div>
+      <div class="nums"><div>담당<b>전원</b></div><div>회차<b>3회차</b></div><div>본선 심사 항목<b>발표·질의응답</b></div></div>
+    </article>
+  </div>
+</section>
+
+<section class="section" id="plan">
+  <div class="section-head"><span class="label">PLAN</span><h2>⑥ 멘토링 진행 방법</h2><p>공식 회차별 주제에 맞춰 나눕니다. 두 회차 모두 20:00–22:00 온라인입니다.</p></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th scope="col">회차</th><th scope="col">날짜</th><th scope="col">다룰 질문</th><th scope="col">준비물</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">2회차</th><td>10월 9일(금)</td><td>Q1–Q8 · 제작 범위·역할 분담, AI 활용, 개인정보</td><td>설계서 요약(범위·우선순위·역할), 최종 기획안(이로움_기획안.pdf), 자연어 질의 구조 그림</td></tr>
+      <tr><th scope="row">3회차</th><td>10월 14일(수)</td><td>Q9–Q13 · 결과물 완성도, 발표 구성</td><td>동작하는 서비스 링크, 발표 자료 구성안, 2회차 반영 내용</td></tr>
+    </tbody>
+  </table></div>
+  <ol class="cautions">
+    <li><strong>자료는 전날까지 먼저 보냅니다.</strong><span>접근성 지도 링크는 외부 공개가 막혀 있으니, 기획안 PDF와 함께 HTML 파일이나 화면 캡처로 보냅니다.</span></li>
+    <li><strong>2회차 답을 설계에 바로 반영합니다.</strong><span>3회차에는 무엇을 바꿨는지 먼저 보여 드리고 점검받습니다. 3회차 다음 날이 제출일이라, 그날 받은 피드백은 바로 고칠 수 있는 것부터 반영합니다.</span></li>
+    <li><strong>피드백과 반영 내용을 기록합니다.</strong><span>"멘토 피드백으로 소수 인구 격자를 가렸다"처럼 본선 발표에서 근거로 씁니다.</span></li>
+  </ol>
+</section>
+
+<footer class="closing"><span>YANGJU / ACCESS MAP · 2026 양주시 미래인재 AI 공모전 · 팀 이로움</span><span>멘토링 준비용 내부 자료</span></footer>
+</div>
+</body></html>
