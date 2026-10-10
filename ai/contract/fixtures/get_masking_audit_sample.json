@@ -1,0 +1,57 @@
+[
+  {
+    "photo_id": "ex_16_privacy_leak_fixed",
+    "masked_image_url": "/images/ex_16_privacy_leak_fixed_masked.jpg",
+    "captured_at": "2026-10-08T09:14:00+09:00",
+    "reason": "누락 보정 이력",
+    "mode": "device+server",
+    "faces": 0,
+    "plates": 0,
+    "server_added": 0,
+    "leaks_fixed": 1
+  },
+  {
+    "photo_id": "p_c261675f4afb",
+    "masked_image_url": "/images/p_c261675f4afb_masked.jpg",
+    "captured_at": "2026-10-08T09:14:00+09:00",
+    "reason": "무작위 표본",
+    "mode": "device+server",
+    "faces": 0,
+    "plates": 0,
+    "server_added": 0,
+    "leaks_fixed": null
+  },
+  {
+    "photo_id": "ex_03_caution",
+    "masked_image_url": "/images/ex_03_caution_masked.jpg",
+    "captured_at": "2026-10-08T09:14:00+09:00",
+    "reason": "무작위 표본",
+    "mode": "device+server",
+    "faces": 0,
+    "plates": 0,
+    "server_added": 0,
+    "leaks_fixed": null
+  },
+  {
+    "photo_id": "ex_04_urgent",
+    "masked_image_url": "/images/ex_04_urgent_masked.jpg",
+    "captured_at": "2026-10-08T09:14:00+09:00",
+    "reason": "무작위 표본",
+    "mode": "device+server",
+    "faces": 0,
+    "plates": 0,
+    "server_added": 0,
+    "leaks_fixed": null
+  },
+  {
+    "photo_id": "p_2793a0500306",
+    "masked_image_url": "/images/p_2793a0500306_masked.jpg",
+    "captured_at": "2026-10-08T09:14:00+09:00",
+    "reason": "무작위 표본",
+    "mode": "device+server",
+    "faces": 0,
+    "plates": 0,
+    "server_added": 0,
+    "leaks_fixed": null
+  }
+]

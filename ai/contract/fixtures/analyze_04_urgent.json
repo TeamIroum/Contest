@@ -1,0 +1,87 @@
+{
+  "photo_id": "p_example_04",
+  "participant_id": "P-001",
+  "captured_at": "2026-10-08T09:14:00+09:00",
+  "status": "ok",
+  "masked_image_url": "/images/p_example_04_masked.jpg",
+  "image_revision": 1,
+  "quality": {
+    "ok": true,
+    "problems": [],
+    "metrics": {
+      "sharpness": 1430.7,
+      "brightness": 117.9
+    }
+  },
+  "facility": {
+    "type": "sidewalk",
+    "label": "보도블록",
+    "certainty": "high",
+    "facility_id": "SW-0001",
+    "place": "초등학교 통학로 (정문 앞 40m) [예시]",
+    "match_ambiguous": false,
+    "location_tags": [
+      "school_route"
+    ]
+  },
+  "issues": [
+    {
+      "type": "lifted",
+      "severity": 3,
+      "bbox": [
+        0.31,
+        0.42,
+        0.55,
+        0.7
+      ],
+      "evidence": "보행 동선 가운데 블록 한 장이 주변보다 들려 단차가 보임",
+      "label": "들뜸"
+    }
+  ],
+  "ai_severity": 3,
+  "grade": "긴급",
+  "grade_reasons": [
+    "들뜸: 보행 동선 가운데 블록 한 장이 주변보다 들려 단차가 보임 (AI 판단 정도 3/3)",
+    "통학로 위치 가중치 적용"
+  ],
+  "dept": "도로 담당",
+  "action": "alert_now",
+  "senior_message": {
+    "key": "danger_keep_away",
+    "text": "위험한 곳이에요. 가까이 가지 마세요. 담당자에게 바로 알렸어요."
+  },
+  "duplicate_of": null,
+  "retry": null,
+  "notes": [],
+  "meta": {
+    "contract_version": "2.0",
+    "provider": "mock",
+    "model": "mock",
+    "prompt_version": "analyze-537d9b0",
+    "taxonomy_version": "0.3",
+    "latency_ms": 2400,
+    "created_at": "2026-10-08T09:14:03+09:00",
+    "privacy": {
+      "faces": 0,
+      "plates": 0,
+      "vehicles": 0,
+      "boxes": [],
+      "detectors": {
+        "face": "yunet",
+        "plate": "pretrained+heuristic",
+        "vehicle": "vehicle"
+      },
+      "masked_area_ratio": 0.0,
+      "mode": "device+server",
+      "device": {
+        "faces": 0,
+        "plates": 1,
+        "vehicles": null,
+        "detector": "mlkit+ocr",
+        "app_version": "1.0.0"
+      },
+      "server_added": 0
+    },
+    "raw_certainty": "high"
+  }
+}

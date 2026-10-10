@@ -1,0 +1,23 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "type": "image_remasked",
+      "photo_id": "ex_16_privacy_leak_fixed",
+      "at": "2026-10-08T09:14:05+09:00",
+      "image_revision": 2,
+      "reason": "ai_leak",
+      "count": 1
+    },
+    {
+      "seq": 2,
+      "type": "image_hidden",
+      "photo_id": "m_ref-0001",
+      "at": "2026-10-08T09:15:05+09:00",
+      "image_revision": 1,
+      "reason": "번호판 일부가 보임"
+    }
+  ],
+  "next_after": 2,
+  "last_seq": 2
+}

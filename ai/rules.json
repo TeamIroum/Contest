@@ -1,0 +1,36 @@
+{
+  "version": "0.3",
+  "note": "위험도 규칙표. AI는 문제의 정도(0~3)만 판단하고 등급은 이 규칙으로 코드가 정한다. 숫자를 바꿀 때는 팀 합의 후 version을 올린다.",
+  "base_grade_by_severity": {
+    "0": "정상",
+    "1": "관찰",
+    "2": "주의",
+    "3": "긴급"
+  },
+  "location_bump": {
+    "tags": [
+      "school_route",
+      "child_facility",
+      "roadside"
+    ],
+    "min_severity": 2,
+    "max_steps": 1
+  },
+  "worsened_bump": {
+    "min_severity": 1,
+    "steps": 1
+  },
+  "min_grade_by_issue": {
+    "drain.cover_missing": "긴급",
+    "bench.part_detached": "주의",
+    "fence.joint_detached": "주의",
+    "exercise.part_detached": "주의"
+  },
+  "review": {
+    "send_low_certainty_to_human": true,
+    "send_unknown_facility_to_human": true
+  },
+  "duplicate": {
+    "same_facility_and_issue_while_open": true
+  }
+}

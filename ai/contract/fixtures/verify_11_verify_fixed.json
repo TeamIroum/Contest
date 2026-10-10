@@ -1,0 +1,54 @@
+{
+  "photo_id": "p_example_11",
+  "case_id": "C-0388",
+  "facility_id": "SW-0001",
+  "participant_id": "P-001",
+  "captured_at": "2026-10-08T09:14:00+09:00",
+  "masked_image_url": "/images/p_example_11_masked.jpg",
+  "image_revision": 1,
+  "mode": "repair",
+  "status": "ok",
+  "result": "fixed",
+  "action": "close_case",
+  "same_facility": "yes",
+  "current_severity": 0,
+  "evidence": "들렸던 블록이 주변 높이에 맞춰 다시 깔려 단차가 보이지 않음",
+  "new_grade": null,
+  "grade_reasons": [],
+  "senior_message": {
+    "key": "verify_fixed",
+    "text": "고쳐진 것을 확인했어요. 고맙습니다."
+  },
+  "retry": null,
+  "notes": [],
+  "meta": {
+    "contract_version": "2.0",
+    "provider": "mock",
+    "model": "mock",
+    "prompt_version": "verify-97ae2e1",
+    "taxonomy_version": "0.3",
+    "latency_ms": 2400,
+    "created_at": "2026-10-08T09:14:03+09:00",
+    "privacy": {
+      "faces": 0,
+      "plates": 0,
+      "vehicles": 0,
+      "boxes": [],
+      "detectors": {
+        "face": "yunet",
+        "plate": "pretrained+heuristic",
+        "vehicle": "vehicle"
+      },
+      "masked_area_ratio": 0.0,
+      "mode": "device+server",
+      "device": {
+        "faces": 0,
+        "plates": 1,
+        "vehicles": null,
+        "detector": "mlkit+ocr",
+        "app_version": "1.0.0"
+      },
+      "server_added": 0
+    }
+  }
+}

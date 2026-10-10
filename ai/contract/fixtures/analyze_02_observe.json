@@ -1,0 +1,84 @@
+{
+  "photo_id": "p_example_02",
+  "participant_id": "P-001",
+  "captured_at": "2026-10-08T09:14:00+09:00",
+  "status": "ok",
+  "masked_image_url": "/images/p_example_02_masked.jpg",
+  "image_revision": 1,
+  "quality": {
+    "ok": true,
+    "problems": [],
+    "metrics": {
+      "sharpness": 1430.7,
+      "brightness": 117.9
+    }
+  },
+  "facility": {
+    "type": "drain",
+    "label": "빗물받이",
+    "certainty": "high",
+    "facility_id": null,
+    "place": null,
+    "match_ambiguous": false,
+    "location_tags": []
+  },
+  "issues": [
+    {
+      "type": "covered",
+      "severity": 1,
+      "bbox": [
+        0.2,
+        0.3,
+        0.8,
+        0.75
+      ],
+      "evidence": "덮개 위에 낙엽이 조금 있으나 구멍 대부분은 뚫려 있음",
+      "label": "낙엽·쓰레기로 덮임"
+    }
+  ],
+  "ai_severity": 1,
+  "grade": "관찰",
+  "grade_reasons": [
+    "낙엽·쓰레기로 덮임: 덮개 위에 낙엽이 조금 있으나 구멍 대부분은 뚫려 있음 (AI 판단 정도 1/3)"
+  ],
+  "dept": "하수 담당",
+  "action": "recheck_next",
+  "senior_message": {
+    "key": "observe_recheck",
+    "text": "조금 이상한 곳이에요. 다음 순회 때 다시 볼게요."
+  },
+  "duplicate_of": null,
+  "retry": null,
+  "notes": [],
+  "meta": {
+    "contract_version": "2.0",
+    "provider": "mock",
+    "model": "mock",
+    "prompt_version": "analyze-537d9b0",
+    "taxonomy_version": "0.3",
+    "latency_ms": 2400,
+    "created_at": "2026-10-08T09:14:03+09:00",
+    "privacy": {
+      "faces": 0,
+      "plates": 0,
+      "vehicles": 0,
+      "boxes": [],
+      "detectors": {
+        "face": "yunet",
+        "plate": "pretrained+heuristic",
+        "vehicle": "vehicle"
+      },
+      "masked_area_ratio": 0.0,
+      "mode": "device+server",
+      "device": {
+        "faces": 0,
+        "plates": 1,
+        "vehicles": null,
+        "detector": "mlkit+ocr",
+        "app_version": "1.0.0"
+      },
+      "server_added": 0
+    },
+    "raw_certainty": "high"
+  }
+}

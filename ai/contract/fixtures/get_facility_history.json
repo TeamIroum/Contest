@@ -1,0 +1,60 @@
+{
+  "facility_id": "SW-0001",
+  "events": [
+    {
+      "kind": "inspect",
+      "at": "2026-10-08T09:14:00+09:00",
+      "photo_id": "ex_04_urgent",
+      "grade": "긴급",
+      "issues": [
+        "들뜸"
+      ],
+      "action": "alert_now",
+      "masked_image_url": "/images/ex_04_urgent_masked.jpg"
+    },
+    {
+      "kind": "verify",
+      "at": "2026-10-08T09:14:00+09:00",
+      "photo_id": "p_2793a0500306",
+      "mode": "repair",
+      "result": "fixed",
+      "action": "close_case",
+      "case_id": "C-0388",
+      "masked_image_url": "/images/p_2793a0500306_masked.jpg"
+    },
+    {
+      "kind": "verify",
+      "at": "2026-10-08T09:14:00+09:00",
+      "photo_id": "p_2f6fee57758b",
+      "mode": "change",
+      "result": "worse",
+      "action": "regrade",
+      "case_id": "C-0388",
+      "masked_image_url": "/images/p_2f6fee57758b_masked.jpg"
+    },
+    {
+      "kind": "verify",
+      "at": "2026-10-08T09:14:00+09:00",
+      "photo_id": "p_c261675f4afb",
+      "mode": "repair",
+      "result": "not_fixed",
+      "action": "re_request",
+      "case_id": "C-0388",
+      "masked_image_url": "/images/p_c261675f4afb_masked.jpg"
+    },
+    {
+      "kind": "verify",
+      "at": "2026-10-08T09:14:00+09:00",
+      "photo_id": "p_c580054add4c",
+      "mode": "repair",
+      "result": null,
+      "action": "retake",
+      "case_id": "C-0388",
+      "masked_image_url": "/images/p_c580054add4c_masked.jpg"
+    }
+  ],
+  "inspections": 1,
+  "problems_found": 1,
+  "repairs_confirmed": 1,
+  "re_requests": 1
+}

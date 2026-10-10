@@ -1,0 +1,28 @@
+{
+  "participant_id": "P-001",
+  "period": {
+    "start": "2026-10-05",
+    "end": "2026-10-11"
+  },
+  "days_active": 1,
+  "photos": 15,
+  "facilities_checked": 5,
+  "retakes": 2,
+  "repair_checks": 3,
+  "found": {
+    "긴급": 4,
+    "주의": 1,
+    "관찰": 1
+  },
+  "days": [
+    {
+      "date": "2026-10-08",
+      "photos": 15,
+      "facilities": 5,
+      "first_capture": "09:14",
+      "last_capture": "09:14",
+      "repair_checks": 3
+    }
+  ],
+  "note": "활동 시간은 그날 첫 촬영과 마지막 촬영 시각 기준이며, 이동 경로는 기록하지 않습니다."
+}

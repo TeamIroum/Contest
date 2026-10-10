@@ -1,0 +1,84 @@
+{
+  "photo_id": "p_example_05",
+  "participant_id": "P-001",
+  "captured_at": "2026-10-08T09:14:00+09:00",
+  "status": "ok",
+  "masked_image_url": "/images/p_example_05_masked.jpg",
+  "image_revision": 1,
+  "quality": {
+    "ok": true,
+    "problems": [],
+    "metrics": {
+      "sharpness": 1430.7,
+      "brightness": 117.9
+    }
+  },
+  "facility": {
+    "type": "bench",
+    "label": "벤치",
+    "certainty": "high",
+    "facility_id": "BN-0001",
+    "place": "근린공원 산책로 벤치 [예시]",
+    "match_ambiguous": false,
+    "location_tags": []
+  },
+  "issues": [
+    {
+      "type": "board_broken",
+      "severity": 3,
+      "bbox": [
+        0.2,
+        0.4,
+        0.75,
+        0.65
+      ],
+      "evidence": "벤치 좌판 나무 한 장이 가운데에서 부러져 아래로 꺼져 있음",
+      "label": "좌판·등받이 파손"
+    }
+  ],
+  "ai_severity": 3,
+  "grade": "긴급",
+  "grade_reasons": [
+    "좌판·등받이 파손: 벤치 좌판 나무 한 장이 가운데에서 부러져 아래로 꺼져 있음 (AI 판단 정도 3/3)"
+  ],
+  "dept": "공원 담당",
+  "action": "alert_now",
+  "senior_message": {
+    "key": "danger_keep_away",
+    "text": "위험한 곳이에요. 가까이 가지 마세요. 담당자에게 바로 알렸어요."
+  },
+  "duplicate_of": null,
+  "retry": null,
+  "notes": [],
+  "meta": {
+    "contract_version": "2.0",
+    "provider": "mock",
+    "model": "mock",
+    "prompt_version": "analyze-537d9b0",
+    "taxonomy_version": "0.3",
+    "latency_ms": 2400,
+    "created_at": "2026-10-08T09:14:03+09:00",
+    "privacy": {
+      "faces": 0,
+      "plates": 0,
+      "vehicles": 0,
+      "boxes": [],
+      "detectors": {
+        "face": "yunet",
+        "plate": "pretrained+heuristic",
+        "vehicle": "vehicle"
+      },
+      "masked_area_ratio": 0.0,
+      "mode": "device+server",
+      "device": {
+        "faces": 0,
+        "plates": 1,
+        "vehicles": null,
+        "detector": "mlkit+ocr",
+        "app_version": "1.0.0"
+      },
+      "server_added": 0
+    },
+    "raw_certainty": "high"
+  }
+}

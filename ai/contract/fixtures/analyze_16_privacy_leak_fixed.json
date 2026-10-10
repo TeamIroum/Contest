@@ -1,0 +1,86 @@
+{
+  "photo_id": "p_example_16",
+  "participant_id": "P-001",
+  "captured_at": "2026-10-08T09:14:00+09:00",
+  "status": "ok",
+  "masked_image_url": "/images/p_example_16_masked.jpg",
+  "image_revision": 2,
+  "quality": {
+    "ok": true,
+    "problems": [],
+    "metrics": {
+      "sharpness": 1430.7,
+      "brightness": 117.9
+    }
+  },
+  "facility": {
+    "type": "drain",
+    "label": "빗물받이",
+    "certainty": "high",
+    "facility_id": null,
+    "place": null,
+    "match_ambiguous": false,
+    "location_tags": []
+  },
+  "issues": [],
+  "ai_severity": 0,
+  "grade": "정상",
+  "grade_reasons": [
+    "문제가 보이지 않음"
+  ],
+  "dept": "하수 담당",
+  "action": "record_only",
+  "senior_message": {
+    "key": "normal_recorded",
+    "text": "문제없어요. 기록했어요."
+  },
+  "duplicate_of": null,
+  "retry": null,
+  "notes": [
+    "마스킹이 놓친 1곳을 다시 가렸습니다 (검출기 개선 자료로 기록)."
+  ],
+  "meta": {
+    "contract_version": "2.0",
+    "provider": "mock",
+    "model": "mock",
+    "prompt_version": "analyze-537d9b0",
+    "taxonomy_version": "0.3",
+    "latency_ms": 2400,
+    "created_at": "2026-10-08T09:14:03+09:00",
+    "privacy": {
+      "faces": 0,
+      "plates": 0,
+      "vehicles": 0,
+      "boxes": [
+        {
+          "kind": "plate",
+          "source": "ai",
+          "score": 1.0,
+          "box": [
+            0.0,
+            0.0217,
+            0.375,
+            0.1767
+          ]
+        }
+      ],
+      "detectors": {
+        "face": "yunet",
+        "plate": "pretrained+heuristic",
+        "vehicle": "vehicle"
+      },
+      "masked_area_ratio": 0.0,
+      "mode": "device+server",
+      "device": {
+        "faces": 0,
+        "plates": 1,
+        "vehicles": null,
+        "detector": "mlkit+ocr",
+        "app_version": "1.0.0"
+      },
+      "server_added": 0,
+      "leaks_fixed": 1
+    },
+    "raw_certainty": "high"
+  }
+}

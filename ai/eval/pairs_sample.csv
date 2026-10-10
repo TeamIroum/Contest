@@ -1,0 +1,4 @@
+pair_id,before_path,after_path,facility_type,issue_type,prior_severity,prior_bbox,prior_evidence,mode,expected
+v01,sample/s01.jpg,sample/s02.jpg,sidewalk,lifted,3,"[0.31,0.42,0.55,0.70]",블록 들뜸,repair,fixed
+v02,sample/s03.jpg,sample/s04.jpg,fence,tilted,2,"[0.3,0.2,0.7,0.85]",펜스 기울어짐,repair,not_fixed
+v03,sample/s05.jpg,sample/s06.jpg,drain,covered,2,"[0.2,0.3,0.8,0.75]",낙엽으로 덮임,repair,different_place

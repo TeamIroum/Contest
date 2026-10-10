@@ -1,0 +1,10 @@
+__pycache__/
+.pytest_cache/
+eval/results/
+eval/photos/
+.env
+data/images/
+data/images_revisions/
+data/results/
+eval/mask_check/
+eval/평가결과.html

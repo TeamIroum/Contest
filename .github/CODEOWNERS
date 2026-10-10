@@ -1,0 +1,18 @@
+# 담당자 GitHub 아이디로 바꿔 주세요. 해당 경로를 바꾸는 PR에 리뷰 요청이 자동으로 갑니다.
+# 같은 파일에 여러 규칙이 맞으면 '아래쪽' 규칙이 적용되므로, 넓은 경로를 위에, 좁은 경로를 아래에 둡니다.
+
+/docs/                       @planning-owner
+/ai/                         @ai-owner
+/backend/                    @backend-owner
+/frontend/senior/            @app-owner
+/frontend/admin/             @admin-web-owner
+/frontend/shared/            @app-owner @admin-web-owner
+/infra/                      @backend-owner
+/.github/                    @backend-owner @ai-owner
+
+# 두 쪽이 함께 지키는 약속은 양쪽 리뷰를 받습니다
+/docs/API_명세서.md                @backend-owner @app-owner @admin-web-owner
+/docs/DB_설계.md                   @backend-owner
+/docs/AI_기능_설계.md              @ai-owner @backend-owner
+/ai/contract/API_CONTRACT.md       @ai-owner @backend-owner
+/ai/contract/APP_MASKING_GUIDE.md  @ai-owner @app-owner

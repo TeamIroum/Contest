@@ -1,0 +1,9 @@
+photo_id,image_path,facility_type,issue_type,severity,quality_ok,location_tags,capture_hour,note
+s01,sample/s01.jpg,sidewalk,lifted,3,1,school_route,9,합성 이미지 (실행 확인용)
+s02,sample/s02.jpg,fence,tilted,2,1,,10,합성 이미지
+s03,sample/s03.jpg,drain,,0,1,roadside,10,합성 이미지
+s04,sample/s04.jpg,exercise,part_detached,3,1,child_facility,11,합성 이미지
+s05,sample/s05.jpg,drain,covered,1,1,,11,합성 이미지
+s06,sample/s06.jpg,sidewalk,sunken,2,1,school_route,12,합성 이미지
+dark,sample/dark.jpg,sidewalk,,0,0,,18,재촬영이 정답
+blur,sample/blur.jpg,drain,,0,0,,9,재촬영이 정답

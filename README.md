@@ -1,66 +1,55 @@
-# AccessMap — 양주 생활 접근성 지도
+# 시니어 동네 점검단
 
-2026 양주시 미래인재 AI 공모전 · 팀 이로움
+2인 1조 시니어가 지정 코스의 시설(보도블록·빗물받이·벤치·안전펜스·운동기구) 외관을 촬영하고, 담당자가 AI 판독 결과를 참고해 보수와 수리 확인까지 관리하는 서비스입니다. 팀 이로움.
 
-> 이 저장소는 **비공개 원본 저장소**입니다. 공개 화면은 배포 저장소 [AccessMap](https://github.com/TeamIroum/AccessMap)에서 GitHub Pages로 보여 줍니다(https://teamiroum.github.io/AccessMap/).
+## 구조
 
-## 프로젝트
+```
+.
+├─ docs/                설계 문서 (서비스 설계서, 기능정의서, API 명세서, DB 설계, AI 기능 설계)
+│  ├─ database/         DB 초안 DDL, 트랜잭션 검증 자료
+│  └─ presentation/     발표·공유용 자료
+├─ backend/             업무 백엔드 (Java / Spring Boot, PostgreSQL, Redis)
+├─ frontend/
+│  ├─ senior/           시니어 앱 (모바일 웹 / PWA, 기기 마스킹)
+│  ├─ admin/            관리자 웹 (활동 담당자, 시설 담당자, 사업 총괄)
+│  └─ shared/           두 앱이 함께 쓰는 API 클라이언트·타입
+├─ ai/                  AI 판독 모듈 (Python / FastAPI)
+│  └─ contract/         AI 호출 계약 v2.0, 앱 마스킹 안내, 예시 응답
+├─ infra/
+│  ├─ local/            로컬 개발 환경 (docker compose)
+│  └─ ec2/              EC2 배포
+└─ .github/             CI, 이슈·PR 양식, CODEOWNERS
+```
 
-생활 인프라 격차를 '시설 수'가 아니라 '주민이 몇 분 만에 닿는가'로 진단하고, 심야약국·야간진료 후보별 개선 효과를 비교하는 웹 지도 대시보드입니다.
+호출 흐름은 **앱 → 업무 백엔드 → AI 판독 모듈**입니다. 앱은 AI를 직접 부르지 않습니다.
 
-- 소주제: 똑똑하고 편리한 양주
-- 1순위 범위: 약국 기준의 격자 접근성 지도, 야간·심야 시간대, 기준 설정, 후보 비교, 자연어 질의, 템플릿 보고서
+## 담당별 시작 파일
 
-## 팀
-
-| 이름 | 역할 | 맡은 폴더 |
-|:---:|---|---|
-| 이소미 | 기획, 백엔드·DB·LLM 연동 | 데이터 수집·정제, LLM 중계 함수 |
-| 이승재 | 디자인, 프론트엔드·지도 시각화 | 화면 |
-| 황상진 | 데이터 분석, 경로 탐색·이동시간 계산 | 경로 계산, 분석 함수, 검증 |
-
-> 폴더 구조와 이름은 설계서 확정(10.10) 후 이 표에 맞춰 고칩니다.
-
-## 문서
-
-| 문서 | 위치 |
+| 담당 | 먼저 볼 것 |
 |---|---|
-| 제출 기획안 | `docs/이로움_기획안.pdf` |
-| 설계요청서 | `docs/프로토타입_설계요청서.md` |
-| 설계서 | `docs/설계서.md` (10.7 1차, 10.10 최종 확정) |
-| 1차 분석 리포트 | `site/access-report.html` |
-| 멘토링 질문지 | `docs/mentoring-questions.html` (비공개 유지) |
-| 후보 아이디어 검토 기록 | `archive/` |
+| 전체 | [docs/README.md](docs/README.md) (문서 목록과 기준 순서), [CONTRIBUTING.md](CONTRIBUTING.md) |
+| 기획·발표 | [서비스 설계서](docs/서비스_설계서.md), [기능정의서](docs/기능정의서.md) |
+| 백엔드 | [backend/README.md](backend/README.md), [API 명세서](docs/API_명세서.md), [DB 설계](docs/DB_설계.md), [AI 호출 계약](ai/contract/API_CONTRACT.md) |
+| 시니어 앱 | [frontend/senior/README.md](frontend/senior/README.md), [앱 마스킹 안내](ai/contract/APP_MASKING_GUIDE.md) |
+| 관리자 웹 | [frontend/admin/README.md](frontend/admin/README.md) |
+| AI | [ai/README.md](ai/README.md), [마스킹·서버 설계](ai/MASKING_AND_SERVER.md) |
 
-## 일정
+## 로컬 실행
 
-| 날짜 | 할 일 |
-|:---:|---|
-| 10.6~10.8 | 준비: 인증키 신청, 설계서, 약국 데이터 정제, 경로 계산 사전 실험 |
-| 10.9 | 2차 멘토링(제작 범위·역할 분담·AI 활용) |
-| 10.10 | 설계서 최종 확정, 구현 시작 |
-| 10.11 | 배포용 데이터 파일과 이동시간 사전 계산 완료 |
-| 10.12 | 1순위 기능 완성 |
-| 10.14 | 3차 멘토링(완성도·발표 구성) |
-| 10.15 | 22:59 결과물 제출 |
-| 10.17 | 본선 발표 |
+```bash
+cd infra/local
+cp .env.example .env
+docker compose up -d     # PostgreSQL :5432, Redis :6379, AI 판독 모듈(mock) :8000
+```
 
-## 작업 규칙
+AI 모듈 API 문서는 http://localhost:8000/docs 에서 볼 수 있습니다. `.env`의 `AI_API_KEYS` 값을 `X-API-Key` 헤더로 보냅니다. 백엔드·프론트 실행 방법은 빌드 도구와 프레임워크가 정해지면 각 폴더 README에 추가합니다.
 
-- **키와 원본 데이터**
-  - API 키는 `.env`에만 두고 절대 커밋하지 않습니다(`.gitignore` 등록됨)
-  - 기관에서 받은 원자료와 API 응답은 이 저장소에만 두고, 배포 저장소에는 가공 파일만 옮깁니다
-- **커밋**
-  - 각자 자기 계정으로, 자기 폴더를 커밋합니다. Claude가 만든 코드도 직접 검토한 뒤 커밋합니다
-  - 다른 사람 폴더를 고칠 때는 먼저 말합니다
-- **배포**
-  - `site/` 폴더만 배포 저장소(AccessMap)로 옮깁니다
-  - 옮기기 전에 키, 원자료, 멘토링 자료가 섞이지 않았는지 확인합니다
+## 아직 정하지 않은 것
 
-## 실행 방법
+- Java·Spring Boot 버전, 빌드 도구, 마이그레이션 도구
+- 프론트엔드 프레임워크
+- 실행 서버 구성(EC2·S3·RDS), Cloudflare 사용 범위
+- 10월 15일 시연에서 실제 구현할 기능과 모의 시연 기능
 
-> 설계서 확정 후 작성합니다. 로컬 실행(로컬 서버로 열기)과 재실행 갱신 방법을 넣습니다.
-
-## 데이터 출처
-
-> 설계서 확정 후 출처와 기준일을 정리합니다. 화면에도 같은 출처와 기준일을 표시합니다.
+정해지면 '결정 필요' 이슈에 기록하고 관련 README를 고칩니다.
