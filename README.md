@@ -11,7 +11,7 @@
 │  └─ presentation/     발표·공유용 자료
 ├─ backend/             업무 백엔드 (Java / Spring Boot, PostgreSQL, Redis)
 ├─ frontend/
-│  ├─ senior/           시니어 앱 (모바일 웹 / PWA, 기기 마스킹)
+│  ├─ senior/           시니어 앱 (PWA, 브라우저 기기 마스킹)
 │  ├─ admin/            관리자 웹 (활동 담당자, 시설 담당자, 사업 총괄)
 │  └─ shared/           두 앱이 함께 쓰는 API 클라이언트·타입
 ├─ ai/                  AI 판독 모듈 (Python / FastAPI)
@@ -48,7 +48,7 @@ AI 모듈 API 문서는 http://localhost:8000/docs 에서 볼 수 있습니다. 
 ## 아직 정하지 않은 것
 
 - Java·Spring Boot 버전, 빌드 도구, 마이그레이션 도구
-- 프론트엔드 프레임워크
+- 프론트엔드 프레임워크 (시니어 앱은 PWA로 확정)
 - 실행 서버 구성(EC2·S3·RDS), Cloudflare 사용 범위
 - 10월 15일 시연에서 실제 구현할 기능과 모의 시연 기능
 

@@ -9,6 +9,12 @@
 - 도메인·HTTPS(서비스 설계서의 Cloudflare 사용 범위)
 - 비밀 값 보관 방식 (GitHub Actions Secrets, EC2 환경 변수 등). 키를 저장소에 올리지 않습니다
 
+## 시니어 PWA 배포 설정
+
+- HTTPS 필수 (카메라·서비스 워커가 HTTPS에서만 동작)
+- 마스킹 모델 파일(`/models/`)은 버전이 붙은 이름으로 두고 오래 캐시. 앱 화면 파일과 서비스 워커는 짧게 캐시
+- 브라우저 마스킹 속도를 위해 WASM 여러 스레드를 쓰기로 하면 COOP/COEP 헤더 추가 (실기기 측정 후 결정)
+
 ## AI 판독 모듈 운영 설정
 
 - `API_KEYS` 설정, `REQUIRE_DEVICE_MASKING=1`

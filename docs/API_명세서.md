@@ -2,7 +2,9 @@
 
 작성일: 2026-10-10. 모바일 대응 웹과 관리자 웹의 공통 REST 개발 기준이다. 기존 v0.2의 최신 수정 내용과 DB 트랜잭션 보완을 기준본 v1.0으로 정리했다. 실제 구현·기관 승인·운영 인증을 의미하지 않는다. 시연용 고정 인증은 운영 인증과 구분하며, 아래 경로는 `/api/v1` 기준이다. 미정 운영값과 미지원 AI 연동은 12절에 별도로 남긴다.
 
-2026-10-10 AI 계약 대조 수정: 업무 API의 기준 문서는 이 파일이다. [AI_연동_계약.md](AI_연동_계약.md)는 제공된 AI API와의 변환·미지원 기능·연동 선결 사항을 정의한다. [프론트_전달용_API.md](프론트_전달용_API.md)는 이 계약의 요약이다. AI 원문의 앱 직접 호출·자동 사건 종결·업로드 실패 시 사진 삭제를 업무 계약에 그대로 적용하지 않는다.
+2026-10-10 AI 계약 대조 수정: 업무 API의 기준 문서는 이 파일이다. [AI_연동_계약.md](AI_연동_계약.md)는 제공된 AI API와의 변환·연동 선결 사항을 정의한다. [프론트_전달용_API.md](프론트_전달용_API.md)는 이 계약의 요약이다. AI 판독 모듈의 호출 형식은 [AI 판독 API 계약서 v2.0](../ai/contract/API_CONTRACT.md)을 따른다. 앱은 AI를 직접 호출하지 않고, AI의 사건 종결·재요청 제안은 사람 판단 전에는 업무 상태를 바꾸지 않는다.
+
+2026-10-10 PWA 확정 반영: 시니어 앱은 PWA로 확정했다. 네이티브 앱 전용 인증 경로(응답 본문의 갱신 토큰, OS 보안 저장소)를 이 계약에서 뺐다. AI 계약 v2.0에 따라 개인정보 단독 검사, 보고 문장 생성, 사진 버전·보류 전파를 연동 가능 항목으로 고쳤다.
 
 ## 1. 설계 원칙
 
@@ -17,8 +19,8 @@
 ## 2. 공통 계약
 
 - JSON camelCase, ID 문자열(UUID 등), 시간 ISO 8601 UTC, 활동 날짜 Asia/Seoul 기준 YYYY-MM-DD.
-- 인증은 Spring Security + 짧은 Access JWT + 회전하는 Refresh Token + Redis로 구성한다. 시니어·관리자 웹/PWA와 네이티브 앱이 공통 업무 API를 사용한다.
-- API 요청은 Authorization: Bearer <accessToken>을 사용한다. 시니어를 포함한 웹/PWA의 갱신 토큰은 Secure/HttpOnly 쿠키, 네이티브 앱은 OS 보안 저장소에 보관한다. 웹의 쿠키 기반 갱신·로그아웃은 CSRF 방어를 적용한다. 웹 Access Token은 메모리에 보관한다. CORS는 허용 Origin 목록을 지정한다.
+- 인증은 Spring Security + 짧은 Access JWT + 회전하는 Refresh Token + Redis로 구성한다. 시니어 PWA와 관리자 웹이 공통 업무 API를 사용한다. 네이티브 앱은 현재 범위에 없다.
+- API 요청은 Authorization: Bearer <accessToken>을 사용한다. 갱신 토큰은 모든 클라이언트에서 Secure/HttpOnly 쿠키로만 주고받는다. 쿠키 기반 갱신·로그아웃은 CSRF 방어를 적용한다. Access Token은 메모리에 보관하고 localStorage 등 영속 저장소에 두지 않는다. CORS는 허용 Origin 목록을 지정한다.
 - `GET /auth/csrf`가 csrfToken을 반환하고 변경 요청은 `X-CSRF-Token`으로 전송하는 계약 제안. 인증번호 요청 등 로그인 전 변경에도 정책을 적용한다.
 - 배정·판정·보수 등 생성 작업은 `Idempotency-Key: UUID` 필수. 동일 사용자·대상 경로·키·내용 재시도는 기존 결과, 같은 키의 다른 내용은 409. 사진 제출은 clientSubmissionId, 순회 이벤트는 clientEventId를 멱등 키로 사용하므로 별도 헤더는 요구하지 않는다. 요청 해시는 대상 ID·파일 해시·변경에 영향을 주는 메타데이터를 포함한다.
 - 기존 자원 수정은 version을 전달한다. 충돌은 409 VERSION_CONFLICT 후 최신 조회. 기기 사진 제출은 version 대신 제출 ID·구도 고유 제약 사용.
@@ -55,7 +57,8 @@
 - Access Token은 JWT, Refresh Token은 예측 불가능한 임의 문자열이다. Redis에는 Refresh Token 해시·사용자·로그인 세션 ID·만료·회전 상태를 저장한다.
 - 하나의 계정이 여러 기기에 로그인할 수 있다. 시니어 두 명은 서로 다른 계정이며, 기기별 세션과 조별 순회는 별개다.
 - SMS 검증 또는 관리자 MFA 최종 성공 시 토큰을 발급한다. MFA 전 중간 응답에는 업무용 토큰을 발급하지 않는다.
-- 네이티브 앱은 응답 본문으로 갱신 토큰을 받아 OS 보안 저장소에 보관한다. 모든 웹/PWA에는 갱신 토큰을 본문으로 반환하지 않고 Secure/HttpOnly 쿠키로 전달한다. 클라이언트 유형은 등록된 클라이언트 정책과 요청 검증으로 처리하며 비밀 값이 아닌 clientId만으로 신뢰를 부여하지 않는다.
+- 갱신 토큰은 응답 본문으로 반환하지 않고 Secure/HttpOnly 쿠키로만 전달한다. 클라이언트(시니어 PWA, 관리자 웹)는 등록된 클라이언트 정책과 요청 검증으로 구분하며 비밀 값이 아닌 clientId만으로 신뢰를 부여하지 않는다.
+- PWA 페이지를 다시 열면 메모리의 Access Token이 없으므로 쿠키 갱신으로 새 토큰을 받는다. 오프라인으로 쌓인 사진·이벤트는 갱신 성공 후 전송한다.
 - API는 Access JWT의 서명·만료·issuer·audience를 검증하고, 세션/계정 상태·권한 버전도 확인해 계정 중지·권한 변경을 반영한다. Redis 장애 시 보호 API를 임의 허용하지 않는다. 가용성·복구 정책은 별도 설계한다.
 - 갱신은 기존 토큰 소모와 새 토큰 발급을 원자적으로 처리한다. 이전 토큰 재사용 탐지 시 해당 로그인 묶음을 종료한다. 다중 탭·동시 요청은 클라이언트에서 갱신을 단일 실행하도록 하고 네트워크 재시도 정책을 합의한다.
 
@@ -66,7 +69,7 @@
 | POST `/auth/sms-verifications` | challengeId, code, clientId, deviceLabel → 인증 성공 시 토큰 응답 |
 | POST `/auth/admin/sessions` | loginId, password, clientId, deviceLabel → MFA 요청 또는 최종 토큰 응답 |
 | POST `/auth/admin/mfa-verifications` | mfaChallengeId, code → 최종 토큰 응답 |
-| POST `/auth/token/refresh` | 네이티브: refreshToken 본문, 웹/PWA: HttpOnly 쿠키 + CSRF → 새 Access/Refresh 발급 |
+| POST `/auth/token/refresh` | HttpOnly 쿠키 + CSRF → 새 Access 발급, 새 Refresh는 쿠키로 회전 |
 | DELETE `/auth/session` | 현재 로그인 세션 폐기, 웹 쿠키 제거 |
 | GET `/me/sessions` | 본인 기기별 세션 목록: id, deviceLabel, createdAt, lastUsedAt, current |
 | DELETE `/me/sessions/{sessionId}` | 본인 특정 기기 로그아웃 |
@@ -78,14 +81,13 @@
   "tokenType":"Bearer",
   "accessToken":"jwt",
   "accessTokenExpiresAt":"2026-10-10T01:15:00Z",
-  "refreshToken":"네이티브 앱 응답에만 포함",
   "refreshTokenExpiresAt":"2026-10-24T01:00:00Z",
   "sessionId":"session-01",
   "user":{"id":"u-01","name":"김○○","roles":["SENIOR"]}
 }
 ```
 
-시간은 예시이며 만료 정책은 미확정이다. Refresh Token은 웹 응답에서는 필드를 생략한다. JWT에는 전화번호·사진 주소 같은 개인정보를 넣지 않는다. 로그·오류 수집에 토큰을 기록하지 않는다. Redis에는 인증 상태·SMS 검증 정보·시도 제한을 저장하고, 업무 데이터의 원본은 PostgreSQL에 둔다.
+시간은 예시이며 만료 정책은 미확정이다. Refresh Token 값은 응답 본문에 넣지 않고 쿠키로만 전달한다(만료 시각만 본문에 표시). JWT에는 전화번호·사진 주소 같은 개인정보를 넣지 않는다. 로그·오류 수집에 토큰을 기록하지 않는다. Redis에는 인증 상태·SMS 검증 정보·시도 제한을 저장하고, 업무 데이터의 원본은 PostgreSQL에 둔다.
 
 관리자가 참여자를 등록하고 계정을 활성화한다. 미등록 번호는 공개 가입으로 연결하지 않는다. SMS는 번호 소유 확인이며 통신사 본인확인과 구분한다.
 
@@ -178,10 +180,11 @@ offline-package는 packageVersion, patrol(동일 순회 형식), assets[{mediaId
 
 ### 사진 제출 계약
 
-multipart: file, clientSubmissionId(UUID), captureSlotId(UUID), attemptId(UUID), capturedAt, maskingVersion, deviceMasked(true), deviceMaskReport(JSON: faces, plates, detector, appVersion), 선택 위치(latitude/longitude/locationAccuracyMeters).
+multipart: file, clientSubmissionId(UUID), captureSlotId(UUID), attemptId(UUID), capturedAt, maskingVersion, deviceMasked(true), deviceMaskReport(JSON: faces, plates, vehicles, detector, appVersion), 선택 위치(latitude/longitude/locationAccuracyMeters).
 
-- JPEG/PNG, 파일당 10 MiB(10,485,760 bytes) 이하로 정리한다. AI 입력 15MB 한도보다 작은 업무 제한이다. 실제 MIME·디코딩 결과·픽셀 수를 서버 검증한다. HEIC/AVIF/WebP는 앱에서 변환·마스킹한 뒤 전송한다.
-- 파일은 기기 내 마스킹 완료본만 전송한다. 클라이언트 주장만 신뢰하지 않고 서버 재검사한다.
+- JPEG/PNG, 파일당 10 MiB(10,485,760 bytes) 이하로 정리한다. AI 입력 15MB 한도보다 작은 업무 제한이다. 실제 MIME·디코딩 결과·픽셀 수를 서버 검증한다. 시니어 PWA는 앱 안 카메라 화면을 캔버스에서 마스킹한 뒤 JPEG로 만들어 전송한다(EXIF 없음). HEIC/AVIF/WebP는 받지 않는다.
+- 파일은 기기 내 마스킹 완료본만 전송한다. 클라이언트 주장만 신뢰하지 않고 서버 재검사한다. 기기 마스킹 기준은 [앱 마스킹 구현 안내서](../ai/contract/APP_MASKING_GUIDE.md)를 따른다.
+- AI 호출 시 deviceMaskReport는 snake_case(`app_version` 등)로 바꿔 넘기고, 위치는 좌표 대신 시설 대장의 위치 태그(`location_tags`)로 넘긴다([AI 계약서](../ai/contract/API_CONTRACT.md) "백엔드 연동 시 꼭 맞출 것").
 - 같은 사진 재전송은 같은 clientSubmissionId/attemptId. 새 재촬영은 새 ID.
 - 구도별 최초 촬영 + 품질 재촬영 2회로 수정안을 통일한다. 3번째 품질 실패 시 검토 요청을 만들고 다음 구도/장소로 진행한다. 기술 장애·마스킹 장애는 횟수에서 제외한다.
 
@@ -238,7 +241,7 @@ nextAction: WAIT/RETAKE/RETRY/NEXT_CAPTURE/NEXT_STOP/RETURN_TO_CENTER.
 - 늦은 이벤트가 최신 상태를 되돌리지 않도록 이력과 진행 갱신을 분리한다.
 - 기기 사진 삭제는 서버의 영속 접수 확인과 보관 정책을 따른다. 상대 기기가 전송 중이라는 이유만으로 삭제하지 않는다.
 
-원본은 기기에 영속 저장하지 않는다. 오프라인에서는 **기기 내 마스킹 완료본만** 영속 저장한다. 제출 성공 RECEIVED와 NO_MEDIA 품질 실패 처리를 구분하고, 미접수/기술 장애 사진은 재전송을 위해 보관한다. 다른 조원이 채택되면 해당 구도의 중복 대기 사진을 정리할 수 있다. AI 문서의 “JSON만 저장, 업로드 실패 때 다시 촬영”은 이 업무 오프라인 계약과 다르므로 앱 구현에 적용하지 않는다.
+원본은 기기에 영속 저장하지 않는다. 오프라인에서는 **기기 내 마스킹 완료본만** 영속 저장한다. 제출 성공 RECEIVED와 NO_MEDIA 품질 실패 처리를 구분하고, 미접수/기술 장애 사진은 재전송을 위해 보관한다. 다른 조원이 채택되면 해당 구도의 중복 대기 사진을 정리할 수 있다. PWA는 순회 시작 때 저장소 유지(`navigator.storage.persist()`)를 요청하고, 영속 접수 전에는 "전송 대기"로 표시한다. 브라우저가 저장소를 지울 수 있으므로 대기 사진을 전송 완료로 간주하지 않는다.
 
 이벤트 중복은 actor + clientEventId + payload 해시로 검사한다. 늦은 skip/return 이벤트는 이력으로 기록하되 채택 사진·완료 활동을 되돌리지 않는다. 순회/장소 잠금 아래 상태를 검증한다. ABORT 후 미방문으로 기록한 장소의 늦은 사진은 촬영 당시 활동 여부를 확인해 별도 검토하며 자동 방문 성공으로 집계하지 않는다.
 
@@ -268,8 +271,8 @@ nextAction: WAIT/RETAKE/RETRY/NEXT_CAPTURE/NEXT_STOP/RETURN_TO_CENTER.
 | POST `/admin/review-tasks/{id}/decisions` | decision, followUpType, reason, version |
 | GET `/admin/inspections/{id}` | 권한 범위 내 마스킹 사진·촬영자·분석 상세 |
 | GET `/media/{id}/content` | 권한·현재 privacy_status 확인 후 승인 사진 스트리밍. Cache-Control: no-store |
-| POST `/admin/media` | multipart file, purpose=REFERENCE/REPAIR_EVIDENCE, deviceMasked, deviceMaskReport, maskingVersion, organizationId 또는 issueId. 소유 범위 확인. 개인정보 단독 검사 연동 전 503 PRIVACY_SERVICE_NOT_READY |
-| POST `/admin/media/{id}/privacy-reviews` | ok, reason, version. 실패 판정은 즉시 조회 차단·재검토·AI audit 전달 |
+| POST `/admin/media` | multipart file, purpose=REFERENCE/REPAIR_EVIDENCE, deviceMasked, deviceMaskReport, maskingVersion, organizationId 또는 issueId. 소유 범위 확인. AI `POST /privacy/mask`(purpose `reference`/`repair_evidence`)로 개인정보 단독 검사 후 검사 완료본만 저장하며, 이 사진은 판독 실적에 넣지 않는다. AI 검사에 연결할 수 없으면 503 PRIVACY_SERVICE_NOT_READY |
+| POST `/admin/media/{id}/privacy-reviews` | ok, reason, version. 실패 판정은 즉시 조회 차단·재검토·AI `POST /audit/masking/{id}` 전달 |
 
 사진 검토 decision: ISSUE_CONFIRMED/NO_ISSUE/FOLLOW_UP_REQUIRED. 추가 확인은 followUpType=REPHOTO/SITE_VISIT. 응답은 reviewId, issueId(nullable), reinspectionRequestId(nullable), version.
 
@@ -292,6 +295,8 @@ nextAction: WAIT/RETAKE/RETRY/NEXT_CAPTURE/NEXT_STOP/RETURN_TO_CENTER.
 AI 상태 PENDING/PROCESSING/SUCCEEDED/FAILED와 사람 검토 OPEN/IN_REVIEW/RESOLVED를 분리한다. 확인 필요·반복 실패·수리 확인은 전부 검토하고 사진상 이상 미발견은 표본 검토한다. 활동일마다 모아서 검토하며 표본 비율·긴급 대응은 운영기관과 협의한다.
 
 관리자 AI 결과에는 status, suggestedAction, grade, gradeReasons, findings, facilityMatch, retry, modelVersion, promptVersion, resultSnapshotId를 정규화해 반환한다. 결과 스냅샷은 추가 저장하고 사람 판단이 참조한 버전을 고정한다. AI action=close_case는 사건 상태를 변경하지 않는다. 같은 검토 작업·입력 결과에 대한 재시도는 작업을 중복 생성하지 않는다. 사진 없는 기술 실패·AI gave_up도 검토에서 누락하지 않는다.
+
+AI가 응답 이후 사진을 다시 가리거나(image_remasked) 가림 점검에서 보류(image_hidden)하거나 재판독 결과를 바꾸면(result_updated) AI `GET /events`로 알린다. 백엔드는 마지막으로 처리한 순번을 저장해 두고 이어서 가져온다. 다시 가린 사진은 새 media 행·새 객체로 저장하고(이전 버전 조회 차단), 보류 알림은 privacy_status를 QUARANTINED로 바꾸고 재검토로 넘긴다. 재판독 결과는 새 결과 스냅샷으로 추가하며 사람 판단이 참조한 스냅샷을 바꾸지 않는다.
 
 ## 10. 시설 문제·보수·재점검
 
@@ -338,7 +343,7 @@ REPAIR_AGAIN은 현재 요청 종료 + 사건 REPAIR_REQUESTED + 보수 재요�
 
 개인 출결·활동시간은 담당자 확인으로 집계하며 사진 수로 대체하지 않는다. 사진 수·고유 시설 수·사건 수·방문·건너뛰기·미방문은 구분한다. 주 시작은 한국 시간 월요일 제안. AI 보고 문장은 확정된 집계값만 사용한다.
 
-AI `/report`의 요청·응답 스키마는 제공되지 않았다. 연동 전에는 DB 집계 + 고정 문구로 제공하고 AI 내부 `/report/weekly` 실적을 공식 수치로 대신 사용하지 않는다.
+보고 문장은 DB 집계값을 항목 목록(`key`, `label`, `value`, `unit`)으로 만들어 AI `POST /report/narrative`에 보낸다. AI는 입력에 없는 숫자나 빠진 숫자가 있으면 고정 문장을 돌려주며, AI 장애 시에도 DB 수치 + 고정 문구로 보고를 만든다. "수리 확인 제안"처럼 확정 전 값은 label에 그렇게 적는다. AI 내부 `/report/weekly`, `/participants` 실적은 공식 수치로 쓰지 않는다.
 
 ## 12. 데이터 구조와 남은 상세 설계
 
@@ -351,7 +356,7 @@ OpenAPI 작성 전에 구체화할 내용:
 - 자원별 필수·nullable·enum·최대 길이·오류 예시.
 - JWT/Refresh Token 만료·회전·CSRF·관리자 MFA·기기별 세션·계정 복구.
 - 구도별 총 3회 정책의 현장 검증, 오프라인 허용 동기화 기간·초과 처리.
-- AI 실제 fixtures/OpenAPI, 결과·사진 버전/보류 전파, 개인정보 단독 검사, 전후 비교·보고 상세 스키마. [AI 연동 선결 사항](AI_연동_계약.md#8-ai-측-확인수정이-필요한-항목) 참조.
+- AI 연동: 예시 응답(`ai/contract/fixtures/`), 사진 버전·보류 전파(`image_revision`, `GET /events`), 개인정보 단독 검사, 보고 문장 스키마는 AI 계약서 v2.0에 정의됐다. 남은 것은 실제 AI 서버와의 연동 검증, 전후 비교 결과의 업무 분류 매핑 확정, 재판독 확인 기한. [AI 연동 선결 사항](AI_연동_계약.md#8-ai-측-확인수정이-필요한-항목) 참조.
 - 최대 해상도·삭제·인증 이미지 조회·오프라인 폐기 전파.
 - 출발 후 예외 배정 변경.
 - 알림 채널·개인 활동시간 정정·감사 권한.

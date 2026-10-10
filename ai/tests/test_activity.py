@@ -14,7 +14,7 @@ import storage  # noqa: E402
 from providers.mock_provider import MockProvider  # noqa: E402
 
 IMG = (Path(__file__).resolve().parent.parent / "eval" / "sample" / "s01.jpg").read_bytes()
-DEVICE = {"masked": True, "report": {"faces": 1, "plates": 0, "detector": "mlkit+ocr", "app_version": "1.0.0"}}
+DEVICE = {"masked": True, "report": {"faces": 1, "plates": 0, "detector": "yunet+plate-t384+effdet0", "app_version": "1.0.0"}}
 
 
 def mock(scenario):
@@ -40,7 +40,7 @@ class FakeDet:
 def test_device_masked_upload_recorded():
     r = shoot("p_dev", "drain_normal", "2026-10-08T09:10:00+09:00")
     p = r["meta"]["privacy"]
-    assert p["mode"] == "device+server" and p["device"]["detector"] == "mlkit+ocr" and p["server_added"] == 0
+    assert p["mode"] == "device+server" and p["device"]["detector"] == "yunet+plate-t384+effdet0" and p["server_added"] == 0
 
 
 def test_server_second_check_counts_device_miss(monkeypatch):

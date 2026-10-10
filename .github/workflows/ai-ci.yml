@@ -22,3 +22,18 @@ jobs:
           cache-dependency-path: ai/requirements.txt
       - run: pip install -r requirements.txt
       - run: python -m pytest -q
+
+  yunet-web:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: ai/contract/yunet_web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ai/contract/yunet_web/package-lock.json
+      - run: npm ci
+      - run: node verify.mjs

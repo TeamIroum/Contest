@@ -1,0 +1,11 @@
+{
+  "name": "yunet-web-check",
+  "private": true,
+  "type": "module",
+  "description": "시니어 PWA 얼굴 검출(YuNet)이 서버와 같은 결과를 내는지 확인",
+  "scripts": { "verify": "node verify.mjs" },
+  "devDependencies": {
+    "jpeg-js": "0.4.4",
+    "onnxruntime-node": "1.20.1"
+  }
+}

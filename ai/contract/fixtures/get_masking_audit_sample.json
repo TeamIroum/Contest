@@ -11,8 +11,8 @@
     "leaks_fixed": 1
   },
   {
-    "photo_id": "p_c261675f4afb",
-    "masked_image_url": "/images/p_c261675f4afb_masked.jpg",
+    "photo_id": "p_b3c07487761b",
+    "masked_image_url": "/images/p_b3c07487761b_masked.jpg",
     "captured_at": "2026-10-08T09:14:00+09:00",
     "reason": "무작위 표본",
     "mode": "device+server",
@@ -44,8 +44,8 @@
     "leaks_fixed": null
   },
   {
-    "photo_id": "p_2793a0500306",
-    "masked_image_url": "/images/p_2793a0500306_masked.jpg",
+    "photo_id": "p_5bd7dab51e69",
+    "masked_image_url": "/images/p_5bd7dab51e69_masked.jpg",
     "captured_at": "2026-10-08T09:14:00+09:00",
     "reason": "무작위 표본",
     "mode": "device+server",
