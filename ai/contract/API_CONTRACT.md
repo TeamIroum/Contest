@@ -85,7 +85,7 @@ verify용: `fixed`, `not_fixed`, `different_place`, `worse`
 | `participant_id` | 권장 | 실제로 사진을 올린 참여자의 가명 ID (이름·전화번호 금지) |
 | `captured_at` | 권장 | 촬영 시각 ISO 8601 (`2026-10-08T09:14:00+09:00`) |
 | `device_masked` | 운영 필수 | 앱에서 이미 가렸으면 `true` |
-| `device_mask_report` | 운영 필수 | 앱 보고를 snake_case로 바꿔 전달 `{"faces": 1, "plates": 0, "vehicles": 0, "detector": "mlkit+ocr", "app_version": "1.0.0"}` |
+| `device_mask_report` | 운영 필수 | 앱 보고를 snake_case로 바꿔 전달 `{"faces": 1, "plates": 0, "vehicles": 0, "detector": "yunet+plate-t384+effdet0", "app_version": "1.0.0"}` |
 | `location_tags` | | 쉼표 구분 (`school_route`, `child_facility`, `roadside`). 백엔드 시설 대장의 태그를 넣음. 태그가 없으면 빈 문자열. 위치 가중치가 이 값으로 계산됨 |
 | `lat`, `lon` | | 업무 연동에서는 보내지 않음 (아래 "백엔드 연동 시 꼭 맞출 것" 1번). 보내면 AI 쪽 시설 대장과 맞춰 `facility_id`와 위치 태그를 채움. `0`을 보내면 위도 0·경도 0으로 처리되므로 없으면 필드를 아예 빼야 함 |
 | `capture_hour` | | 촬영 시각(0~23). 기록용 (지금 등급 규칙에는 쓰지 않음) |

@@ -47,7 +47,7 @@ VERIFY_CASES = [
     ("14_change_worse", "worse", "change"),
 ]
 
-DEVICE = {"masked": True, "report": {"faces": 0, "plates": 1, "detector": "mlkit+ocr", "app_version": "1.0.0"}}
+DEVICE = {"masked": True, "report": {"faces": 0, "plates": 1, "detector": "yunet+plate-t384+effdet0", "app_version": "1.0.0"}}
 
 PRIOR = {"case_id": "C-0388", "facility_id": "SW-0001", "facility_type": "sidewalk", "issue_type": "lifted", "severity": 3,
          "bbox": [0.31, 0.42, 0.55, 0.70], "evidence": "보행 동선 가운데 블록이 들려 단차가 보임",

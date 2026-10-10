@@ -16,3 +16,4 @@
 /docs/AI_기능_설계.md              @ai-owner @backend-owner
 /ai/contract/API_CONTRACT.md       @ai-owner @backend-owner
 /ai/contract/APP_MASKING_GUIDE.md  @ai-owner @app-owner
+/ai/contract/yunet_web/            @ai-owner @app-owner

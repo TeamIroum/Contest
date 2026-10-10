@@ -135,7 +135,7 @@ async def analyze(
     participant_id: str | None = Form(None, description="촬영한 참여자의 가명 ID"),
     captured_at: str | None = Form(None, description="촬영 시각 ISO 8601 (예: 2026-10-08T09:14:00+09:00)"),
     device_masked: bool = Form(False, description="앱이 휴대폰에서 얼굴·번호판을 이미 가렸으면 true"),
-    device_mask_report: str | None = Form(None, description='{"faces":1,"plates":0,"detector":"mlkit+ocr","app_version":"1.0.0"}'),
+    device_mask_report: str | None = Form(None, description='{"faces":1,"plates":0,"detector":"yunet+plate-t384+effdet0","app_version":"1.0.0"}'),
     x_mock_scenario: str | None = Header(None),
 ):
     ctx = _json_form(context_json, "context_json", {})

@@ -112,7 +112,7 @@ def test_privacy_endpoints(temp_store):
     c = client()
     r = c.post("/privacy/mask", files={"image": ("a.jpg", IMG, "image/jpeg")},
                data={"media_id": "med-5", "purpose": "repair_evidence", "device_masked": "true",
-                     "device_mask_report": '{"faces":0,"plates":0,"detector":"mlkit","app_version":"1.0.0"}'}).json()
+                     "device_mask_report": '{"faces":0,"plates":0,"detector":"yunet","app_version":"1.0.0"}'}).json()
     assert r["status"] == "ok" and r["privacy"]["mode"] == "device+server"
     assert c.get(r["masked_image_url"]).status_code == 200
     assert c.get("/privacy/med-5").json()["purpose"] == "repair_evidence"

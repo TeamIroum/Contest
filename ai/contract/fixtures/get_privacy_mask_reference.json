@@ -21,7 +21,7 @@
       "faces": 0,
       "plates": 1,
       "vehicles": null,
-      "detector": "mlkit+ocr",
+      "detector": "yunet+plate-t384+effdet0",
       "app_version": "1.0.0"
     },
     "server_added": 0
