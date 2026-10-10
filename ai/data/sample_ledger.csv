@@ -1,0 +1,10 @@
+facility_id,facility_type,lat,lon,tags,place
+SW-0001,sidewalk,37.82410,127.08920,school_route,초등학교 통학로 (정문 앞 40m) [예시]
+SW-0002,sidewalk,37.82455,127.08990,,상가 앞 보도 [예시]
+DR-0001,drain,37.82430,127.08960,roadside,버스정류장 앞 [예시]
+DR-0002,drain,37.82436,127.08968,roadside,버스정류장 옆 [예시]
+FN-0001,fence,37.82380,127.08850,,하천 산책로 입구 [예시]
+FN-0002,fence,37.82500,127.09050,school_route;roadside,통학로 차도 경계 [예시]
+BN-0001,bench,37.82580,127.09180,,근린공원 산책로 벤치 [예시]
+EX-0001,exercise,37.82600,127.09200,child_facility,근린공원 어린이놀이터 옆 운동기구 [예시]
+EX-0002,exercise,37.82605,127.09210,child_facility,근린공원 어린이놀이터 옆 운동기구 [예시]

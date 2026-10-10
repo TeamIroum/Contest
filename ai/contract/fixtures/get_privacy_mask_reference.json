@@ -1,0 +1,35 @@
+{
+  "media_id": "ref-0001",
+  "photo_id": "m_ref-0001",
+  "purpose": "reference",
+  "status": "ok",
+  "masked_image_url": "/images/m_ref-0001_masked.jpg",
+  "image_revision": 1,
+  "privacy": {
+    "faces": 0,
+    "plates": 0,
+    "vehicles": 0,
+    "boxes": [],
+    "detectors": {
+      "face": "yunet",
+      "plate": "pretrained+heuristic",
+      "vehicle": "vehicle"
+    },
+    "masked_area_ratio": 0.0,
+    "mode": "device+server",
+    "device": {
+      "faces": 0,
+      "plates": 1,
+      "vehicles": null,
+      "detector": "mlkit+ocr",
+      "app_version": "1.0.0"
+    },
+    "server_added": 0
+  },
+  "notes": [],
+  "meta": {
+    "contract_version": "2.0",
+    "latency_ms": 900,
+    "created_at": "2026-10-08T08:30:00+09:00"
+  }
+}

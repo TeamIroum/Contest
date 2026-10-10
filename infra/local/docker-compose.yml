@@ -1,0 +1,45 @@
+# 로컬 개발 환경: PostgreSQL, Redis, AI 판독 모듈(mock)
+# 실행: cd infra/local && cp .env.example .env && docker compose up -d
+# 백엔드는 IDE에서 실행하고 아래 주소로 붙습니다 (빌드 도구가 정해지면 서비스로 추가).
+
+services:
+  postgres:
+    image: postgres:16.4
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: Asia/Seoul
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.4
+    ports:
+      - "6379:6379"
+
+  ai:
+    build: ../../ai
+    environment:
+      AI_PROVIDER: ${AI_PROVIDER}
+      API_KEYS: ${AI_API_KEYS}
+      REQUIRE_DEVICE_MASKING: ${REQUIRE_DEVICE_MASKING}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ai-images:/app/data/images
+      - ai-revisions:/app/data/images_revisions
+      - ai-results:/app/data/results
+
+volumes:
+  pgdata:
+  ai-images:
+  ai-revisions:
+  ai-results:

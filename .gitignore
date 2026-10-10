@@ -1,23 +1,35 @@
-# 키
+# 비밀 값
 .env
-.env.*
-!.env.example
+*.env.local
 
-# 시스템·편집기
+# 운영체제·편집기
 .DS_Store
 Thumbs.db
-.vscode/
 .idea/
+.vscode/
+*.iml
 
-# Python
-__pycache__/
-*.pyc
-.venv/
-venv/
+# 백엔드 (Gradle/Maven)
+build/
+.gradle/
+target/
+out/
 
-# Node
+# 프론트엔드
 node_modules/
+dist/
+.next/
+coverage/
 
-# 대용량 임시 파일
-*.tmp
-*.log
+# Python (AI 모듈)
+__pycache__/
+.pytest_cache/
+.venv/
+
+# AI 모듈 실행 데이터·평가 사진 (개인정보·대용량)
+ai/data/images/
+ai/data/images_revisions/
+ai/data/results/
+ai/eval/photos/
+ai/eval/results/
+ai/eval/mask_check/

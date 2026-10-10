@@ -1,0 +1,56 @@
+{
+  "photo_id": "p_example_13",
+  "case_id": "C-0388",
+  "facility_id": "SW-0001",
+  "participant_id": "P-001",
+  "captured_at": "2026-10-08T09:14:00+09:00",
+  "masked_image_url": "/images/p_example_13_masked.jpg",
+  "image_revision": 1,
+  "mode": "repair",
+  "status": "retake",
+  "result": null,
+  "action": "retake",
+  "same_facility": "no",
+  "current_severity": 0,
+  "evidence": "배경 건물과 경계석 모양이 달라 다른 장소로 보임",
+  "new_grade": null,
+  "grade_reasons": [],
+  "senior_message": {
+    "key": "verify_retake",
+    "text": "처음 사진과 같은 자리에서 다시 찍어 주세요."
+  },
+  "retry": null,
+  "notes": [
+    "같은 시설인지 확인되지 않거나 문제 부위가 잘 보이지 않음"
+  ],
+  "meta": {
+    "contract_version": "2.0",
+    "provider": "mock",
+    "model": "mock",
+    "prompt_version": "verify-97ae2e1",
+    "taxonomy_version": "0.3",
+    "latency_ms": 2400,
+    "created_at": "2026-10-08T09:14:03+09:00",
+    "privacy": {
+      "faces": 0,
+      "plates": 0,
+      "vehicles": 0,
+      "boxes": [],
+      "detectors": {
+        "face": "yunet",
+        "plate": "pretrained+heuristic",
+        "vehicle": "vehicle"
+      },
+      "masked_area_ratio": 0.0,
+      "mode": "device+server",
+      "device": {
+        "faces": 0,
+        "plates": 1,
+        "vehicles": null,
+        "detector": "mlkit+ocr",
+        "app_version": "1.0.0"
+      },
+      "server_added": 0
+    }
+  }
+}

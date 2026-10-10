@@ -1,0 +1,43 @@
+{
+  "items": [
+    {
+      "key": "photos",
+      "label": "점검 사진",
+      "value": 1240,
+      "unit": "장"
+    },
+    {
+      "key": "facilities",
+      "label": "점검한 고유 시설",
+      "value": 312,
+      "unit": "곳"
+    },
+    {
+      "key": "issues_opened",
+      "label": "새로 등록한 사건",
+      "value": 9,
+      "unit": "건"
+    },
+    {
+      "key": "urgent_alerts",
+      "label": "긴급 알림",
+      "value": 2,
+      "unit": "건"
+    },
+    {
+      "key": "review_pending",
+      "label": "담당자 검토 대기",
+      "value": 14,
+      "unit": "건"
+    },
+    {
+      "key": "repair_close_suggested",
+      "label": "수리 확인 제안(담당자 확정 전)",
+      "value": 5,
+      "unit": "건"
+    }
+  ],
+  "template": "점검 사진: 1,240장\n점검한 고유 시설: 312곳\n새로 등록한 사건: 9건\n긴급 알림: 2건\n담당자 검토 대기: 14건\n수리 확인 제안(담당자 확정 전): 5건",
+  "text": "점검 사진: 1,240장\n점검한 고유 시설: 312곳\n새로 등록한 사건: 9건\n긴급 알림: 2건\n담당자 검토 대기: 14건\n수리 확인 제안(담당자 확정 전): 5건",
+  "source": "template"
+}
