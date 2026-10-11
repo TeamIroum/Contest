@@ -11,6 +11,7 @@ AI 판독 모듈(`ai/`)을 **앱 → 업무 백엔드 → AI** 흐름 그대로 
 - 화면은 AI 서버를 직접 부르지 않습니다. AI API 키는 검증용 백엔드에만 둡니다.
 - 검증용 백엔드는 계약서의 "백엔드 연동 시 꼭 맞출 것"을 그대로 지킵니다: 위치는 `location_tags`로 보내고 `lat`/`lon`은 보내지 않음, 앱 마스킹 보고 `appVersion` → `app_version` 변환, 가린 사진은 `X-Image-Revision`과 함께 복사, `GET /events`로 다시 가림·보류·재판독을 반영.
 - 업무 백엔드를 대신하지 않습니다. 업무 상태(`nextAction`), 사건·검토 작업, 인증은 없습니다.
+- **시험용 시니어 PWA**(`/pwa/`)와 사진 제출만 흉내 낸 시험용 업무 API(`/api/v1`)가 함께 뜹니다. 휴대폰 카메라로 찍고 브라우저에서 가린 사진을 업무 API 형식으로 보내 AI까지 이어 시험합니다. 사용법은 [pwa/README.md](pwa/README.md). React Native(Expo, iOS·Android) 시험용 앱은 [../ai-test-app/](../ai-test-app/README.md)이며, 마스킹은 같은 코드(`/pwa/mask-host.html`)를 씁니다.
 
 ## 실행
 

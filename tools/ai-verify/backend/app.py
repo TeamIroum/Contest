@@ -10,7 +10,9 @@
 """
 from __future__ import annotations
 
+import hashlib
 import json
+import mimetypes
 import os
 import statistics
 import uuid
@@ -20,13 +22,19 @@ from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
+import business
 import checks
 import suite
 from ai_client import AIClient
 from store import Store, now
 
+mimetypes.add_type("application/manifest+json", ".webmanifest")
+mimetypes.add_type("text/javascript", ".mjs")
+
 HERE = Path(__file__).resolve().parent
 FRONTEND = HERE.parent / "frontend"
+PWA = HERE.parent / "pwa"
+YUNET_WEB = HERE.parents[2] / "ai" / "contract" / "yunet_web"
 AI_BASE_URL = os.environ.get("AI_BASE_URL", "http://localhost:8000")
 AI_API_KEY = os.environ.get("AI_API_KEY", "")
 DATA_DIR = Path(os.environ.get("VERIFY_DATA_DIR", HERE.parent / "data"))
@@ -567,4 +575,69 @@ def run_suite():
     return suite.run(ai, run_analyze)
 
 
+# =====================================================================
+# 시험용 업무 API와 시니어 PWA
+# =====================================================================
+app.include_router(business.create_router(run_analyze, store))
+
+
+# 얼굴 검출 코드·모델·시험 사진은 AI 계약 폴더의 것을 그대로 내려준다 (복사본을 두지 않음)
+@app.get("/pwa/lib/yunet.mjs")
+def pwa_yunet_js():
+    return FileResponse(YUNET_WEB / "yunet.mjs", media_type="text/javascript")
+
+
+# 마스킹 모델 목록. 주소에 내용 해시(?v=)를 붙여, 모델 파일이 바뀌면 앱(서비스 워커·WebView 캐시)이 새로 받게 한다
+PWA_MODELS = {
+    "face": ("models/face_yunet_s_dynamic@1.onnx", YUNET_WEB / "face_yunet_s_dynamic.onnx"),
+    "plate": ("models/plate-t384@1.onnx", PWA / "models" / "plate-t384@1.onnx"),
+    "vehicle": ("models/efficientdet_lite0@1.tflite", PWA / "models" / "efficientdet_lite0@1.tflite"),
+}
+_hash_cache: dict[Path, tuple[float, str]] = {}
+
+
+def _file_hash(path: Path) -> str:
+    mtime = path.stat().st_mtime
+    hit = _hash_cache.get(path)
+    if not hit or hit[0] != mtime:
+        hit = (mtime, hashlib.sha256(path.read_bytes()).hexdigest()[:12])
+        _hash_cache[path] = hit
+    return hit[1]
+
+
+@app.get("/pwa/model-manifest.json")
+def pwa_model_manifest():
+    files, missing = {}, []
+    for key, (url, path) in PWA_MODELS.items():
+        if not path.is_file():
+            missing.append(key)
+            continue
+        files[key] = f"./{url}?v={_file_hash(path)}"
+    if missing:
+        raise HTTPException(503, f"모델 파일 없음: {', '.join(missing)} (pwa/fetch_models.py 실행)")
+    version = hashlib.sha256("|".join(files[k] for k in sorted(files)).encode()).hexdigest()[:8]
+    return Response(json.dumps({"version": version, "files": files}), media_type="application/json",
+                    headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/pwa/models/face_yunet_s_dynamic@1.onnx")
+def pwa_yunet_model():
+    return FileResponse(YUNET_WEB / "face_yunet_s_dynamic.onnx", media_type="application/octet-stream")
+
+
+@app.get("/pwa/selftest/{name}")
+def pwa_selftest_file(name: str):
+    path = YUNET_WEB / ("expected.json" if name == "expected.json" else f"images/{name}")
+    if "/" in name or "\\" in name or not path.is_file():
+        raise HTTPException(404, "없는 파일")
+    return FileResponse(path)
+
+
+@app.get("/pwa/sw.js")
+def pwa_sw():
+    # 서비스 워커는 /pwa/ 범위로 등록한다. 매번 새 버전을 확인하게 캐시하지 않는다
+    return FileResponse(PWA / "sw.js", media_type="text/javascript", headers={"Cache-Control": "no-cache"})
+
+
+app.mount("/pwa", StaticFiles(directory=PWA, html=True), name="pwa")
 app.mount("/", StaticFiles(directory=FRONTEND, html=True), name="frontend")
