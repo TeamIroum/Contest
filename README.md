@@ -17,7 +17,8 @@
 ├─ ai/                  AI 판독 모듈 (Python / FastAPI)
 │  └─ contract/         AI 호출 계약 v2.0, 앱 마스킹 안내, 예시 응답
 ├─ tools/
-│  └─ ai-verify/        AI 판독 모듈 검증 콘솔 (검증용 백엔드 + 웹 화면)
+│  ├─ ai-verify/        AI 판독 모듈 검증 콘솔 (검증용 백엔드 + 웹 화면), 시험용 업무 API·시험용 PWA(pwa/)
+│  └─ ai-test-app/      시험용 앱 (React Native / Expo Go, iOS·Android, 기기 마스킹 → 업무 API → AI)
 ├─ infra/
 │  ├─ local/            로컬 개발 환경 (docker compose)
 │  └─ ec2/              EC2 배포
@@ -33,9 +34,9 @@
 | 전체 | [docs/README.md](docs/README.md) (문서 목록과 기준 순서), [CONTRIBUTING.md](CONTRIBUTING.md) |
 | 기획·발표 | [서비스 설계서](docs/서비스_설계서.md), [기능정의서](docs/기능정의서.md) |
 | 백엔드 | [backend/README.md](backend/README.md), [API 명세서](docs/API_명세서.md), [DB 설계](docs/DB_설계.md), [AI 호출 계약](ai/contract/API_CONTRACT.md) |
-| 시니어 앱 | [frontend/senior/README.md](frontend/senior/README.md), [앱 마스킹 안내](ai/contract/APP_MASKING_GUIDE.md) |
+| 시니어 앱 | [frontend/senior/README.md](frontend/senior/README.md), [앱 마스킹 안내](ai/contract/APP_MASKING_GUIDE.md), 참고 구현: [시험용 PWA](tools/ai-verify/pwa/README.md)·[시험용 RN 앱](tools/ai-test-app/README.md) |
 | 관리자 웹 | [frontend/admin/README.md](frontend/admin/README.md) |
-| AI | [ai/README.md](ai/README.md), [마스킹·서버 설계](ai/MASKING_AND_SERVER.md), [AI 검증 콘솔](tools/ai-verify/README.md), [AI 실행 가이드](docs/AI_실행_가이드.md) |
+| AI | [ai/README.md](ai/README.md), [마스킹·서버 설계](ai/MASKING_AND_SERVER.md), [AI 검증 콘솔](tools/ai-verify/README.md), [AI 실행 가이드](docs/AI_실행_가이드.md) (8장: 휴대폰 시험용 앱 실행) |
 
 ## 로컬 실행
 

@@ -4,6 +4,8 @@
 
 2026-10-11 문구 수정: 업무 시스템이 AI 위험도 등급을 쓰지 않기로 한 팀 결정과 3인 조 허용, 자체 서버 판독만 쓰는 결정을 반영했습니다. 응답 형식은 바뀌지 않아 `contract_version`은 2.0 그대로입니다.
 
+2026-10-12 추가: 앱이 가린 위치 `device_mask_report.boxes`(선택)와 `meta.privacy.server_redetected`를 더했습니다. `boxes`를 보내지 않으면 요청·응답이 예전과 같으므로 `contract_version`은 2.0 그대로입니다.
+
 ## 호출 구조
 
 ```
@@ -87,7 +89,7 @@ verify용: `fixed`, `not_fixed`, `different_place`, `worse`
 | `participant_id` | 권장 | 실제로 사진을 올린 참여자의 가명 ID (이름·전화번호 금지) |
 | `captured_at` | 권장 | 촬영 시각 ISO 8601 (`2026-10-08T09:14:00+09:00`) |
 | `device_masked` | 운영 필수 | 앱에서 이미 가렸으면 `true` |
-| `device_mask_report` | 운영 필수 | 앱 보고를 snake_case로 바꿔 전달 `{"faces": 1, "plates": 0, "vehicles": 0, "detector": "yunet+plate-t384+effdet0", "app_version": "1.0.0"}` |
+| `device_mask_report` | 운영 필수 | 앱 보고를 snake_case로 바꿔 전달 `{"faces": 1, "plates": 0, "vehicles": 0, "detector": "yunet+plate-t384+effdet0", "app_version": "1.0.0", "boxes": [{"kind": "face", "box": [0.41, 0.12, 0.47, 0.21]}]}`. `boxes`(선택)는 앱이 가린 위치(0~1 비율 `[x1, y1, x2, y2]`, 최대 200개)이며, 서버가 이미 가린 곳에서 다시 찾은 것을 `server_added`에서 빼는 데만 씁니다. 위치 목록은 저장하지 않고 개수만 남깁니다 |
 | `location_tags` | | 쉼표 구분 (`school_route`, `child_facility`, `roadside`). 백엔드 시설 대장의 태그를 넣음. 태그가 없으면 빈 문자열. 위치 가중치가 이 값으로 계산됨 |
 | `lat`, `lon` | | 업무 연동에서는 보내지 않음 (아래 "백엔드 연동 시 꼭 맞출 것" 1번). 보내면 AI 쪽 시설 대장과 맞춰 `facility_id`와 위치 태그를 채움. `0`을 보내면 위도 0·경도 0으로 처리되므로 없으면 필드를 아예 빼야 함 |
 | `capture_hour` | | 촬영 시각(0~23). 기록용 (지금 등급 규칙에는 쓰지 않음) |
@@ -241,7 +243,7 @@ AI 응답의 `senior_message`는 상황별로 고정된 안내 문구(`taxonomy.
 - `facility.match_ambiguous`: AI 쪽 대장에서 가까운 같은 종류 시설이 여럿이라 위치 확인이 필요함. `lat`/`lon`을 보내지 않으면 늘 `false`
 - `duplicate_of`: `context_json.open_cases`로 넘긴 건 중 같은 시설·같은 문제의 ID. 참고값이며 사건 연결은 백엔드 규칙과 담당자가 정함
 - `retry`: AI 지연으로 나중에 다시 판독할 때 `{pending, attempts, next_at}`. 세 번 실패하면 `gave_up: true`. 재판독할 사진·맥락이 사라졌거나 재판독 중 오류가 반복돼도 `gave_up: true`와 `reason`을 남기고 끝냅니다. AI 서버가 다시 켜져도 원래 예정 시각대로 이어 갑니다
-- `meta.privacy`: `mode`(`device+server` 앱 마스킹 + 서버 저장 전 확인, `server_only` 시험용 서버 마스킹), 앱 보고(`device`), 저장 전 확인에서 남은 부분을 가린 수(`server_added`, 0이 정상), 서버 확인 단계에서 가린 얼굴·번호판·차량 수(`faces`, `plates`, `vehicles`), 가린 위치(`boxes`, 비율 좌표), 사용한 검출기(`detectors`), 가린 면적 비율, AI가 찾아 추가로 가린 수(`leaks_fixed`)
+- `meta.privacy`: `mode`(`device+server` 앱 마스킹 + 서버 저장 전 확인, `server_only` 시험용 서버 마스킹), 앱 보고(`device`, `boxes`를 보냈으면 그 개수 포함), 저장 전 확인에서 앱이 놓친 것을 가린 수(`server_added`, 0이 정상), 앱이 이미 가린 곳에서 서버가 다시 찾아 가린 수(`server_redetected`, `boxes`를 보냈을 때만. 모자이크한 얼굴도 다시 얼굴로 검출되기 때문이며 앱 누락이 아님), 서버 확인 단계에서 가린 얼굴·번호판·차량 수(`faces`, `plates`, `vehicles`), 가린 위치(`boxes`, 비율 좌표), 사용한 검출기(`detectors`), 가린 면적 비율, AI가 찾아 추가로 가린 수(`leaks_fixed`)
 - `meta`: 그 밖에 모델, 프롬프트 식별값, 처리 시간. 담당자 판정 기록과 함께 저장하면 나중에 정확도 분석에 씀
 
 ## 백엔드 담당에게 부탁할 것
@@ -249,7 +251,7 @@ AI 응답의 `senior_message`는 상황별로 고정된 안내 문구(`taxonomy.
 1. AI의 `photo_id`, AI 결과(`status`, `issues`)와 담당자 판정(이상 확인/이상 미발견/추가 확인), 판정 이유를 함께 저장해 주세요. AI와 담당자 판정의 일치율로 판독 정확도를 평가하고 기준표를 고치는 데 쓰는 가장 중요한 자료입니다. 업무 시스템은 등급을 쓰지 않으므로 등급 정정 기록은 남기지 않습니다.
 2. AI 결과는 스냅샷으로 쌓고, 담당자 판단이 어느 스냅샷을 보고 내려졌는지 남겨 주세요. 재판독으로 결과가 바뀌어도 사람 판단을 덮어쓰지 않게 하기 위해서입니다.
 3. AI가 오류를 내거나 늦어도 어르신 화면이 멈추지 않게, 백엔드가 담당자 검토로 넘기고 앱에는 다음 장소 안내를 보내 주세요. 사진이 저장된 경우(`masked_image_url` 있음) AI가 나중에 다시 판독하므로, 결과는 `result_updated` 알림으로 받습니다.
-4. 앱 마스킹 품질을 보기 위해 `meta.privacy.server_added`(0이 정상)를 주 단위로 모아 AI 담당에게 공유해 주세요.
+4. 앱 마스킹 품질을 보기 위해 `meta.privacy.server_added`(0이 정상)를 주 단위로 모아 AI 담당에게 공유해 주세요. 앱이 `deviceMaskReport.boxes`를 보내야 이 값이 '앱이 놓친 수'가 됩니다. 보내지 않으면 서버가 앱이 가린 얼굴을 다시 세어 실제보다 크게 나옵니다.
 
 ## 백엔드 연동 시 꼭 맞출 것
 

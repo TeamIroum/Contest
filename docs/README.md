@@ -22,8 +22,8 @@
 | [API_명세서.md](API_명세서.md) | 업무 REST API (`/api/v1`), 인증, 사진 제출, 오프라인·동기화 | 백엔드 |
 | [DB_설계.md](DB_설계.md) | PostgreSQL 테이블, 상태 값, 잠금 순서, 인덱스 | 백엔드 |
 | [AI_기능_설계.md](AI_기능_설계.md) | AI가 맡는 네 기능의 개발 기준과 역할 분담 | AI·백엔드 |
-| [AI_실행_가이드.md](AI_실행_가이드.md) | AI 판독 서버·검증 콘솔 실행, 판독 모델(mock·Ollama) 바꾸기, 문제 해결 | AI·전체 |
-| [presentation/AI가_맡는_일_4가지.html](presentation/AI가_맡는_일_4가지.html) | 팀 공유·발표용 AI 기능 요약 | AI·발표 |
+| [AI_실행_가이드.md](AI_실행_가이드.md) | AI 판독 서버·검증 콘솔 실행, 판독 모델(mock·Ollama) 바꾸기, 휴대폰 시험용 앱(PWA·RN) 실행, 문제 해결 | AI·전체 |
+| [presentation/시니어_동네_점검단_기획안.html](presentation/시니어_동네_점검단_기획안.html) | 팀 이로움 기획안 (발표·공유용 웹 문서) | 기획·발표 |
 | [../ai/contract/API_CONTRACT.md](../ai/contract/API_CONTRACT.md) | AI 판독 모듈 호출 계약 v2.0 | AI·백엔드 |
 | [../ai/contract/APP_MASKING_GUIDE.md](../ai/contract/APP_MASKING_GUIDE.md) | 앱 기기 마스킹 구현 안내 | 앱 |
 | [../ai/MASKING_AND_SERVER.md](../ai/MASKING_AND_SERVER.md) | 마스킹과 AI 서버 처리 설계 근거 | AI |

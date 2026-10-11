@@ -189,7 +189,7 @@ offline-package는 packageVersion, patrol(동일 순회 형식), assets[{mediaId
 
 ### 사진 제출 계약
 
-multipart: file, clientSubmissionId(UUID), captureSlotId(UUID), attemptId(UUID), capturedAt, maskingVersion, deviceMasked(true), deviceMaskReport(JSON: faces, plates, vehicles, detector, appVersion), 선택 위치(latitude/longitude/locationAccuracyMeters).
+multipart: file, clientSubmissionId(UUID), captureSlotId(UUID), attemptId(UUID), capturedAt, maskingVersion, deviceMasked(true), deviceMaskReport(JSON: faces, plates, vehicles, detector, appVersion, 선택 boxes[{kind, box:[x1,y1,x2,y2]}] 0~1 비율), 선택 위치(latitude/longitude/locationAccuracyMeters).
 
 - JPEG/PNG, 파일당 10 MiB(10,485,760 bytes) 이하로 정리한다. AI 입력 15MB 한도보다 작은 업무 제한이다. 실제 MIME·디코딩 결과·픽셀 수를 서버 검증한다. 시니어 PWA는 앱 안 카메라 화면을 캔버스에서 마스킹한 뒤 JPEG로 만들어 전송한다(EXIF 없음). HEIC/AVIF/WebP는 받지 않는다.
 - 파일은 기기 내 마스킹 완료본만 전송한다. 클라이언트 주장만 신뢰하지 않고 서버 재검사한다. 기기 마스킹 기준은 [앱 마스킹 구현 안내서](../ai/contract/APP_MASKING_GUIDE.md)를 따른다.

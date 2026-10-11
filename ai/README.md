@@ -57,7 +57,7 @@ OLLAMA_MODEL=qwen3-vl:8b python eval/run_eval.py analyze --labels eval/photos/la
 
 | 기획안 문구 | 구현 | 코드 |
 |---|---|---|
-| 1. 촬영 단계 자동 마스킹 | 앱이 가린 사진만 받고, 서버는 저장 전에 가림 상태를 확인해 남은 부분을 가린 수를 기록(`server_added`, 0이 정상). 담당자 표본 점검 목록과 보류 처리 | `pipeline.ingest`, `privacy.py`, `activity.masking_audit_sample`, `contract/APP_MASKING_GUIDE.md` |
+| 1. 촬영 단계 자동 마스킹 | 앱이 가린 사진만 받고, 서버는 저장 전에 가림 상태를 확인해 남은 부분을 가린 수를 기록(`server_added`, 0이 정상. 앱이 가린 위치를 보내면 그 위치에서 다시 찾은 것은 `server_redetected`로 따로 셈). 담당자 표본 점검 목록과 보류 처리 | `pipeline.ingest`, `privacy.py`, `activity.masking_audit_sample`, `contract/APP_MASKING_GUIDE.md` |
 | 2. 시설·이상 자동 판독 | 5종 시설·이상·위험도 판독, 규칙으로 담당 부서 지정, 확신 낮으면 담당자 확인 | `prompts/analyze.txt`, `rules.py`, `taxonomy.json` |
 | 3. 전후 사진 AI 비교 | 같은 장소 확인 → 수리 확인·변화 비교, 미수리 재요청, 악화 시 등급 상향 | `pipeline.verify_photo`, `prompts/verify.txt` |
 | 4. 활동 기록과 주간 보고 | 참여자별 활동 실적(첫·마지막 촬영 시각, 이동 경로 없음), 시설별 이력, 주간 보고와 우선 처리 목록 | `activity.py`, `report.py` |
