@@ -54,17 +54,19 @@ class RetryQueue:
         self._lock = threading.Lock()
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
-        self._queued: set[str] = set()  # 같은 사진이 대기열에 두 번 들어가지 않게
+        self._queued: dict[str, tuple[float, int]] = {}  # photo_id → (예정 시각, 시도 횟수). 두 번 넣지 않게
 
     def enqueue(self, kind: str, photo_id: str, attempt: int = 0) -> dict:
         """kind: analyze | verify. 돌려주는 값은 결과 JSON의 retry 필드에 넣는다."""
         if attempt >= len(self.delays):
-            return {"pending": False, "attempts": attempt, "gave_up": True}
+            return {"pending": False, "attempts": attempt, "gave_up": True, "reason": "AI 판독 실패 반복"}
         due = time.time() + self.delays[attempt]
         with self._lock:
-            if photo_id not in self._queued:
+            if photo_id in self._queued:  # 이미 대기 중이면 실제로 잡혀 있는 예정 시각을 알려 준다
+                due, attempt = self._queued[photo_id]
+            else:
                 heapq.heappush(self._heap, (due, kind, photo_id, attempt))
-                self._queued.add(photo_id)
+                self._queued[photo_id] = (due, attempt)
         return {"pending": True, "attempts": attempt, "next_at": int(due)}
 
     def process_due(self, force: bool = False) -> int:
@@ -80,7 +82,7 @@ class RetryQueue:
                 if not self._heap or (not force and self._heap[0][0] > time.time()):
                     break
                 _, kind, photo_id, attempt = heapq.heappop(self._heap)
-                self._queued.discard(photo_id)
+                self._queued.pop(photo_id, None)
             try:
                 fn = pipeline.reanalyze if kind == "analyze" else pipeline.reverify
                 if fn(photo_id, attempt=attempt + 1) is None:
@@ -98,10 +100,11 @@ class RetryQueue:
         if retry.get("gave_up"):
             pipeline.give_up_retry(photo_id, attempt, f"재판독 중 오류 반복: {type(err).__name__}")
             return
-        r = storage.get_results().load(photo_id)
-        if r is not None:
-            r["retry"] = retry
-            storage.get_results().save(r)
+        with storage.photo_lock(photo_id):
+            r = storage.get_results().load(photo_id)
+            if r is not None:
+                r["retry"] = retry
+                storage.get_results().save(r)
 
     def resume_from_store(self) -> int:
         """서버가 다시 켜졌을 때 결과 저장소에서 '재판독 중'인 건을 찾아 이어 간다.
@@ -114,11 +117,12 @@ class RetryQueue:
             retry = r.get("retry") or {}
             kind = "verify" if r.get("mode") else "analyze"
             due = max(float(retry.get("next_at") or 0), time.time() + 5)
+            attempts = int(retry.get("attempts") or 0)
             with self._lock:
                 if pid in self._queued:
                     continue
-                heapq.heappush(self._heap, (due, kind, pid, int(retry.get("attempts") or 0)))
-                self._queued.add(pid)
+                heapq.heappush(self._heap, (due, kind, pid, attempts))
+                self._queued[pid] = (due, attempts)
             n += 1
         return n
 

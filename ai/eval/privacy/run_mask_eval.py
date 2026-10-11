@@ -8,6 +8,7 @@
 사용: python eval/privacy/run_mask_eval.py eval/privacy/labels.jsonl
 지표
   - 가림 성공률(종류별): 정답 상자의 90% 이상이 가려진 비율. 목표: 번호판·얼굴 모두 98% 이상
+    (차량 전체 가림으로 덮인 번호판도 가려진 것으로 센다)
   - 놓친 사진 목록: 하나라도 못 가린 사진 (직접 열어 원인을 본다)
   - 과잉 가림: 정답이 없는 곳을 가린 면적 비율의 평균. 시설이 가려지면 판독을 망치므로 낮을수록 좋다
   - 처리 시간: 사진당 평균·최대
@@ -28,14 +29,16 @@ COVER = 0.9
 
 
 def to_px(box, W, H):
+    """비율 상자를 픽셀로. 가장자리(1.0)에서 시작해도 최소 1px은 남겨 빈 영역(NaN)이 되지 않게 한다."""
     x1, y1, x2, y2 = box
-    return int(x1 * W), int(y1 * H), max(int(x1 * W) + 1, int(x2 * W)), max(int(y1 * H) + 1, int(y2 * H))
+    px1, py1 = min(int(x1 * W), W - 1), min(int(y1 * H), H - 1)
+    return px1, py1, max(px1 + 1, min(int(x2 * W), W)), max(py1 + 1, min(int(y2 * H), H))
 
 
 def main(label_path: str):
     lp = Path(label_path)
     rows = [json.loads(line) for line in lp.read_text(encoding="utf-8").splitlines() if line.strip()]
-    stats = {"face": [0, 0], "plate": [0, 0]}
+    stats = {"face": [0, 0], "plate": [0, 0]}   # 다른 종류(예: vehicle)가 라벨에 있으면 따로 센다
     missed, over, times = [], [], []
     for row in rows:
         img = images.decode_upload((lp.parent / row["image"]).read_bytes())
@@ -53,8 +56,9 @@ def main(label_path: str):
             x1, y1, x2, y2 = to_px(g["box"], W, H)
             gt_mask[y1:y2, x1:x2] = True
             ok = mask[y1:y2, x1:x2].mean() >= COVER
-            stats[g["kind"]][0] += ok
-            stats[g["kind"]][1] += 1
+            s = stats.setdefault(g["kind"], [0, 0])
+            s[0] += ok
+            s[1] += 1
             if not ok:
                 miss_here.append(g["kind"])
         if miss_here:

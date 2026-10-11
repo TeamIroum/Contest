@@ -170,6 +170,12 @@ def test_change_mode_worse_regrades():
 
 # ---- 보고서 숫자 검증 ----
 def test_numbers_match():
-    s = {"photos": 1284, "urgent": 11}
-    assert report.numbers_match("점검 사진 1,284장, 긴급 11건", s)
-    assert not report.numbers_match("점검 사진 1,284장, 긴급 12건", s)
+    s = report.weekly_stats([])
+    s.update(photos=1284, urgent=1, caution=2, retake=5)
+    ok = report.template_report(s).replace("\n", " ")
+    assert report.numbers_match(ok, s)
+    assert not report.numbers_match(ok.replace("1284", "1285"), s)                          # 새 숫자
+    swapped = ok.replace("긴급 알림 1건, 주의 전달 2건", "긴급 알림 2건, 주의 전달 1건")
+    assert swapped != ok and not report.numbers_match(swapped, s)                             # 서로 바꿔 씀
+    assert not report.numbers_match(ok.replace("재촬영은 5장", "재촬영은 다섯 장"), s)          # 한글 숫자
+    assert not report.numbers_match(ok.replace("이번 주 점검 사진은 1284장입니다.", ""), s)   # 빠뜨림

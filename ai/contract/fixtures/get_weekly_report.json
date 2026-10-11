@@ -20,24 +20,7 @@
   },
   "priority": [
     {
-      "photo_id": "ex_04_urgent",
-      "facility_id": "SW-0001",
-      "facility": "보도블록",
-      "place": "초등학교 통학로 (정문 앞 40m) [예시]",
-      "grade": "긴급",
-      "action": "alert_now",
-      "issue": "들뜸",
-      "dept": "도로 담당",
-      "captured_at": "2026-10-08T09:14:00+09:00",
-      "location_tags": [
-        "school_route"
-      ],
-      "worsened": false,
-      "masked_image_url": "/images/ex_04_urgent_masked.jpg",
-      "rank": 1
-    },
-    {
-      "photo_id": "ex_05b_urgent_bench",
+      "photo_id": "p_example_05b",
       "facility_id": "BN-0001",
       "facility": "벤치",
       "place": "근린공원 산책로 벤치 [예시]",
@@ -48,11 +31,11 @@
       "captured_at": "2026-10-08T09:14:00+09:00",
       "location_tags": [],
       "worsened": false,
-      "masked_image_url": "/images/ex_05b_urgent_bench_masked.jpg",
-      "rank": 2
+      "masked_image_url": "/images/p_example_05b_masked.jpg",
+      "rank": 1
     },
     {
-      "photo_id": "ex_06_needs_review_urgent",
+      "photo_id": "p_example_06",
       "facility_id": null,
       "facility": "보도블록",
       "place": null,
@@ -65,11 +48,11 @@
         "school_route"
       ],
       "worsened": false,
-      "masked_image_url": "/images/ex_06_needs_review_urgent_masked.jpg",
-      "rank": 3
+      "masked_image_url": "/images/p_example_06_masked.jpg",
+      "rank": 2
     },
     {
-      "photo_id": "ex_03_caution",
+      "photo_id": "p_example_03",
       "facility_id": "FN-0001",
       "facility": "안전펜스",
       "place": "하천 산책로 입구 [예시]",
@@ -80,8 +63,8 @@
       "captured_at": "2026-10-08T09:14:00+09:00",
       "location_tags": [],
       "worsened": false,
-      "masked_image_url": "/images/ex_03_caution_masked.jpg",
-      "rank": 4
+      "masked_image_url": "/images/p_example_03_masked.jpg",
+      "rank": 3
     }
   ],
   "text": "이번 주 점검 사진은 11장입니다.\n긴급 알림 3건, 주의 전달 1건, 관찰 1건, 정상 2건으로 판정했습니다.\n담당자 확인으로 넘긴 사진은 3장, 재촬영은 1장, 기존 접수 건에 묶은 사진은 1장입니다.\n수리 확인은 2건을 진행해 1건을 확인하고 1건을 재요청했습니다.\n담당자가 판정을 고친 건은 0건입니다.\n참여 어르신은 1명입니다.",

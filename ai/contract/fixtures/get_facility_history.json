@@ -4,53 +4,53 @@
     {
       "kind": "inspect",
       "at": "2026-10-08T09:14:00+09:00",
-      "photo_id": "ex_04_urgent",
+      "photo_id": "p_example_04",
       "grade": "긴급",
       "issues": [
         "들뜸"
       ],
       "action": "alert_now",
-      "masked_image_url": "/images/ex_04_urgent_masked.jpg"
+      "masked_image_url": "/images/p_example_04_masked.jpg"
     },
     {
       "kind": "verify",
-      "at": "2026-10-08T09:14:00+09:00",
-      "photo_id": "p_5bd7dab51e69",
-      "mode": "repair",
-      "result": "not_fixed",
-      "action": "re_request",
-      "case_id": "C-0388",
-      "masked_image_url": "/images/p_5bd7dab51e69_masked.jpg"
-    },
-    {
-      "kind": "verify",
-      "at": "2026-10-08T09:14:00+09:00",
-      "photo_id": "p_a29c3c8d377b",
+      "at": "2026-10-08T10:00:00+09:00",
+      "photo_id": "p_example_11",
       "mode": "repair",
       "result": "fixed",
       "action": "close_case",
       "case_id": "C-0388",
-      "masked_image_url": "/images/p_a29c3c8d377b_masked.jpg"
+      "masked_image_url": "/images/p_example_11_masked.jpg"
     },
     {
       "kind": "verify",
-      "at": "2026-10-08T09:14:00+09:00",
-      "photo_id": "p_b3c07487761b",
-      "mode": "change",
-      "result": "worse",
-      "action": "regrade",
+      "at": "2026-10-08T11:00:00+09:00",
+      "photo_id": "p_example_12",
+      "mode": "repair",
+      "result": "not_fixed",
+      "action": "re_request",
       "case_id": "C-0388",
-      "masked_image_url": "/images/p_b3c07487761b_masked.jpg"
+      "masked_image_url": "/images/p_example_12_masked.jpg"
     },
     {
       "kind": "verify",
-      "at": "2026-10-08T09:14:00+09:00",
-      "photo_id": "p_d7d7cb8b5d01",
+      "at": "2026-10-08T12:00:00+09:00",
+      "photo_id": "p_example_13",
       "mode": "repair",
       "result": null,
       "action": "retake",
       "case_id": "C-0388",
-      "masked_image_url": "/images/p_d7d7cb8b5d01_masked.jpg"
+      "masked_image_url": "/images/p_example_13_masked.jpg"
+    },
+    {
+      "kind": "verify",
+      "at": "2026-10-08T13:00:00+09:00",
+      "photo_id": "p_example_14",
+      "mode": "change",
+      "result": "worse",
+      "action": "regrade",
+      "case_id": "C-0388",
+      "masked_image_url": "/images/p_example_14_masked.jpg"
     }
   ],
   "inspections": 1,

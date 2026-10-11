@@ -8,18 +8,34 @@
 """
 import random
 from collections import Counter, defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import storage
 
+_KST = timezone(timedelta(hours=9))
 
-def _day(r: dict) -> str | None:
-    t = r.get("captured_at") or (r.get("meta") or {}).get("created_at")
+
+def kst_time(t: str | None) -> str | None:
+    """ISO 시각을 한국 시각 문자열로 바꾼다. 앱이 UTC(…Z)로 보내도 날짜·시각이 하루 밀리지 않게 한다.
+    시간대가 없는 값은 이미 한국 시각으로 본다. 읽을 수 없으면 받은 값 그대로."""
+    if not t:
+        return None
+    try:
+        d = datetime.fromisoformat(t.replace("Z", "+00:00"))
+    except ValueError:
+        return t
+    if d.tzinfo is not None:
+        d = d.astimezone(_KST)
+    return d.isoformat(timespec="seconds")
+
+
+def day_of(r: dict) -> str | None:
+    t = kst_time(r.get("captured_at") or (r.get("meta") or {}).get("created_at"))
     return t[:10] if t else None
 
 
 def _in_range(r: dict, start: str | None, end: str | None) -> bool:
-    d = _day(r)
+    d = day_of(r)
     if d is None:
         return False
     return (start is None or d >= start) and (end is None or d <= end)
@@ -38,12 +54,12 @@ def participant_activity(participant_id: str, start: str | None = None, end: str
             if r.get("participant_id") == participant_id and _in_range(r, start, end)]
     by_day = defaultdict(list)
     for r in rows:
-        by_day[_day(r)].append(r)
+        by_day[day_of(r)].append(r)
 
     days = []
     for d in sorted(by_day):
         rs = by_day[d]
-        times = sorted(r["captured_at"][11:16] for r in rs if r.get("captured_at"))
+        times = sorted(kst_time(r["captured_at"])[11:16] for r in rs if r.get("captured_at"))
         days.append({
             "date": d,
             "photos": len(rs),
@@ -141,13 +157,16 @@ def _audit_store(photo_id: str):
 def record_audit(photo_id: str, ok: bool, reviewer: str | None = None, note: str | None = None) -> dict | None:
     """점검 결과 기록. 가림이 부족하다고(ok=False) 하면 그 사진은 다시 가릴 때까지 내려주지 않는다.
     보류·해제는 GET /events에 image_hidden / image_unhidden으로 남아 백엔드 복사본에도 전달된다."""
+    if not isinstance(ok, bool):  # "false" 같은 문자열을 '문제 없음'으로 읽어 보류를 풀지 않도록
+        raise ValueError("ok는 true 또는 false여야 합니다")
     st = _audit_store(photo_id)
     if st is None:
         return None
-    was_hidden = bool((st.load(photo_id).get("privacy_audit") or {}).get("hidden"))
-    audit = {"ok": bool(ok), "reviewer": reviewer, "note": note,
-             "at": datetime.now(storage_tz()).isoformat(timespec="seconds"), "hidden": not ok}
-    r = st.update(photo_id, privacy_audit=audit)
+    with storage.photo_lock(photo_id):  # 진행 중인 재판독이 끝난 뒤에 기록해, 재판독 저장이 보류를 덮어쓰지 않게
+        was_hidden = bool((st.load(photo_id).get("privacy_audit") or {}).get("hidden"))
+        audit = {"ok": ok, "reviewer": reviewer, "note": note,
+                 "at": datetime.now(storage_tz()).isoformat(timespec="seconds"), "hidden": not ok}
+        r = st.update(photo_id, privacy_audit=audit)
     rev = storage.get_store().revision(photo_id)
     if not ok and not was_hidden:
         storage.get_events().add("image_hidden", photo_id, image_revision=rev, reason=note)

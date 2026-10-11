@@ -7,7 +7,7 @@
 ```bash
 pip install -r requirements.txt
 
-python -m pytest -q                                           # 테스트 109개 (규칙, 마스킹, 저장 원칙, 서버 처리, 활동 기록, 백엔드 연동)
+python -m pytest -q                                           # 테스트 135개 (규칙, 마스킹, 저장 원칙, 서버 처리, 활동 기록, 백엔드 연동, 점검 수정 확인)
 AI_PROVIDER=mock uvicorn server:app --reload --port 8000      # 백엔드 연동 시험용 서버 (http://localhost:8000/docs)
 python eval/run_eval.py analyze --labels eval/labels_sample.csv --provider mock   # 평가 스크립트 실행 확인
 
@@ -41,7 +41,7 @@ OLLAMA_MODEL=qwen3-vl:8b python eval/run_eval.py analyze --labels eval/photos/la
    AI_TIMEOUT_S=12
    ```
    Ollama 설치와 모델 받기는 [AI 실행 가이드](../docs/AI_실행_가이드.md) 4.2절을 따릅니다.
-3. 한 번만 `pip install python-dotenv`를 설치하고, 이후에는 이 명령으로 실행합니다.
+3. 이 명령으로 실행합니다 (`.env`를 읽는 `python-dotenv`는 `requirements.txt`에 들어 있습니다).
    ```powershell
    python -m uvicorn server:app --port 8000 --env-file .env
    ```
@@ -238,7 +238,7 @@ AI가 하는 일과 코드가 하는 일은 기획안대로 나눴습니다.
 
 - 변경 알림(`GET /events`)과 재판독 대기열은 서버 작업자 1개 기준입니다. 작업자를 늘리려면 둘 다 DB나 Redis로 옮겨야 합니다.
 - `/images`는 API 키로 막혀 있어 웹 화면 `<img>`로 바로 띄울 수 없습니다. 운영 단계에서 서명 주소 방식으로 바꿔야 합니다.
-- 번호판은 사전 학습 모델 + 규칙 기반 + 차량 안전망으로 가립니다. 합성 점검 60%는 참고치일 뿐이고, 실제 한국 사진 평가를 통과하기 전에는 시범 운영을 하면 안 됩니다.
+- 번호판은 사전 학습 모델 + 규칙 기반 + 차량 안전망으로 가립니다. 합성 점검 65%는 참고치일 뿐이고, 실제 한국 사진 평가를 통과하기 전에는 시범 운영을 하면 안 됩니다.
 - `quality.py`의 흐림·어두움 기준값은 임시값입니다. 테스트셋의 재촬영 판정 결과를 보고 조정합니다.
 - `data/sample_ledger.csv`는 가짜 좌표입니다. 실제 시설 대장을 받을 수 없으면 공공데이터포털에서 양주시 도시공원·어린이보호구역 같은 공개 데이터가 있는지 찾아보고, 시범 구역은 팀이 직접 좌표를 찍어 만들어도 됩니다.
 - AI가 내는 `certainty`는 모델의 자기 평가라 완벽하지 않습니다. 담당자 확인 비율과 실제 오답 비율을 비교해 신뢰할 만한지 확인합니다.

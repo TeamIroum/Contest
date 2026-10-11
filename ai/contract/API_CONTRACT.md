@@ -63,7 +63,7 @@ verify용: `fixed`, `not_fixed`, `different_place`, `worse`
 | POST | `/report/narrative` | 백엔드가 확정한 집계값으로 보고 문장만 생성 | 30초 이내 |
 | GET | `/events?after=&limit=` | 응답 뒤에 바뀐 것(다시 가림, 보류, 재판독 결과) 목록 | 즉시 |
 | GET | `/audit/masking?start=&end=&n=20` | 담당자 가림 점검용 표본 사진 목록 | 즉시 |
-| POST | `/audit/masking/{photo_id}` | 가림 점검 결과 기록 `{"ok": false, "reviewer": "...", "note": "..."}`. 부족하면 그 사진은 내려주지 않음(410) | 즉시 |
+| POST | `/audit/masking/{photo_id}` | 가림 점검 결과 기록 (application/json) `{"ok": false, "reviewer": "...", "note": "..."}`. `ok`는 필수 JSON 불리언, `reviewer`·`note`는 선택 문자열. `false`면 그 사진은 내려주지 않음(410), `true`면 보류 해제 | 즉시 |
 | GET | `/health` | 서버 상태, 계약 버전, 얼굴 검출기 종류, 재판독 대기 건수, 마지막 알림 순번 (인증 없음) | 즉시 |
 
 아래는 AI 모듈만으로 시연할 때 쓰는 집계 기능입니다. AI 쪽 기록(촬영자 기준)으로 세므로, 업무 실적·출결·주간 보고의 공식 수치로 쓰지 않습니다. 업무 보고는 백엔드 DB 집계 + `/report/narrative`를 씁니다.
@@ -83,7 +83,7 @@ verify용: `fixed`, `not_fixed`, `different_place`, `worse`
 | 필드 | 필수 | 설명 |
 |---|---|---|
 | `image` | O | 앱이 가린 사진 (JPEG/PNG, 15MB 이하). 회전 정보는 AI가 반영하고 메타데이터는 버림. HEIC·AVIF·WebP는 `status: "error"`(`unsupported_type`)로 거절되므로 앱에서 JPEG으로 바꿔 올림 |
-| `photo_id` | 권장 | 백엔드가 AI 호출마다 만든 ID (영문·숫자·`_`·`-`, 80자 이하). 같은 ID로 다시 보내면 처리하지 않고 저장된 결과를 돌려줌 (`meta.replayed: true`). 통신이 끊겨 다시 보낼 때는 같은 ID, 새 촬영은 새 ID |
+| `photo_id` | 권장 | 백엔드가 AI 호출마다 만든 ID (영문·숫자·`_`·`-`, 80자 이하). 같은 ID로 다시 보내면 처리하지 않고 저장된 결과를 돌려줌 (`meta.replayed: true`). 첫 요청이 아직 처리 중이면 끝날 때까지 기다렸다가 그 결과를 돌려줌. 통신이 끊겨 다시 보낼 때는 같은 ID, 새 촬영은 새 ID. 형식이 틀리거나 `m_`로 시작하면(서버 내부용) 400 |
 | `participant_id` | 권장 | 실제로 사진을 올린 참여자의 가명 ID (이름·전화번호 금지) |
 | `captured_at` | 권장 | 촬영 시각 ISO 8601 (`2026-10-08T09:14:00+09:00`) |
 | `device_masked` | 운영 필수 | 앱에서 이미 가렸으면 `true` |
@@ -100,12 +100,12 @@ verify용: `fixed`, `not_fixed`, `different_place`, `worse`
 | `after` | O | 이번 재촬영 사진. 앱이 가린 사진이며, AI가 저장 전에 한 번 더 확인함 |
 | `prior_json` | O | `{"case_id", "facility_id", "facility_type", "issue_type", "severity", "bbox", "evidence", "location_tags"}` (처음 판독 결과에서 그대로 꺼내 씀) |
 | `before_photo_id` | △ | 처음 판독한 사진의 AI `photo_id` 또는 `masked_image_url`. AI에 저장된 가린 사진으로 비교함 (권장) |
-| `before` | △ | `before_photo_id`를 쓸 수 없을 때만(AI 저장소가 비워졌을 때 등) 백엔드에 복사해 둔 처리 전 가린 사진을 직접 보냄 |
+| `before` | △ | `before_photo_id`를 쓸 수 없을 때만(AI 저장소가 비워졌을 때 등) 백엔드에 복사해 둔 처리 전 가린 사진을 직접 보냄. `after`와 같은 검사(기기 가림 확인, 크기 제한, 서버 가림)를 거쳐 `m_vb_`로 시작하는 이름으로 저장되고, 가림 점검으로 보류할 수 있음 |
 | `mode` | | `repair`(처리 완료 후 수리 확인, 기본) 또는 `change`(미처리 건 변화 비교) |
-| `photo_id` | | 재촬영 사진의 AI 호출 ID. `/analyze`와 다른 새 ID |
+| `photo_id` | | 재촬영 사진의 AI 호출 ID. `/analyze`와 다른 새 ID (`/analyze`에 쓴 ID면 409) |
 | `participant_id`, `captured_at`, `device_masked`, `device_mask_report` | | `/analyze`와 같음 |
 
-`before_photo_id`와 `before` 중 하나는 꼭 보내야 합니다. 저장된 사진이 없으면 404를 돌려줍니다.
+`before_photo_id`와 `before` 중 하나는 꼭 보내야 합니다. 저장된 사진이 없으면 404, 가림 점검에서 보류된 사진이면 410을 돌려줍니다. `prior_json`의 `facility_type`·`issue_type`이 시설 목록에 없으면 400입니다. 두 사진 중 하나라도 가리지 못하면 아무것도 저장하지 않고 `status: "error"`입니다.
 
 ### GET /images/{photo_id}_masked.jpg
 
@@ -166,14 +166,30 @@ verify용: `fixed`, `not_fixed`, `different_place`, `worse`
 
 ### 오류 응답
 
-| HTTP | 경우 |
-|---|---|
-| 400 | `context_json`, `device_mask_report`, `prior_json`이 올바른 JSON 객체(`{...}`)가 아님, `/privacy/mask`·`/report/narrative` 입력 형식 오류. `detail`에 이유가 적혀 있음 |
-| 401 | API 키 없음·틀림 |
-| 404 | 저장된 사진·결과 없음 |
-| 409 | `/privacy/mask`에서 같은 `media_id`로 다른 사진이 들어옴 |
-| 410 | 가림 점검에서 보류된 사진 (`/images`) |
-| 413 | 사진이 15MB 초과 |
+모든 오류 응답의 본문은 `{"detail": "사람이 읽는 설명", "code": "오류 코드"}`입니다. 백엔드는 `code`로 분기하고, `detail`은 기록·표시에만 씁니다(문장은 바뀔 수 있음). 형식 오류는 모두 400이며 422는 쓰지 않습니다. 4xx 오류는 사진을 저장하지 않으므로, 원인을 고친 뒤 같은 `photo_id`로 다시 보내도 됩니다.
+
+| HTTP | code | 경우 |
+|---|---|---|
+| 400 | `INVALID_REQUEST` | 필드 타입이 틀리거나 필수 필드가 빠짐 (예: `lat`이 숫자가 아님, `after` 파일 없음, JSON 본문이 객체가 아님) |
+| 400 | `INVALID_JSON` | `context_json`, `prior_json`, `device_mask_report`가 JSON이 아니거나 객체(`{...}`)가 아님 |
+| 400 | `INVALID_PHOTO_ID` | `photo_id`가 `^[A-Za-z0-9_-]{1,80}$`가 아니거나 `m_`로 시작함 |
+| 400 | `INVALID_CONTEXT` | `context_json` 안의 값 형식이 틀림 (예: `history.severity`가 0~3 정수가 아님, `open_cases`가 객체 목록이 아님) |
+| 400 | `INVALID_PRIOR` | `prior_json`의 `facility_type`·`issue_type`이 시설 목록에 없음, `severity`·`bbox`·`location_tags` 형식 오류 |
+| 400 | `INVALID_MODE` | `/verify`의 `mode`가 `repair`·`change`가 아님 |
+| 400 | `BEFORE_REQUIRED` | `/verify`에 `before_photo_id`와 `before`가 모두 없음 |
+| 400 | `INVALID_AUDIT` | `/audit/masking/{id}` 본문이 객체가 아님, `ok`가 JSON 불리언이 아님, `reviewer`·`note`가 문자열이 아님 |
+| 400 | `INVALID_MEDIA` | `/privacy/mask`의 `media_id`·`purpose` 형식 오류 |
+| 400 | `INVALID_NARRATIVE` | `/report/narrative`의 `items`·`audience` 형식 오류 |
+| 401 | `UNAUTHORIZED` | API 키 없음·틀림 |
+| 404 | `PHOTO_NOT_FOUND` | `/images`의 사진 없음, `/verify`의 `before_photo_id` 사진 없음 |
+| 404 | `RESULT_NOT_FOUND` | `/results/{photo_id}` 결과 없음 |
+| 404 | `AUDIT_TARGET_NOT_FOUND` | `/audit/masking/{id}`의 대상 기록 없음 |
+| 404 | `MEDIA_NOT_FOUND` | `/privacy/{media_id}` 기록 없음 |
+| 404 | `NOT_FOUND` | 없는 주소 |
+| 409 | `PHOTO_ID_CONFLICT` | `/analyze`에 쓴 `photo_id`로 `/verify`를 부르거나 그 반대 |
+| 409 | `MEDIA_ID_CONFLICT` | `/privacy/mask`에서 같은 `media_id`로 다른 사진이 들어옴 |
+| 410 | `PHOTO_HIDDEN` | 가림 점검에서 보류된 사진 (`GET /images`, `/verify`의 `before_photo_id`). `{"ok": true}`로 보류를 풀면 다시 쓸 수 있음 |
+| 413 | `PHOTO_TOO_LARGE` | 사진이 15MB 초과 |
 
 사진 형식이 틀리거나 읽을 수 없는 경우, 마스킹에 실패한 경우는 HTTP 200에 `status: "error"`로 돌려줍니다. **HTTP 200이어도 접수 성공이 아닙니다.** 백엔드는 이를 기술·마스킹 실패로 기록하고(품질 재촬영 횟수에는 넣지 않음) 앱에 다시 찍기 안내를 보냅니다.
 
@@ -186,9 +202,9 @@ verify용: `fixed`, `not_fixed`, `different_place`, `worse`
 | 값 | 뜻 | 백엔드 처리 |
 |---|---|---|
 | `ok` | 판독 완료 | 결과 저장, 사진 채택. `action`은 담당자 쪽 처리 제안 |
-| `retake` | 다시 찍어야 함 (흐림·어두움·틀 밖·시설 안 보임) | 품질 실패로 기록. `masked_image_url`이 있으면 사진이 저장된 실패, `null`이면 사진 없는 실패 |
-| `needs_review` | 사람이 확인해야 함 (목록 외 시설, 확신 낮음, AI 지연) | 담당자 검토로 넘김. `retry.pending`이면 재판독 중이므로 `result_updated` 알림을 기다림 |
-| `error` | 사진을 처리하지 못함 (형식 오류, 마스킹 실패). 아무것도 저장하지 않음 | 접수 실패로 기록. 품질 재촬영 횟수에는 넣지 않음 |
+| `retake` | 다시 찍어야 함 (흐림·어두움·틀 밖) | 품질 실패로 기록. `masked_image_url`이 있으면 사진이 저장된 실패, `null`이면 사진 없는 실패 |
+| `needs_review` | 사람이 확인해야 함 (목록 외 시설·시설 안 보임, 확신 낮음, 문제 위치가 가림 영역과 겹침, AI 지연·응답 형식 오류) | 담당자 검토로 넘김. `retry.pending`이면 재판독 중이므로 `result_updated` 알림을 기다림 |
+| `error` | 사진을 처리하지 못함 (형식 오류, 마스킹 실패, 마스킹 검출기를 불러오지 못함). 아무것도 저장하지 않음 | 접수 실패로 기록. 품질 재촬영 횟수에는 넣지 않음 |
 
 ### action: 담당자 쪽 처리 제안
 
@@ -242,7 +258,7 @@ AI 응답의 `senior_message`는 상황별로 고정된 안내 문구(`taxonomy.
 1. **위치는 `location_tags`로 보내고 `lat`/`lon`은 보내지 마세요.** 위치를 보내면 AI가 자기 쪽 시설 대장(`data/sample_ledger.csv`, 가짜 좌표)과 맞춰 엉뚱한 `facility_id`를 붙이거나, 근처 후보가 여럿이라는 이유로 `needs_review`로 바꿀 수 있습니다. 백엔드 시설 대장의 태그를 쉼표로 넣으면 위치 가중치가 그 태그로 계산됩니다. 태그가 없으면 빈 문자열을 보냅니다. 응답의 `facility.facility_id`, `dept`, `duplicate_of`는 참고값이며 백엔드 대장·사건 규칙이 우선합니다.
 2. **`device_mask_report`의 키는 snake_case입니다.** 앱이 `appVersion`으로 보내면 백엔드가 `app_version`으로 바꿔 넘겨 주세요. 바꾸지 않으면 오류 없이 값만 빠집니다.
 3. **`/analyze`의 같은 `photo_id`에 다른 사진을 보내도 AI는 막지 않고 저장된 결과를 돌려줍니다.** 입력 해시 검사는 백엔드가 합니다. (`/privacy/mask`는 AI가 409로 막습니다.)
-4. **재촬영(`status: "retake"`)이어도 사진이 저장된 경우가 있습니다.** 흐림·어두움은 저장하지 않지만(`masked_image_url: null`), 틀 밖·시설 안 보임 판정은 AI가 사진을 본 뒤라 저장되어 있습니다. `masked_image_url` 유무로 구분하세요.
+4. **재촬영(`status: "retake"`)이어도 사진이 저장된 경우가 있습니다.** 흐림·어두움은 저장하지 않지만(`masked_image_url: null`), 틀 밖 판정은 AI가 사진을 본 뒤라 저장되어 있습니다. (시설 안 보임은 `retake`가 아니라 `needs_review`입니다.) `masked_image_url` 유무로 구분하세요.
 5. **전후 비교 결과 값**: repair 모드는 `fixed | not_fixed | unclear`, change 모드는 `worse | same | better | unclear`입니다. 같은 시설이 아니거나 부위가 안 보이면 `status: "retake"`입니다. 업무 분류로는 `fixed`=수리 확인 제안, `not_fixed`=미수리 의심, `worse`=악화 의심, `retake`·`unclear`·확신 낮음=비교 불가로 연결합니다. `close_case`·`re_request`·`regrade`는 제안이며 확정은 담당자가 합니다.
 6. **재판독은 백엔드도 기한을 두세요.** AI는 30초·2분·10분 간격으로 세 번 다시 판독하고 끝냅니다. `result_updated` 알림을 받거나, 정해 둔 시간 안에 결과가 확정되지 않으면 담당자 검토로 넘깁니다.
-7. **운영 설정**: `REQUIRE_DEVICE_MASKING=1`(앱이 가리지 않은 사진 거절), `API_KEYS` 설정, 서버 작업자 1개. 현재 값은 `GET /health`의 `require_device_masking`으로 확인합니다. AI 서버에도 가린 사진이 백엔드 저장소와 별도로 쌓이므로 보관 기간을 함께 정합니다.
+7. **운영 설정**: `REQUIRE_DEVICE_MASKING=1`(앱이 가리지 않은 사진 거절), `API_KEYS` 설정, 서버 작업자 1개. 현재 값은 `GET /health`의 `require_device_masking`으로 확인합니다. `GET /health`의 `ok`가 `false`이면 마스킹 검출기(`detectors`)를 불러오지 못한 상태이며, 그동안 들어온 사진은 가리지 않고 `status: "error"`로 거절합니다. AI 서버에도 가린 사진이 백엔드 저장소와 별도로 쌓이므로 보관 기간을 함께 정합니다.

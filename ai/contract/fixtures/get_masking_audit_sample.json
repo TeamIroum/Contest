@@ -1,18 +1,29 @@
 [
   {
-    "photo_id": "ex_16_privacy_leak_fixed",
-    "masked_image_url": "/images/ex_16_privacy_leak_fixed_masked.jpg",
+    "photo_id": "p_example_16",
+    "masked_image_url": "/images/p_example_16_masked.jpg",
     "captured_at": "2026-10-08T09:14:00+09:00",
     "reason": "누락 보정 이력",
     "mode": "device+server",
     "faces": 0,
-    "plates": 0,
+    "plates": 1,
     "server_added": 0,
     "leaks_fixed": 1
   },
   {
-    "photo_id": "p_b3c07487761b",
-    "masked_image_url": "/images/p_b3c07487761b_masked.jpg",
+    "photo_id": "p_example_14",
+    "masked_image_url": "/images/p_example_14_masked.jpg",
+    "captured_at": "2026-10-08T13:00:00+09:00",
+    "reason": "무작위 표본",
+    "mode": "device+server",
+    "faces": 0,
+    "plates": 0,
+    "server_added": 0,
+    "leaks_fixed": null
+  },
+  {
+    "photo_id": "p_example_03",
+    "masked_image_url": "/images/p_example_03_masked.jpg",
     "captured_at": "2026-10-08T09:14:00+09:00",
     "reason": "무작위 표본",
     "mode": "device+server",
@@ -22,8 +33,8 @@
     "leaks_fixed": null
   },
   {
-    "photo_id": "ex_03_caution",
-    "masked_image_url": "/images/ex_03_caution_masked.jpg",
+    "photo_id": "p_example_04",
+    "masked_image_url": "/images/p_example_04_masked.jpg",
     "captured_at": "2026-10-08T09:14:00+09:00",
     "reason": "무작위 표본",
     "mode": "device+server",
@@ -33,20 +44,9 @@
     "leaks_fixed": null
   },
   {
-    "photo_id": "ex_04_urgent",
-    "masked_image_url": "/images/ex_04_urgent_masked.jpg",
-    "captured_at": "2026-10-08T09:14:00+09:00",
-    "reason": "무작위 표본",
-    "mode": "device+server",
-    "faces": 0,
-    "plates": 0,
-    "server_added": 0,
-    "leaks_fixed": null
-  },
-  {
-    "photo_id": "p_5bd7dab51e69",
-    "masked_image_url": "/images/p_5bd7dab51e69_masked.jpg",
-    "captured_at": "2026-10-08T09:14:00+09:00",
+    "photo_id": "p_example_12",
+    "masked_image_url": "/images/p_example_12_masked.jpg",
+    "captured_at": "2026-10-08T11:00:00+09:00",
     "reason": "무작위 표본",
     "mode": "device+server",
     "faces": 0,

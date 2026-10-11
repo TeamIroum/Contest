@@ -40,7 +40,11 @@ def run(src: Path, out: Path):
         masked, rep = privacy.mask_image(img)
         times.append(time.time() - t)
         name = f"{i:04d}.jpg"
-        cv2.imwrite(str(out / "img" / name), images.resize_max(masked, 1200), [cv2.IMWRITE_JPEG_QUALITY, 85])
+        # cv2.imwrite는 Windows에서 한글 경로에 조용히 실패하므로 메모리에서 인코딩해 직접 쓴다
+        ok, buf = cv2.imencode(".jpg", images.resize_max(masked, 1200), [cv2.IMWRITE_JPEG_QUALITY, 85])
+        if not ok:
+            raise RuntimeError(f"JPEG 인코딩 실패: {f.name}")
+        (out / "img" / name).write_bytes(buf.tobytes())
         rows.append({"no": i, "file": f.name, "faces_masked": rep.faces, "plates_masked": rep.plates,
                      "vehicles_masked": rep.vehicles, "total_faces": "", "total_plates": "",
                      "visible_faces": "", "visible_plates": "", "note": ""})
@@ -52,9 +56,8 @@ def run(src: Path, out: Path):
         w.writeheader()
         w.writerows(rows)
     avg = sum(times) / len(times) if times else 0
-    vd = privacy.vehicle_detector()
-    dets = (f"얼굴 {type(privacy.face_detector()).__name__}, 번호판 "
-            f"{'+'.join(type(d).__name__ for d in privacy.plate_detectors())}, 차량 {type(vd).__name__ if vd else '없음'}")
+    st = privacy.detector_status()
+    dets = f"얼굴 {st['face']}, 번호판 {st['plate']}, 차량 {st['vehicle'] or '없음'}"
     (out / "index.html").write_text(f"""<!doctype html><html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>마스킹 확인</title>
 <style>body{{margin:0;font-family:"Noto Sans KR","Malgun Gothic",sans-serif;background:#EEF2F2;color:#13292E}}
@@ -68,25 +71,37 @@ mask_review.csv에 적어 주세요. 평균 처리 시간 {avg:.2f}초. 검출�
     print(f"\n확인 화면: {out / 'index.html'}\n기록 파일: {out / 'mask_review.csv'}")
 
 
+def _n(v):
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def tally(rows: list[dict], kind: str) -> tuple[int, int]:
+    """(전체 개수, 알아볼 수 있게 남은 개수). total 칸을 채운 행만 센다. 같은 행의 visible이 비었으면 0,
+    total보다 크게 적었으면 total로 본다. 그래야 성공률이 음수나 100% 초과가 되지 않는다."""
+    total = visible = 0
+    for r in rows:
+        t = _n(r.get(f"total_{kind}"))
+        if t is None or t < 0:
+            continue
+        total += t
+        visible += min(max(_n(r.get(f"visible_{kind}")) or 0, 0), t)
+    return total, visible
+
+
 def score(path: Path):
     rows = list(csv.DictReader(path.open(encoding="utf-8-sig")))
-
-    def n(v):
-        try:
-            return int(v)
-        except (TypeError, ValueError):
-            return None
-
     for kind in ("faces", "plates"):
-        total = sum(n(r[f"total_{kind}"]) or 0 for r in rows if n(r[f"total_{kind}"]) is not None)
-        visible = sum(n(r[f"visible_{kind}"]) or 0 for r in rows if n(r[f"visible_{kind}"]) is not None)
+        total, visible = tally(rows, kind)
         label = "얼굴" if kind == "faces" else "번호판"
         if total:
             print(f"{label}: 전체 {total}개 중 {total - visible}개 가림 ({100 * (total - visible) / total:.1f}%), "
                   f"알아볼 수 있게 남은 것 {visible}개")
         else:
             print(f"{label}: total_{kind} 칸이 비어 있어 계산할 수 없습니다")
-    missed = [r["no"] for r in rows if (n(r["visible_faces"]) or 0) + (n(r["visible_plates"]) or 0) > 0]
+    missed = [r["no"] for r in rows if (_n(r["visible_faces"]) or 0) + (_n(r["visible_plates"]) or 0) > 0]
     if missed:
         print("놓친 사진 번호:", ", ".join(missed))
 

@@ -4,6 +4,7 @@
 - next_scenario를 지정하면 그 시나리오를 한 번 돌려준다 (테스트, 시연용)
 실제 판독 능력은 없다. 정확도 평가에는 쓰지 않는다.
 """
+import copy
 import hashlib
 
 from providers.base import Provider
@@ -95,10 +96,10 @@ class MockProvider(Provider):
     def _pick(self, scenarios: dict, data: bytes) -> dict:
         if self.next_scenario:
             key, self.next_scenario = self.next_scenario, None
-            return dict(scenarios[key])
+            return copy.deepcopy(scenarios[key])
         keys = sorted(scenarios)
         idx = int(hashlib.md5(data).hexdigest(), 16) % len(keys)
-        return dict(scenarios[keys[idx]])
+        return copy.deepcopy(scenarios[keys[idx]])
 
     def analyze(self, image_jpeg, prompt, schema):
         return self._pick(ANALYZE_SCENARIOS, image_jpeg)
