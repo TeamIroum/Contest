@@ -33,7 +33,7 @@
     "contract_version": "2.0",
     "provider": "mock",
     "model": "mock",
-    "prompt_version": "analyze-537d9b0",
+    "prompt_version": "analyze-f7ffcf9",
     "taxonomy_version": "0.3",
     "latency_ms": 2400,
     "created_at": "2026-10-08T09:14:03+09:00",

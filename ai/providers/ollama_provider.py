@@ -57,10 +57,14 @@ def bbox_mode(model: str) -> str:
 
 def to_ratio_box(b, W: int, H: int, mode: str = "pixel"):
     """모델 좌표 [x1, y1, x2, y2] → 계약 [왼쪽, 위, 오른쪽, 아래] (0~1).
-    mode=pixel이면 사진 크기(W, H)로, norm1000이면 1000으로 나눈다. 값이 모두 1 이하면 이미 비율로 보고 그대로 둔다."""
-    if not (isinstance(b, list) and len(b) == 4 and all(isinstance(v, (int, float)) for v in b)):
+    mode=pixel이면 사진 크기(W, H)로, norm1000이면 1000으로 나눈다. 프롬프트대로 정수로 답하면 값이 작아도
+    ([0, 0, 1, 1] 같은 구석의 작은 상자) 그 형식으로 읽는다. 소수가 섞여 있고 모두 1 이하일 때만 이미 비율로 본다.
+    형식이 틀린 값은 그대로 돌려주고, pipeline의 응답 형식 확인에서 걸러진다."""
+    if not (isinstance(b, list) and len(b) == 4
+            and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in b)):
         return b
-    if max(b) > 1:
+    already_ratio = max(b) <= 1 and any(float(v) != int(v) for v in b)
+    if not already_ratio:
         b = [v / 1000 for v in b] if mode == "norm1000" else [b[0] / W, b[1] / H, b[2] / W, b[3] / H]
     x0, y0, x1, y1 = (min(max(float(v), 0.0), 1.0) for v in b)
     l, r = sorted((x0, x1))
@@ -149,16 +153,17 @@ class OllamaProvider(Provider):
         return self._chat("", prompt, [], None).strip()
 
 
-def _fill_defaults(data: dict, schema: dict) -> dict:
-    """모델이 빠뜨린 필드를 안전한 기본값으로 채우고, 범위 밖 값을 바로잡는다."""
+def _fill_defaults(data, schema: dict):
+    """뜻이 분명한 기본값만 채운다: 빠진 목록은 빈 목록(issues·privacy_leaks: 보고할 것 없음),
+    certainty가 없거나 틀리면 low(담당자 확인으로 감). framing_ok·facility_visible 같은 판단 값은 지어내지 않는다.
+    빠진 채로 두면 pipeline이 형식 오류로 보고 담당자 확인 + 나중에 다시 판독한다.
+    (예전에는 framing_ok를 False로 채워, 잘 찍은 사진도 어르신께 다시 찍으라고 안내했다)"""
+    if not isinstance(data, dict):
+        return data
     props = schema.get("properties", {})
     for k, spec in props.items():
-        if k in data:
-            continue
-        t = spec.get("type")
-        data[k] = [] if t == "array" else False if t == "boolean" else 0 if t == "integer" else (
-            "low" if k == "certainty" else "unclear" if spec.get("enum") and "unclear" in spec["enum"] else
-            (spec.get("enum") or [""])[-1] if spec.get("enum") else "")
+        if k not in data and spec.get("type") == "array":
+            data[k] = []
     if "certainty" in props and data.get("certainty") not in ("high", "medium", "low"):
         data["certainty"] = "low"
     return data

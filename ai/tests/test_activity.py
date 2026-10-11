@@ -114,9 +114,9 @@ def test_priority_list_order_and_closed_excluded():
 def test_masking_audit_flow(monkeypatch):
     for i in range(6):
         shoot(f"m{i}", "drain_normal", f"2026-10-07T09:0{i}:00+09:00")
-    pipeline.analyze_photo(IMG, {"photo_id": "m_srv", "captured_at": "2026-10-07T10:00:00+09:00"}, mock("drain_normal"))
+    pipeline.analyze_photo(IMG, {"photo_id": "srv", "captured_at": "2026-10-07T10:00:00+09:00"}, mock("drain_normal"))
     sample = activity.masking_audit_sample("2026-10-07", "2026-10-07", n=3)
-    assert sample[0]["photo_id"] == "m_srv" and len(sample) == 3          # 서버 단독 마스킹은 반드시 포함
+    assert sample[0]["photo_id"] == "srv" and len(sample) == 3          # 서버 단독 마스킹은 반드시 포함
     activity.record_audit("m0", ok=False, reviewer="주무관", note="번호판 일부 보임")
     assert activity.is_hidden("m0")
     from fastapi.testclient import TestClient

@@ -14,9 +14,11 @@
              있어 따로 학습하지 않고 바로 쓴다 (PLATE_PRETRAINED)
           2) 팀이 한국 번호판으로 추가 학습한 모델이 있으면 함께 쓴다 (PLATE_MODEL)
           3) 규칙 기반 검출기 (밝은 직사각형 + 글자 모양 덩어리 4개 이상)
-  차량  : 사전 학습 물체 검출기(RF-DETR, COCO)로 자동차·버스·트럭·오토바이를 찾고, 그 안에서 번호판을
-          하나도 찾지 못했으면 차량 전체를 거칠게 뭉갠다 (VEHICLE_FALLBACK). 번호판 검출이 놓쳐도
+  차량  : 사전 학습 물체 검출기(RF-DETR, COCO)로 자동차·버스·트럭·오토바이를 찾고, 그 안에서 학습 모델(1·2)이
+          번호판을 하나도 찾지 못했으면 차량 전체를 거칠게 뭉갠다 (VEHICLE_FALLBACK). 번호판 검출이 놓쳐도
           번호가 남지 않게 하는 안전망이다. 점검 사진에서 차량은 배경이라 가려도 판독에 지장이 적다.
+          규칙 기반(3)이 찾은 상자는 차량 가림을 끄지 않는다. 규칙 기반은 간판·스티커도 번호판으로 보므로,
+          그 오탐이 차 안에 걸렸다는 이유로 진짜 번호판이 남으면 안 되기 때문이다.
           기획안·앱 마스킹 안내(contract/APP_MASKING_GUIDE.md)와 같은 규칙이며, 차의 크기·방향과 관계없이 적용한다.
 
 가리는 방법
@@ -24,6 +26,9 @@
   번호판: 단색으로 덮는다. 글자는 흐림·모자이크만으로는 복원 시도가 가능하므로 아예 지운다.
 
 실패 원칙 (fail-closed)
+  설정에서 켠 검출기(사전 학습 번호판 모델, 차량 모델, PLATE_MODEL)를 불러오지 못하면 DetectorUnavailable을 낸다.
+  일부 검출기만으로 계속 가리면 문서가 약속한 수준보다 약하게 가린 사진이 저장되기 때문이다.
+  불러오기 실패는 저장해 두지 않으므로 다음 사진에서 다시 시도한다. 끄려면 환경 변수를 비운다.
   검출이나 가림 중 오류가 나면 예외를 그대로 올린다. pipeline.py는 이때 사진을 저장하지도,
   AI에 보내지도 않고 다시 찍어 달라고 안내한다. 가리지 못한 사진이 밖으로 나가는 경로는 없다.
 """
@@ -340,24 +345,29 @@ def face_detector():
     return HaarFaces()
 
 
-def _try(factory, what):
+class DetectorUnavailable(RuntimeError):
+    """설정에서 켠 검출기를 불러오지 못함. 이때는 가리지 않고 실패로 처리한다 (fail-closed)."""
+
+
+def _load(factory, what):
+    """검출기를 불러온다. 실패하면 DetectorUnavailable. lru_cache는 예외를 저장하지 않으므로 다음 호출에서 다시 시도한다."""
     try:
         return factory()
-    except Exception as e:  # 라이브러리가 없거나 모델을 내려받지 못한 경우: 나머지 검출기로 계속
+    except Exception as e:  # 라이브러리가 없거나 모델을 내려받지 못한 경우
         import logging
-        logging.getLogger("ai.privacy").warning("%s를 쓸 수 없어 건너뜀: %s", what, e)
-        return None
+        logging.getLogger("ai.privacy").error("%s를 불러오지 못함: %s: %s", what, type(e).__name__, e)
+        raise DetectorUnavailable(f"{what}를 불러오지 못함: {type(e).__name__}") from e
 
 
 @lru_cache
 def plate_detectors() -> tuple:
     dets = []
     if PLATE_PRETRAINED:
-        d = _try(lambda: PretrainedPlates(PLATE_PRETRAINED, PLATE_PRETRAINED_CONF), "사전 학습 번호판 모델")
-        if d:
-            dets.append(d)
-    if PLATE_MODEL and Path(PLATE_MODEL).is_file():
-        dets.append(OnnxPlates(PLATE_MODEL))
+        dets.append(_load(lambda: PretrainedPlates(PLATE_PRETRAINED, PLATE_PRETRAINED_CONF), "사전 학습 번호판 모델"))
+    if PLATE_MODEL:
+        if not Path(PLATE_MODEL).is_file():
+            raise DetectorUnavailable(f"PLATE_MODEL 파일이 없음: {PLATE_MODEL}")
+        dets.append(_load(lambda: OnnxPlates(PLATE_MODEL), "추가 학습 번호판 모델"))
     if PLATE_HEURISTIC or not dets:
         dets.append(HeuristicPlates())
     return tuple(dets)
@@ -367,7 +377,20 @@ def plate_detectors() -> tuple:
 def vehicle_detector():
     if not VEHICLE_FALLBACK:
         return None
-    return _try(lambda: VehicleDetector(VEHICLE_FALLBACK, VEHICLE_CONF), "차량 검출 모델")
+    return _load(lambda: VehicleDetector(VEHICLE_FALLBACK, VEHICLE_CONF), "차량 검출 모델")
+
+
+def detector_status() -> dict:
+    """서버 상태 확인(/health)과 시작 기록용. 불러오지 못한 검출기는 오류로 표시한다."""
+    out = {"face": "yunet" if isinstance(face_detector(), YuNetFaces) else "haar(대체)"}
+    for key, fn in (("plate", plate_detectors), ("vehicle", vehicle_detector)):
+        try:
+            v = fn()
+            out[key] = "+".join(d.name for d in v) if isinstance(v, tuple) else (v.name if v else None)
+        except DetectorUnavailable as e:
+            out[key] = f"오류: {e}"
+    out["ok"] = not any(str(v).startswith("오류") for v in out.values())
+    return out
 
 
 def _pixelate(roi: np.ndarray) -> np.ndarray:
@@ -393,9 +416,11 @@ def detect(img: np.ndarray) -> tuple[list[Box], dict]:
     boxes += plates
     vd = vehicle_detector()
     if vd is not None:
-        # 차량 안에서 번호판을 하나도 못 찾았으면 차량 전체를 가린다 (번호판 검출 누락 대비)
+        # 차량 안에서 학습 모델이 번호판을 하나도 못 찾았으면 차량 전체를 가린다 (번호판 검출 누락 대비).
+        # 규칙 기반 상자는 세지 않는다: 그 오탐 하나로 차량 가림이 꺼지면 진짜 번호판이 남는다.
+        trusted = [p for p in plates if p.source != HeuristicPlates.name]
         for v in (b.scaled(1 / k) if k < 1 else b for b in vd.detect(work)):
-            if not any(v.x <= p.x + p.w / 2 <= v.x + v.w and v.y <= p.y + p.h / 2 <= v.y + v.h for p in plates):
+            if not any(v.x <= p.x + p.w / 2 <= v.x + v.w and v.y <= p.y + p.h / 2 <= v.y + v.h for p in trusted):
                 boxes.append(v)
     detectors = {"face": fd.name if isinstance(fd, YuNetFaces) else "haar(대체)",
                  "plate": "+".join(p.name for p in pds),

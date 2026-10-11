@@ -11,6 +11,7 @@ import os
 import re
 import threading
 import uuid
+from contextlib import contextmanager
 from pathlib import Path
 
 from config import BASE_DIR
@@ -27,6 +28,38 @@ def safe_photo_id(photo_id: str | None) -> str:
     if photo_id and _SAFE_ID.match(photo_id):
         return photo_id
     return f"p_{uuid.uuid4().hex[:12]}"
+
+
+def is_client_photo_id(photo_id: str) -> bool:
+    """앱·백엔드가 정해 보내는 photo_id로 쓸 수 있는지. m_로 시작하는 ID는 서버 내부용
+    (참고·보수 사진, 수리 전 사진 사본)이라 받지 않는다. 받으면 서로의 사진을 덮어쓸 수 있다."""
+    return bool(photo_id) and bool(_SAFE_ID.match(photo_id)) and not photo_id.startswith(MEDIA_PREFIX)
+
+
+def _tmp(path: Path) -> Path:
+    """같은 파일을 두 곳에서 동시에 써도 임시 파일이 겹치지 않게 이름을 따로 붙인다."""
+    return path.with_name(f"{path.name}.{uuid.uuid4().hex[:8]}.tmp")
+
+
+_photo_locks: dict[str, list] = {}   # photo_id → [잠금, 쓰는 수]
+_photo_locks_guard = threading.Lock()
+
+
+@contextmanager
+def photo_lock(photo_id: str):
+    """같은 photo_id의 판독·재판독·가림 점검 기록이 동시에 진행되지 않게 한다.
+    (먼저 시작한 쪽이 결과를 저장한 뒤에 다음 쪽이 그 결과를 읽는다) 한 프로세스 기준이다."""
+    with _photo_locks_guard:
+        entry = _photo_locks.setdefault(photo_id, [threading.RLock(), 0])
+        entry[1] += 1
+    try:
+        with entry[0]:
+            yield
+    finally:
+        with _photo_locks_guard:
+            entry[1] -= 1
+            if entry[1] == 0:
+                _photo_locks.pop(photo_id, None)
 
 
 class LocalImageStore:
@@ -46,11 +79,11 @@ class LocalImageStore:
         name = safe_photo_id(photo_id) + SUFFIX
         with _rev_lock:
             rev = self.revision(photo_id) + 1  # 사진을 쓰기 전에 읽어야 첫 저장이 1이 된다
-            tmp = self.root / (name + ".tmp")
+            tmp = _tmp(self.root / name)
             tmp.write_bytes(masked_jpeg)
             tmp.replace(self.root / name)  # 쓰는 도중에 읽히지 않도록 다 쓴 뒤 이름을 바꾼다
             rp = self.rev_root / (safe_photo_id(photo_id) + REV_SUFFIX)
-            rtmp = rp.with_suffix(".tmp")
+            rtmp = _tmp(rp)
             rtmp.write_text(str(rev), encoding="utf-8")
             rtmp.replace(rp)
         return URL_PREFIX + name
@@ -125,7 +158,7 @@ class LocalResultStore:
         return self.root / f"{safe_photo_id(photo_id)}{suffix}"
 
     def _write(self, path: Path, obj) -> None:
-        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp = _tmp(path)
         tmp.write_text(json.dumps(obj, ensure_ascii=False), encoding="utf-8")
         tmp.replace(path)
 

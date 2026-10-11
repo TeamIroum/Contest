@@ -1,0 +1,17 @@
+# 이미지에 넣지 않는 것: 비밀 값, 사진·판독 결과, 평가 사진, 캐시
+# (Dockerfile이 COPY . . 로 폴더 전체를 복사하므로 여기서 막는다)
+.env
+.env.*
+!.env.example
+data/
+eval/results/
+eval/photos/
+eval/mask_check/
+eval/평가결과.html
+tests/
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+*.pyc
+.venv/
+contract/yunet_web/node_modules/

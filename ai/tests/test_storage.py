@@ -3,6 +3,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import pipeline  # noqa: E402
@@ -57,9 +59,14 @@ def test_api_error_still_keeps_masked_for_officer(temp_store):
     assert r["status"] == "needs_review" and r["masked_image_url"] == "/images/p_err_masked.jpg"
 
 
-def test_unsafe_photo_id_replaced(temp_store):
-    r = pipeline.analyze_photo(IMG, {"photo_id": "../../etc/passwd"}, mock("drain_normal"))
-    assert ".." not in r["masked_image_url"] and r["photo_id"].startswith("p_")
+def test_unsafe_photo_id_rejected(temp_store):
+    # 조용히 새 ID로 바꾸면 앱의 재요청을 알아볼 수 없으므로 거절한다. 사진은 저장되지 않는다.
+    for bad in ("../../etc/passwd", "m_media", "x" * 81):
+        with pytest.raises(pipeline.RequestError):
+            pipeline.analyze_photo(IMG, {"photo_id": bad}, mock("drain_normal"))
+    assert files(temp_store) == []
+    r = pipeline.analyze_photo(IMG, {}, mock("drain_normal"))          # 없으면 서버가 만든다
+    assert r["photo_id"].startswith("p_")
 
 
 def test_verify_saves_masked_after(temp_store):
@@ -67,8 +74,16 @@ def test_verify_saves_masked_after(temp_store):
              "bbox": [0.34, 0.65, 0.66, 0.80]}
     r = pipeline.verify_photo(IMG, IMG, prior, "repair", {"photo_id": "p_after"}, mock("fixed"))
     assert r["masked_image_url"] == "/images/p_after_masked.jpg"
-    # 처리 전 사진을 직접 받은 경우 재비교용으로 가린 사본도 남긴다
-    assert files(temp_store) == ["p_after_before_masked.jpg", "p_after_masked.jpg"]
+    # 처리 전 사진을 직접 받은 경우 재비교용으로 가린 사본도 남긴다 (서버 내부 이름 m_vb_...)
+    names = files(temp_store)
+    assert len(names) == 2 and "p_after_masked.jpg" in names
+    before = next(n for n in names if n != "p_after_masked.jpg")
+    assert before.startswith("m_vb_")
+    # 그 사본은 가림 기록이 있어 가림 점검으로 보류할 수 있다
+    import activity
+    before_id = before.removesuffix("_masked.jpg")
+    assert activity.record_audit(before_id, False, "주무관", "얼굴 보임") is not None
+    assert activity.is_hidden(before_id)
 
 
 def test_path_traversal_blocked(temp_store):

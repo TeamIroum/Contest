@@ -18,7 +18,7 @@ ANSWER = {"facility_type": "bench", "facility_visible": True, "framing_ok": True
                       "evidence": "좌판이 부러짐"}], "overall_severity": 3, "certainty": "high"}
 
 
-def test_missing_fields_filled_conservatively():
+def test_missing_fields_not_invented():
     partial = {"facility_type": "bench", "issues": [], "overall_severity": 0}
 
     def handler(req):
@@ -26,7 +26,11 @@ def test_missing_fields_filled_conservatively():
 
     p = OllamaProvider(model="qwen3-vl:8b-instruct", transport=httpx.MockTransport(handler))
     d = p.analyze(IMG, "p", prompts.analyze_schema())
-    assert d["certainty"] == "low" and d["privacy_leaks"] == [] and d["framing_ok"] is False
+    assert d["certainty"] == "low" and d["privacy_leaks"] == []
+    assert "framing_ok" not in d          # 판단 값은 지어내지 않는다 (잘 찍은 사진에 다시 찍기 안내가 나가지 않게)
+    # pipeline은 이 응답을 형식 오류로 보고 담당자 확인 + 다시 판독으로 돌린다
+    r = pipeline.analyze_photo(IMG, {"location_tags": []}, p)
+    assert r["status"] == "needs_review" and r["retry"]["pending"]
 
 def test_ollama_request_and_result():
     seen = {}
