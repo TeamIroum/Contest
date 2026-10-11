@@ -1,8 +1,9 @@
 """테스트셋으로 판독 정확도를 잰다. provider만 바꿔 같은 테스트셋을 돌리면 모델 비교가 된다.
 
 사용:
-  python eval/run_eval.py analyze --labels eval/labels.csv --provider claude
-  python eval/run_eval.py verify  --labels eval/pairs.csv  --provider claude
+  python eval/run_eval.py analyze --labels eval/labels.csv --provider ollama
+  python eval/run_eval.py verify  --labels eval/pairs.csv  --provider ollama
+  (공개 모델끼리 비교할 때는 OLLAMA_MODEL만 바꿔 다시 돌린다)
 
 결과: eval/results/<시각>_<provider>_<task>/ 에 predictions.csv, summary.json, summary.md
 라벨 작성법은 eval/LABELING_GUIDE.md 참고.
@@ -226,7 +227,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("task", choices=["analyze", "verify"])
     ap.add_argument("--labels", required=True, type=Path)
-    ap.add_argument("--provider", default=None, help="mock | gemini | ollama | claude (기본: AI_PROVIDER 환경 변수)")
+    ap.add_argument("--provider", default=None, help="mock | ollama (기본: AI_PROVIDER 환경 변수)")
     ap.add_argument("--sample", type=int, default=None, help="일부만 무작위로 돌리기 (기준 문장 다듬을 때 호출 절약)")
     args = ap.parse_args()
     global SAMPLE
@@ -235,7 +236,12 @@ def main():
     provider = get_provider(args.provider)
     out = Path(__file__).resolve().parent / "results" / f"{time.strftime('%Y%m%d_%H%M%S')}_{provider.name}_{args.task}"
     out.mkdir(parents=True, exist_ok=True)
-    storage.set_store(storage.LocalImageStore(out / "images"))  # 평가 중 가린 사진은 결과 폴더에 저장
+    # 평가 중 가린 사진과 판독 결과는 이번 결과 폴더에만 저장한다. 서버 저장소(data/results)를 쓰면
+    # 같은 photo_id의 이전 결과를 그대로 돌려줘서(재요청 처리) 프롬프트를 고쳐도 다시 판독하지 않는다.
+    storage.set_store(storage.LocalImageStore(out / "images"))
+    storage.set_results(storage.LocalResultStore(out / "_results"))
+    storage.set_media(storage.LocalMediaStore(out / "_results" / "media"))
+    storage.set_events(storage.EventLog(out / "_results" / "_events.jsonl"))
 
     summary = (run_analyze if args.task == "analyze" else run_verify)(args.labels, provider, out)
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")

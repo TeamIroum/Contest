@@ -36,3 +36,6 @@ class Provider(ABC):
     @abstractmethod
     def generate_text(self, prompt: str) -> str:
         """담당자 알림 문구, 주간 보고 같은 문장 생성."""
+
+    def warm_up(self) -> None:
+        """서버가 켜질 때 모델을 미리 준비한다. 첫 판독이 오래 걸리는 모델(내 컴퓨터 GPU 등)만 구현한다."""

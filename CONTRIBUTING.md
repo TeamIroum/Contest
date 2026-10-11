@@ -23,10 +23,14 @@
 
 ## AI 판독 계약을 바꿀 때
 
+응답 형식(필드·값)을 바꿀 때는 아래 1~4번을 모두 합니다.
+
 1. AI 담당과 백엔드 담당이 먼저 합의합니다.
 2. `ai/contract/API_CONTRACT.md` 수정, `ai/pipeline.py`의 `CONTRACT_VERSION` 올림
 3. `cd ai && python contract/make_fixtures.py`로 예시 응답 재생성
 4. `cd ai && python -m pytest -q` 통과 확인
+
+설명 문구만 고칠 때(형식은 그대로)는 AI 담당 리뷰만 받고 `CONTRACT_VERSION`은 올리지 않습니다. 계약서 머리말에 고친 날짜와 이유를 한 줄 남깁니다.
 
 ## 올리면 안 되는 것
 

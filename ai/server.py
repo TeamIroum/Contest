@@ -1,7 +1,7 @@
 """AI 판독 서버.
 
 실행:  AI_PROVIDER=mock uvicorn server:app --port 8000
-       (실제 판독: AI_PROVIDER=claude, ANTHROPIC_API_KEY 설정)
+       (실제 판독: AI_PROVIDER=ollama, 자체 서버의 Ollama 모델)
 문서:  http://localhost:8000/docs
 설정 값 전체는 .env.example 참고.
 
@@ -17,9 +17,12 @@ import json
 import logging
 import os
 import secrets
+import threading
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
@@ -32,6 +35,7 @@ import report
 import storage
 from config import taxonomy
 from providers import get_provider
+from providers.base import Provider
 
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"),
                     format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -42,6 +46,23 @@ CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGINS", "*").split(","
 
 provider = get_provider()
 pipeline.set_default_provider(provider)
+# 모델 미리 올리기 상태: skipped(필요 없는 모델) | loading | ready | failed
+warmup = {"state": "skipped", "seconds": None, "error": None}
+
+
+def _warm_up():
+    """활동 시간 전에 서버를 켜 두면 첫 판독을 기다리지 않도록 모델을 미리 올린다."""
+    if type(provider).warm_up is Provider.warm_up:
+        return
+    warmup["state"] = "loading"
+    t0 = time.time()
+    try:
+        provider.warm_up()
+        warmup.update(state="ready", seconds=round(time.time() - t0, 1))
+        log.info("모델 준비 완료: %s (%.0f초)", provider.model, time.time() - t0)
+    except Exception as e:  # 실패해도 서버는 계속 동작한다. 첫 판독 때 모델이 올라간다
+        warmup.update(state="failed", error=f"{type(e).__name__}: {e}"[:200])
+        log.warning("모델 미리 올리기 실패 (첫 판독 때 다시 시도): %s: %s", type(e).__name__, e)
 
 
 @asynccontextmanager
@@ -55,6 +76,7 @@ async def lifespan(app: FastAPI):
     if n:
         log.info("다시 판독할 대기 건 %d개를 이어서 처리합니다", n)
     jobs.retry_queue.start()
+    threading.Thread(target=_warm_up, name="ai-warmup", daemon=True).start()
     yield
     jobs.retry_queue.stop()
 
@@ -114,7 +136,8 @@ def health():
     return {"ok": True, "contract_version": pipeline.CONTRACT_VERSION, "provider": provider.name,
             "model": provider.model, "face_detector": type(privacy.face_detector()).__name__,
             "require_device_masking": pipeline.REQUIRE_DEVICE_MASKING,
-            "retry_queue": len(jobs.retry_queue), "last_event_seq": storage.get_events().since(10**12)["last_seq"]}
+            "retry_queue": len(jobs.retry_queue), "last_event_seq": storage.get_events().since(10**12)["last_seq"],
+            "warmup": warmup}
 
 
 @app.get("/taxonomy", dependencies=[Depends(require_key)])
@@ -144,7 +167,9 @@ async def analyze(
     if location_tags is not None:
         ctx["location_tags"] = [t for t in location_tags.split(",") if t]
     _apply_mock(x_mock_scenario)
-    return pipeline.analyze_photo(await _read_and_close(image), ctx, provider)
+    # 판독은 AI 응답을 기다리는 긴 작업이라 작업 스레드에서 돌린다. 이벤트 루프에서 돌리면 그동안
+    # /health·/results·/events 등 다른 요청이 모두 멈춘다.
+    return await run_in_threadpool(pipeline.analyze_photo, await _read_and_close(image), ctx, provider)
 
 
 @app.post("/verify", dependencies=[Depends(require_key)])
@@ -175,7 +200,8 @@ async def verify(
     else:
         raise HTTPException(400, "before_photo_id 또는 before 중 하나가 필요합니다")
     _apply_mock(x_mock_scenario)
-    return pipeline.verify_photo(before_jpeg, await _read_and_close(after), _json_form(prior_json, "prior_json", {}), mode, ctx, provider)
+    return await run_in_threadpool(pipeline.verify_photo, before_jpeg, await _read_and_close(after),
+                                   _json_form(prior_json, "prior_json", {}), mode, ctx, provider)
 
 
 @app.get("/results/{photo_id}", dependencies=[Depends(require_key)])
@@ -268,8 +294,8 @@ async def privacy_mask(
 ):
     """판독 없이 얼굴·번호판만 검사하고 가린다. 판독 결과·활동 실적·주간 보고에 들어가지 않는다."""
     try:
-        return pipeline.mask_media(await _read_and_close(image), media_id, purpose,
-                                   _device(device_masked, device_mask_report))
+        return await run_in_threadpool(pipeline.mask_media, await _read_and_close(image), media_id, purpose,
+                                       _device(device_masked, device_mask_report))
     except pipeline.MediaConflict:
         raise HTTPException(409, "같은 media_id로 다른 사진이 이미 들어왔습니다")
     except ValueError as e:

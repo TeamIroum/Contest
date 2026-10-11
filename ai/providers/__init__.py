@@ -13,13 +13,7 @@ def get_provider(name: str | None = None) -> Provider:
     if name == "mock":
         from providers.mock_provider import MockProvider
         return MockProvider()
-    if name == "claude":
-        from providers.claude_provider import ClaudeProvider
-        return ClaudeProvider()
-    if name == "gemini":  # 무료 등급 사용 가능 (Google AI Studio 키)
-        from providers.gemini_provider import GeminiProvider
-        return GeminiProvider()
-    if name == "ollama":  # 내 컴퓨터의 공개 모델, 비용 없음
+    if name == "ollama":  # 자체 서버의 공개 모델 (운영). 사진을 외부 AI API로 보내지 않는다
         from providers.ollama_provider import OllamaProvider
         return OllamaProvider()
-    raise ValueError(f"알 수 없는 provider: {name} (mock, gemini, ollama, claude 중 하나)")
+    raise ValueError(f"알 수 없는 provider: {name} (mock, ollama 중 하나)")

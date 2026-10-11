@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 판독 검증 콘솔</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <strong>AI 판독 검증 콘솔</strong>
+    <span class="muted">시니어 동네 점검단 · 계약 v<span id="contract-ver">2.0</span></span>
+  </div>
+  <div id="ai-status" class="ai-status"><span class="dot"></span><span>AI 서버 확인 중…</span></div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="overview" class="active">개요</button>
+  <button data-tab="analyze">판독 시험</button>
+  <button data-tab="verify">전후 비교</button>
+  <button data-tab="suite">시나리오 자동 점검</button>
+  <button data-tab="runs">기록</button>
+  <button data-tab="events">알림·가림 점검</button>
+  <button data-tab="extra">보고 문장·개인정보</button>
+</nav>
+
+<main>
+  <!-- 개요 -->
+  <section id="tab-overview" class="tab active">
+    <div class="grid two">
+      <div class="card">
+        <h2>AI 서버 상태</h2>
+        <dl id="health" class="kv"></dl>
+        <button class="ghost" id="health-refresh">다시 확인</button>
+      </div>
+      <div class="card">
+        <h2>계약 검사</h2>
+        <div id="contract-stats"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>판독 정확도 <span class="muted small">정답 라벨을 붙인 사진 기준</span></h2>
+      <div id="analyze-stats"></div>
+    </div>
+    <div class="grid two">
+      <div class="card">
+        <h2>등급 혼동표 <span class="muted small">행: 정답, 열: AI</span></h2>
+        <div id="confusion"></div>
+      </div>
+      <div class="card">
+        <h2>전후 비교 정확도</h2>
+        <div id="verify-stats"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 판독 시험 -->
+  <section id="tab-analyze" class="tab">
+    <div class="grid form-result">
+      <form id="analyze-form" class="card">
+        <h2>사진 판독 <code>POST /analyze</code></h2>
+        <label class="drop" id="analyze-drop">
+          <input type="file" name="image" accept="image/jpeg,image/png" multiple required>
+          <span>사진을 끌어 놓거나 눌러서 고르기<br><small class="muted">여러 장을 고르면 같은 설정으로 차례로 판독</small></span>
+        </label>
+        <div id="analyze-files" class="file-list"></div>
+
+        <fieldset class="mock-only">
+          <legend>mock 시나리오</legend>
+          <select name="scenario" id="analyze-scenario"></select>
+          <p class="hint warn-text">mock 모드는 사진을 보지 않고 고른 시나리오의 가짜 결과를 돌려줍니다. 실제 판독은 AI 서버를 ollama로 띄워야 합니다. 마스킹(얼굴·번호판·차량)만 실제로 동작합니다.</p>
+        </fieldset>
+
+        <fieldset>
+          <legend>위치 태그 <span class="muted small">백엔드 시설 대장 태그 → location_tags</span></legend>
+          <div id="tag-boxes" class="checks-inline"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>앱 마스킹</legend>
+          <label class="switch"><input type="checkbox" name="device_masked"> 앱에서 이미 가림 (device_masked)</label>
+          <div class="row">
+            <label>얼굴 <input type="number" name="dev_faces" min="0" value="0"></label>
+            <label>번호판 <input type="number" name="dev_plates" min="0" value="0"></label>
+            <label>앱 버전 <input name="dev_app" value="1.0.0"></label>
+          </div>
+          <p class="hint">앱 보고는 camelCase(<code>appVersion</code>)로 받아 백엔드가 snake_case로 바꿔 보냅니다.</p>
+        </fieldset>
+
+        <details>
+          <summary>추가 입력 (photo_id, 참여자, 열린 사건, 위치 좌표)</summary>
+          <label>photo_id <input name="photo_id" placeholder="비우면 새로 만듦. 같은 값이면 재요청 시험"></label>
+          <label>participant_id <input name="participant_id" value="P-TEST"></label>
+          <label>열린 사건 open_cases (JSON 배열)
+            <textarea name="open_cases" rows="2" placeholder='[{"case_id":"C-1","facility_id":"DR-0001","issue_type":"covered"}]'></textarea></label>
+          <label>직전 판독 history (JSON)
+            <textarea name="history" rows="1" placeholder='{"severity":1,"issue_type":"covered"}'></textarea></label>
+          <div class="row">
+            <label>lat <input name="lat" type="number" step="any"></label>
+            <label>lon <input name="lon" type="number" step="any"></label>
+          </div>
+          <p class="hint warn-text">업무 연동에서는 lat/lon을 보내지 않습니다 (계약 "꼭 맞출 것" 1번). AI 쪽 가짜 대장과 맞춰 엉뚱한 시설이 붙는지 시험할 때만 쓰세요.</p>
+        </details>
+
+        <fieldset>
+          <legend>정답 라벨 <span class="muted small">선택. 붙이면 정확도에 들어감</span></legend>
+          <div class="row">
+            <label>시설 <select name="expected_facility" id="exp-facility"></select></label>
+            <label>문제 <select name="expected_issue" id="exp-issue"></select></label>
+            <label>등급 <select name="expected_grade" id="exp-grade"></select></label>
+          </div>
+        </fieldset>
+
+        <button type="submit" class="primary" id="analyze-submit">판독 요청</button>
+      </form>
+      <div id="analyze-result" class="result-col">
+        <div class="empty">판독 결과가 여기에 나옵니다.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 전후 비교 -->
+  <section id="tab-verify" class="tab">
+    <div class="grid form-result">
+      <form id="verify-form" class="card">
+        <h2>수리 확인·변화 비교 <code>POST /verify</code></h2>
+        <label>처음 판독한 사진 (문제가 판독된 기록)
+          <select name="before_run_id" id="verify-before"></select></label>
+        <div id="verify-before-preview" class="before-preview"></div>
+        <label class="drop">
+          <input type="file" name="after" accept="image/jpeg,image/png" required>
+          <span>재촬영 사진 고르기</span>
+        </label>
+        <div id="verify-file" class="file-list"></div>
+        <fieldset>
+          <legend>모드</legend>
+          <label class="radio"><input type="radio" name="mode" value="repair" checked> repair · 처리 완료 후 수리 확인</label>
+          <label class="radio"><input type="radio" name="mode" value="change"> change · 미처리 건 변화 비교</label>
+        </fieldset>
+        <fieldset class="mock-only">
+          <legend>mock 시나리오</legend>
+          <select name="scenario" id="verify-scenario"></select>
+        </fieldset>
+        <label class="switch"><input type="checkbox" name="device_masked"> 앱에서 이미 가림</label>
+        <details>
+          <summary>prior_json 직접 넣기</summary>
+          <textarea name="prior_json" rows="4" placeholder="비우면 처음 판독 결과에서 꺼냄 (case_id, facility_type, issue_type, severity, bbox, evidence, location_tags)"></textarea>
+        </details>
+        <fieldset>
+          <legend>정답 라벨</legend>
+          <select name="expected_result" id="exp-result"></select>
+        </fieldset>
+        <button type="submit" class="primary">비교 요청</button>
+      </form>
+      <div id="verify-result" class="result-col">
+        <div class="empty">비교 결과가 여기에 나옵니다.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 시나리오 자동 점검 -->
+  <section id="tab-suite" class="tab">
+    <div class="card">
+      <h2>시나리오 자동 점검</h2>
+      <p class="muted">mock 모드에서는 <code>ai/contract/fixtures/</code>의 예시 응답을 같은 입력으로 다시 만들어 비교합니다.
+        실제 모델(ollama)에서는 시나리오 비교를 건너뛰고, 400·401·404·409·재요청·다시 가림 알림 같은 프로토콜 점검만 합니다.</p>
+      <button class="primary" id="suite-run">점검 시작</button>
+      <div id="suite-result"></div>
+    </div>
+  </section>
+
+  <!-- 기록 -->
+  <section id="tab-runs" class="tab">
+    <div class="card">
+      <div class="toolbar">
+        <h2>호출 기록</h2>
+        <select id="runs-kind">
+          <option value="">전체</option><option value="analyze">판독</option><option value="verify">전후 비교</option>
+          <option value="privacy">개인정보</option><option value="narrative">보고 문장</option>
+        </select>
+        <label class="switch small"><input type="checkbox" id="runs-hide-auto" checked> 자동 점검 숨김</label>
+        <span class="spacer"></span>
+        <button class="ghost" id="runs-refresh">새로 고침</button>
+        <button class="danger" id="runs-clear">기록 모두 지우기</button>
+      </div>
+      <div class="table-wrap"><table id="runs-table" class="table"></table></div>
+    </div>
+    <div id="run-detail"></div>
+  </section>
+
+  <!-- 알림·가림 점검 -->
+  <section id="tab-events" class="tab">
+    <div class="card">
+      <div class="toolbar">
+        <h2>변경 알림 <code>GET /events</code></h2>
+        <span class="muted small">마지막 순번 <b id="ev-cursor">0</b></span>
+        <span class="spacer"></span>
+        <button class="ghost" id="ev-reset">순번 0으로</button>
+        <button class="primary" id="ev-poll">알림 받기·처리</button>
+      </div>
+      <p class="muted small">image_remasked → 복사본 교체, image_hidden → 조회 차단, result_updated → 새 결과 스냅샷 추가. 업무 백엔드가 할 처리를 그대로 합니다.</p>
+      <div class="table-wrap"><table id="ev-table" class="table"></table></div>
+    </div>
+    <div class="card">
+      <div class="toolbar">
+        <h2>가림 점검 표본 <code>GET /audit/masking</code></h2>
+        <span class="spacer"></span>
+        <label class="small">개수 <input type="number" id="audit-n" value="12" min="1" max="100" class="narrow"></label>
+        <button class="primary" id="audit-load">표본 불러오기</button>
+      </div>
+      <div id="audit-grid" class="audit-grid"></div>
+    </div>
+  </section>
+
+  <!-- 보고 문장·개인정보 -->
+  <section id="tab-extra" class="tab">
+    <div class="grid two">
+      <div class="card">
+        <h2>보고 문장 <code>POST /report/narrative</code></h2>
+        <p class="muted small">숫자는 백엔드가 확정하고 AI는 문장만 만듭니다. 입력에 없는 숫자나 빠진 숫자가 있으면 고정 문장으로 바뀌어야 합니다.</p>
+        <table class="table compact" id="nar-items"></table>
+        <button class="ghost" id="nar-add">항목 추가</button>
+        <label>대상 <input id="nar-audience" value="시청 시설 담당 부서"></label>
+        <button class="primary" id="nar-run">문장 만들기</button>
+        <div id="nar-result"></div>
+      </div>
+      <div class="card">
+        <h2>개인정보 단독 검사 <code>POST /privacy/mask</code></h2>
+        <p class="muted small">참고·보수 사진처럼 판독하지 않는 사진의 얼굴·번호판만 가립니다.</p>
+        <form id="privacy-form">
+          <label class="drop"><input type="file" name="image" accept="image/jpeg,image/png" required><span>사진 고르기</span></label>
+          <div class="row">
+            <label>purpose <select name="purpose"><option>reference</option><option>repair_evidence</option></select></label>
+            <label>media_id <input name="media_id" placeholder="비우면 새로 만듦"></label>
+          </div>
+          <label class="switch"><input type="checkbox" name="device_masked"> 앱에서 이미 가림</label>
+          <button class="primary" type="submit">검사 요청</button>
+        </form>
+        <div id="privacy-result"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>AI 쪽 집계 (시연용) <span class="muted small">공식 수치 아님</span></h2>
+      <div class="toolbar">
+        <select id="agg-path">
+          <option value="participants">참여자 활동 /participants</option>
+          <option value="report/weekly">주간 보고 /report/weekly</option>
+        </select>
+        <label class="small">시작 <input type="date" id="agg-start"></label>
+        <label class="small">끝 <input type="date" id="agg-end"></label>
+        <button class="ghost" id="agg-run">조회</button>
+      </div>
+      <pre id="agg-result" class="json"></pre>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

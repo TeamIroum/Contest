@@ -33,3 +33,6 @@ ai/data/results/
 ai/eval/photos/
 ai/eval/results/
 ai/eval/mask_check/
+
+# AI 검증 콘솔 기록 (가린 사진 복사본 포함)
+tools/ai-verify/data/
