@@ -122,6 +122,10 @@ def _log(res: dict, kind: str) -> None:
 # =====================================================================
 # 받기: 검증 → 품질 → 마스킹 → 저장
 # =====================================================================
+DEVICE_BOX_MAX = 200      # 앱이 보낸 가린 위치는 이만큼만 본다
+DEVICE_BOX_COVER = 0.5    # 서버가 찾은 상자의 이 비율 이상을 앱이 이미 가렸으면 '앱이 가린 곳을 다시 찾은 것'
+
+
 def _device_report(device: dict | None) -> dict | None:
     """앱이 보낸 가림 보고에서 필요한 값만 남긴다 (앱이 보낸 값은 검증 대상이지 사실이 아니다)."""
     if not device or not device.get("masked"):
@@ -132,8 +136,42 @@ def _device_report(device: dict | None) -> dict | None:
             return max(0, int(v))
         except (TypeError, ValueError):
             return None
-    return {"faces": num(r.get("faces")), "plates": num(r.get("plates")), "vehicles": num(r.get("vehicles")),
-            "detector": str(r.get("detector") or "")[:40], "app_version": str(r.get("app_version") or "")[:20]}
+    out = {"faces": num(r.get("faces")), "plates": num(r.get("plates")), "vehicles": num(r.get("vehicles")),
+           "detector": str(r.get("detector") or "")[:40], "app_version": str(r.get("app_version") or "")[:20]}
+    boxes = _device_boxes(r.get("boxes"))
+    if boxes is not None:
+        out["boxes"] = len(boxes)   # 위치 목록은 기록하지 않고 개수만 남긴다
+    return out
+
+
+def _device_boxes(raw) -> list[list[float]] | None:
+    """앱이 가린 위치 [{"kind", "box": [x1, y1, x2, y2]}] (0~1 비율, [x1, y1, x2, y2] 배열만 보내도 됨).
+    형식이 틀린 상자는 버린다. 앱이 위치를 보내지 않았으면 None."""
+    if not isinstance(raw, list):
+        return None
+    out = []
+    for item in raw[:DEVICE_BOX_MAX]:
+        box = item.get("box") if isinstance(item, dict) else item
+        try:
+            x1, y1, x2, y2 = (min(1.0, max(0.0, float(v))) for v in box)
+        except (TypeError, ValueError):
+            continue
+        if x2 > x1 and y2 > y1:
+            out.append([x1, y1, x2, y2])
+    return out
+
+
+def _server_added(rep, device: dict | None) -> dict:
+    """저장 전 확인에서 서버가 가린 것 중 앱이 놓친 수(server_added).
+    모자이크한 얼굴도 다시 얼굴로 검출되므로, 앱이 가린 위치(boxes)를 보냈으면 그 위치와 대부분 겹치는 검출은
+    놓친 것으로 세지 않고 server_redetected로 따로 센다. 가리기는 둘 다 그대로 한다 (안전망).
+    위치를 보내지 않은 앱은 예전처럼 서버가 가린 수 전체를 센다."""
+    total = rep.faces + rep.plates + rep.vehicles
+    boxes = _device_boxes(((device or {}).get("report") or {}).get("boxes"))
+    if boxes is None:
+        return {"server_added": total}
+    again = sum(1 for b in rep.boxes if _union_fraction(b["box"], boxes) >= DEVICE_BOX_COVER)
+    return {"server_added": total - again, "server_redetected": again}
 
 
 def ingest(image_bytes: bytes, photo_id: str, device: dict | None = None) -> tuple[bytes | None, dict]:
@@ -184,8 +222,8 @@ def mask_upload(image_bytes: bytes, photo_id: str, device: dict | None = None,
 
     priv = rep.as_dict()
     if dev is not None:
-        # 기기에서 이미 가린 사진: 서버가 찾아 가린 것은 기기 마스킹이 놓친 것
-        priv.update(mode="device+server", device=dev, server_added=rep.faces + rep.plates + rep.vehicles)
+        # 기기에서 이미 가린 사진: 서버가 찾아 가린 것 중 앱이 가린 곳과 겹치지 않는 것이 기기 마스킹이 놓친 것
+        priv.update(mode="device+server", device=dev, **_server_added(rep, device))
         if priv["server_added"]:
             log.warning("앱 마스킹 누락: 저장 전 확인에서 가림 photo_id=%s count=%d detector=%s",
                         photo_id, priv["server_added"], dev["detector"])
@@ -842,7 +880,7 @@ def mask_media(image_bytes: bytes, media_id: str, purpose: str, device: dict | N
 
     priv = rep.as_dict()
     if dev is not None:
-        priv.update(mode="device+server", device=dev, server_added=rep.faces + rep.plates + rep.vehicles)
+        priv.update(mode="device+server", device=dev, **_server_added(rep, device))
     else:
         priv.update(mode="server_only", device=None, server_added=None)
     store = storage.get_store()

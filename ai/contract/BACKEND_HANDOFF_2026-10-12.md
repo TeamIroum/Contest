@@ -153,3 +153,17 @@ X-API-Key: <키>
 - 전후 비교 예시(11~14)는 04번 사진을 `before_photo_id`로 써서 만들었습니다. 그래서 `get_facility_history.json`의 ID가 `verify_*.json`과 맞고, 실행할 때마다 내용이 같습니다.
 
 질문은 AI 담당에게 주세요.
+
+## 추가: 앱이 가린 위치(`boxes`)와 `server_redetected`
+
+`server_added`(앱 마스킹이 놓친 수)가 실제보다 크게 나오던 문제를 고쳤습니다. 모자이크한 얼굴도 서버 검출기가 다시 얼굴로 찾아, 앱이 다 가린 사진에서도 0이 아니었습니다.
+
+- 앱이 `deviceMaskReport.boxes`(선택)로 가린 위치를 보냅니다: `[{"kind": "face", "box": [x1, y1, x2, y2]}]`, 0~1 비율, 최대 200개.
+- 백엔드는 다른 키와 같이 그대로 `device_mask_report.boxes`로 넘깁니다. 키 이름은 바꿀 필요가 없습니다.
+- AI 응답 `meta.privacy`
+  - `server_added`: 앱이 가린 곳과 겹치지 않는 검출 수 (진짜 앱 누락)
+  - `server_redetected`: 앱이 가린 곳에서 다시 찾은 수 (`boxes`를 보냈을 때만 있음)
+  - `device.boxes`: 받은 위치 개수 (위치 목록 자체는 저장하지 않음)
+- `boxes`를 보내지 않으면 요청·응답이 예전과 같습니다. 그래서 `contract_version`은 2.0 그대로이고 `fixtures/`도 바뀌지 않았습니다.
+- 주간 공유하는 앱 마스킹 품질 값은 `server_added`만 쓰고, `server_redetected`는 빼 주세요.
+- `deviceMaskReport`를 그대로 저장하는 경우(`device_mask_report_json`), 상자 위치는 개인정보가 아니지만 크기가 커질 수 있습니다(상자 하나에 약 60바이트).

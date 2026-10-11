@@ -11,7 +11,7 @@
 | 0 앱 | 휴대폰에서 가린 사진만 `device_masked=true`와 가림 보고를 붙여 전송 | 앱 | 전송하지 않고 다시 찍기 |
 | 1 받기 | JPEG/PNG·15MB 이하인지 확인, 휴대폰 회전 정보 반영, 메타데이터(GPS 등) 제거 | `images.decode_upload` | `error` + 다시 찍기 |
 | 2 품질 확인 | 흐림·어두움 | `quality.check_array` | `retake` (저장·AI 없음) |
-| 3 저장 전 확인 | 받은 (이미 가린) 사진에 알아볼 수 있는 얼굴·번호판이 남았는지 확인하고, 남았으면 저장·AI 판독 전에 가린 뒤 그 수를 `server_added`로 기록 (0이 정상). 앱 마스킹이 없는 시험 단계에서는 이 단계가 마스킹을 맡음 | `privacy.mask_image`, `pipeline.ingest` | `error` + 다시 찍기 (저장·AI 없음) |
+| 3 저장 전 확인 | 받은 (이미 가린) 사진에 알아볼 수 있는 얼굴·번호판이 남았는지 확인하고, 남았으면 저장·AI 판독 전에 가린 뒤 그 수를 `server_added`로 기록 (0이 정상). 앱이 가린 위치(`device_mask_report.boxes`)를 보내면 그 위치와 절반 이상 겹치는 검출은 앱이 이미 가린 곳을 다시 찾은 것이므로 `server_redetected`로 따로 셈 (가리기는 그대로 함). 앱 마스킹이 없는 시험 단계에서는 이 단계가 마스킹을 맡음 | `privacy.mask_image`, `pipeline.ingest` | `error` + 다시 찍기 (저장·AI 없음) |
 | 4 축소·저장 | 긴 변 1568px로 줄여 메타데이터 없는 JPEG로 저장 | `images`, `storage.save_masked` | 서버 오류 |
 | 5 AI 판독 | 가린 사진만 전송, 동시 호출 제한 | `jobs.ai_gate`, `providers/` | `needs_review` + 나중에 재판독 |
 | 6 2차 확인 | AI가 알려 준 가림 누락을 다시 가림, 가림 영역과 문제 위치 겹침 확인 | `pipeline._remask_leaks` | — |

@@ -230,6 +230,8 @@ export async function maskCapture(source, appVersion) {
       report[{ face: "faces", plate: "plates", vehicle: "vehicles" }[b.kind]] += 1;
       boxes.push({ kind: b.kind, score: +b.score.toFixed(2), box: [b.x / W, b.y / H, (b.x + b.w) / W, (b.y + b.h) / H] });
     }
+    // 가린 위치를 서버에 함께 보낸다. 서버는 이미 가린 곳에서 다시 찾은 것을 '앱이 놓친 수'(server_added)로 세지 않는다
+    report.boxes = boxes.map(({ kind, box: bx }) => ({ kind, box: bx.map((v) => +v.toFixed(4)) }));
     t = lap("mask", t);
 
     // 긴 변 1,568px JPEG. 캔버스에서 만든 JPEG에는 위치·기기 정보(EXIF)가 없다
