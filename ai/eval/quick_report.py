@@ -1,8 +1,8 @@
 """평가 결과를 발표·공유용 한 장(HTML)으로 정리한다.
 
 사용:
-  python eval/quick_report.py --analyze eval/results/<시각>_claude_analyze \\
-                              --verify  eval/results/<시각>_claude_verify \\
+  python eval/quick_report.py --analyze eval/results/<시각>_ollama_analyze \\
+                              --verify  eval/results/<시각>_ollama_verify \\
                               --mask    eval/mask_check/mask_review.csv \\
                               --out     eval/평가결과.html
 셋 중 있는 것만 넣어도 된다.

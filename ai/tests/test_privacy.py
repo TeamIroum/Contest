@@ -160,7 +160,7 @@ def test_vehicle_masked_only_when_no_plate_inside(monkeypatch):
     monkeypatch.setattr(privacy, "vehicle_detector", lambda: FakeDet([car_with_plate, car_without]))
     out, rep = privacy.mask_image(img)
     assert (rep.plates, rep.vehicles) == (1, 1)            # 번호판을 찾은 차는 번호판만, 못 찾은 차는 차 전체
-    assert out[350:450, 500:700].std() < img[350:450, 500:700].std() * 0.3
+    assert out[310:490, 470:730].std() < img[310:490, 470:730].std() * 0.3                      # 위·아래 모두 뭉갬
     assert abs(out[320:400, 80:140].astype(int) - img[320:400, 80:140].astype(int)).mean() < 1   # 번호판 찾은 차 몸체는 그대로
 
 
@@ -171,3 +171,17 @@ def test_pretrained_models_load_if_installed():
     except Exception as e:  # 모델을 내려받을 수 없는 환경
         pytest.skip(f"모델 내려받기 불가: {e}")
     assert isinstance(plates.detect(textured()), list)
+
+
+
+def test_small_far_vehicle_and_motorcycle_masked_whole(monkeypatch):
+    """번호판을 못 찾은 차는 크기·종류와 관계없이 차 전체를 가린다 (기획안·앱 안내와 같은 규칙)."""
+    img = textured()
+    far = privacy.Box(600, 100, 40, 30, "vehicle", 0.9, "fake")         # 멀리 작게 찍힌 차
+    moto = privacy.Box(100, 250, 120, 200, "vehicle", 0.9, "fake")      # 오토바이
+    monkeypatch.setattr(privacy, "face_detector", lambda: FakeDet([]))
+    monkeypatch.setattr(privacy, "plate_detectors", lambda: (FakeDet([]),))
+    monkeypatch.setattr(privacy, "vehicle_detector", lambda: FakeDet([far, moto]))
+    out, rep = privacy.mask_image(img)
+    assert rep.vehicles == 2
+    assert out[255:445, 105:215].std() < img[255:445, 105:215].std() * 0.3

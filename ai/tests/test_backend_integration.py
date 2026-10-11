@@ -135,26 +135,26 @@ def test_privacy_endpoints(temp_store):
 ITEMS = [
     {"key": "photos", "label": "점검 사진", "value": 1240, "unit": "장"},
     {"key": "facilities", "label": "점검한 고유 시설", "value": 312, "unit": "곳"},
-    {"key": "urgent", "label": "긴급 알림", "value": 3},
-    {"key": "pairs", "label": "참여 조(2인 1조)", "value": 12, "unit": "조"},
+    {"key": "needs_review", "label": "확인 필요", "value": 3},
+    {"key": "pairs", "label": "참여 조", "value": 12, "unit": "조"},
 ]
 
 
 def test_narrative_template_without_llm():
     r = report.write_narrative(ITEMS, None)
     assert r["source"] == "template"
-    assert "점검 사진: 1,240장" in r["text"] and "긴급 알림: 3건" in r["text"]
+    assert "점검 사진: 1,240장" in r["text"] and "확인 필요: 3건" in r["text"]
 
 
 def test_narrative_accepts_llm_when_numbers_match():
     text = ("이번 주 점검 사진은 1,240장이며 점검한 고유 시설은 312곳입니다. "
-            "긴급 알림은 3건이었고, 참여 조(2인 1조)는 12조입니다.")
+            "확인 필요는 3건이었고, 참여 조는 12조입니다.")
     r = report.write_narrative(ITEMS, TextProvider(text))
     assert r["source"] == "llm" and r["text"] == text
 
 
 def test_narrative_rejects_new_number():
-    text = "점검 사진 1,240장, 고유 시설 312곳, 긴급 3건, 12조가 참여해 전주보다 15% 늘었습니다."
+    text = "점검 사진 1,240장, 고유 시설 312곳, 확인 필요 3건, 12조가 참여해 전주보다 15% 늘었습니다."
     r = report.write_narrative(ITEMS, TextProvider(text))
     assert r["source"] == "template" and "note" in r
 
