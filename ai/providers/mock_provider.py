@@ -60,6 +60,11 @@ ANALYZE_SCENARIOS = {
     },
 }
 
+# 실제 qwen3-vl이 책상 사진처럼 대상이 없는 사진에 낸 답: 대상 없음 + framing_ok=false
+ANALYZE_SCENARIOS["unknown_bad_frame"] = {
+    "facility_type": "unknown", "facility_visible": False, "framing_ok": False, "is_night_photo": False,
+    "issues": [], "overall_severity": 0, "certainty": "high",
+}
 ANALYZE_SCENARIOS["plate_leak"] = {
     "facility_type": "drain", "facility_visible": True, "framing_ok": True, "is_night_photo": False,
     "issues": [], "overall_severity": 0, "certainty": "high",
