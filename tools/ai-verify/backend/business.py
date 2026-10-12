@@ -83,7 +83,10 @@ def create_router(run_analyze, store) -> APIRouter:
             return slot_locks.setdefault(slot_id, threading.Lock())
 
     def _kv(key: str):
-        row = store.db.execute("SELECT value FROM kv WHERE key=?", (key,)).fetchone()
+        # 연결 하나를 여러 요청이 함께 쓰므로 읽기도 잠근다. 안 잠그면 동시에 들어온 순회 조회가 500이 났다
+        # (앱이 시작 화면에서 미리 받는 요청과 '순회 시작'이 겹칠 때)
+        with store._lock:
+            row = store.db.execute("SELECT value FROM kv WHERE key=?", (key,)).fetchone()
         return json.loads(row["value"]) if row else None
 
     def _kv_set(key: str, value):
