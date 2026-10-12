@@ -326,8 +326,8 @@ def get_run(run_id: int):
 
 @app.delete("/api/runs")
 def clear_runs():
-    store.clear()
-    return {"ok": True}
+    dest = store.clear()   # 지우기 전에 data/backups/<시각>/에 기록과 사진 복사본을 남긴다
+    return {"ok": True, "backup": str(dest)}
 
 
 @app.put("/api/runs/{run_id}/expected")

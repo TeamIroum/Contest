@@ -503,11 +503,12 @@ $("#runs-hide-auto").onchange = resetRuns;
 $("#runs-refresh").onclick = loadRuns;
 $("#runs-more").onclick = () => { state.runsShown += RUNS_PAGE; renderRunsTable(); };
 $("#runs-clear").onclick = async () => {
-  if (!confirm("검증 콘솔의 기록과 사진 복사본을 모두 지웁니다. AI 서버의 기록은 그대로입니다. 계속할까요?")) return;
-  await api("/runs", { method: "DELETE" });
+  if (!confirm("검증 콘솔의 기록과 사진 복사본을 모두 지웁니다.\n지우기 전에 data/backups/ 폴더에 모두 백업합니다. AI 서버의 기록은 그대로입니다. 계속할까요?")) return;
+  let out;
+  try { out = await api("/runs", { method: "DELETE" }); } catch (e) { return toast(`지우지 못했습니다 (백업 실패면 지우지 않음): ${e.message}`, true); }
   closeRun();
   resetRuns();
-  toast("기록을 지웠습니다");
+  toast(`기록을 지웠습니다. 백업: ${out.backup}`);
 };
 
 // 기록 자세히: 화면 오른쪽에 패널로 연다 (목록 아래로 내려가지 않게). 어느 탭에서 열어도 같은 패널
