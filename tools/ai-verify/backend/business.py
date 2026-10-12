@@ -59,7 +59,8 @@ def retakes_left(quality_failures: int) -> int:
 
 
 def _err(status: int, code: str, detail: str, **extra):
-    return JSONResponse({"code": code, "detail": detail, **extra}, status_code=status)
+    # 명세서 2장 오류 형식은 message. 시험용 PWA가 읽던 detail도 함께 둔다
+    return JSONResponse({"code": code, "message": detail, "detail": detail, **extra}, status_code=status)
 
 
 def _slot(stop_id: str, slot_id: str):
