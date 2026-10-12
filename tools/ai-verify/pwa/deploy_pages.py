@@ -25,7 +25,7 @@ YUNET_WEB = ROOT / "ai" / "contract" / "yunet_web"
 REPO = "https://github.com/TeamIroum/pwa-test.git"
 PAGES_URL = "https://teamiroum.github.io/pwa-test/"
 
-SHELL = ["index.html", "app.js", "masking.js", "download.js", "quality.js", "outbox.js", "style.css", "manifest.webmanifest", "icon.svg",
+SHELL = ["index.html", "app.js", "masking.js", "download.js", "quality.js", "camera.js", "outbox.js", "style.css", "manifest.webmanifest", "icon.svg",
          "sw.js", "mask-host.html", "mask-host.js"]
 # backend/app.py의 PWA_MODELS·PWA_MODEL_ORIGINS와 같은 목록·규칙 (버전이 검증 콘솔 배포본과 같아야 함)
 MODELS = {
@@ -50,8 +50,7 @@ def default_api() -> str | None:
 def build(out: Path, api: str) -> str:
     for name in SHELL:
         shutil.copyfile(HERE / name, out / name)
-    (out / "lib").mkdir()
-    shutil.copyfile(YUNET_WEB / "yunet.mjs", out / "lib" / "yunet.mjs")
+    shutil.copyfile(YUNET_WEB / "yunet.mjs", out / "yunet.mjs")
     (out / "selftest").mkdir()
     shutil.copyfile(YUNET_WEB / "expected.json", out / "selftest" / "expected.json")
     for img in (YUNET_WEB / "images").iterdir():

@@ -2,7 +2,7 @@
 // 앱은 AI 모듈을 부르지 않고 업무 API(/api/v1)만 부른다. 판독 결과는 어르신 화면에 보이지 않는다.
 import * as masking from "./masking.js";
 import * as outbox from "./outbox.js";
-import * as quality from "./quality.js";
+import * as camera from "./camera.js";
 
 const APP_VERSION = "pwa-test-0.1.0";
 const $ = (id) => document.getElementById(id);
@@ -166,57 +166,22 @@ $("to-home").onclick = goHome;
 function goHome() { show("home"); updatePending(); showRetakeNotice(); }
 
 // ---------------------------------------------------------------- 카메라 (앱 안에서만 찍음. 갤러리·기본 카메라 앱을 쓰지 않음)
-let stream = null;
-
+// 촬영·가리기·흐림 확인은 camera.js가 한다. 여기서는 화면 전환과 시험 기록만 맡는다
 async function openCamera() {
   show("camera");
   try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false,
-    });
+    const res = await camera.open($("video"));
+    $("cam-res").textContent = `${res.width}×${res.height}`;
   } catch (e) {
     show("stop");
-    reportClientError("camera", e);
-    const why = e.name === "NotAllowedError" ? "카메라 사용을 허락하지 않았어요." : "카메라를 열지 못했어요.";
-    return showResult(why, "담당자에게 연락해 주세요.", "장소 안내로", showStop);
+    reportClientError("camera", e.cause || e);
+    return showResult(e.message, "담당자에게 연락해 주세요.", "장소 안내로", showStop);
   }
-  const video = $("video");
-  video.srcObject = stream;
-  await video.play().catch(() => {});
-  const s = stream.getVideoTracks()[0].getSettings();
-  $("cam-res").textContent = `${s.width || video.videoWidth}×${s.height || video.videoHeight}`;
 }
 
-function closeCamera() {
-  stream?.getTracks().forEach((t) => t.stop());
-  stream = null;
-  $("video").srcObject = null;
-}
-
-$("shoot").onclick = () => { unlockAudio(); openCamera(); };
-$("cam-cancel").onclick = () => { closeCamera(); showStop(); };
+$("shoot").onclick = () => { camera.unlockSound(); openCamera(); };
+$("cam-cancel").onclick = () => { camera.close($("video")); showStop(); };
 $("shutter").onclick = capture;
-
-// 브라우저 카메라는 촬영음이 없으므로 앱이 직접 낸다 (공개 장소 촬영 사실 알림)
-// Web Audio는 아이폰 무음 스위치를 따라 소리가 꺼진다. <audio> 요소 재생은 '미디어 재생'으로 취급돼 무음 모드에서도 난다
-let shutter = null;
-function unlockAudio() {
-  try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch { /* 지원 안 함 */ }
-  if (shutter) return;
-  try {
-    shutter = new Audio(URL.createObjectURL(shutterWav()));
-    shutter.preload = "auto";
-    shutter.load();
-  } catch { shutter = null; /* 소리 없이 진행 */ }
-}
-function shutterSound() {
-  unlockAudio();   // 셔터를 누른 순간(사용자 동작 안)에 재생해야 iOS가 허용한다
-  if (!shutter) return;
-  try {
-    shutter.currentTime = 0;
-    shutter.play().catch(() => {});
-  } catch { /* 소리 없이 진행 */ }
-}
 
 // 촬영 순간 화면을 하얗게 한 번 번쩍인다. 소리는 휴대폰 볼륨을 따르므로 눈으로도 촬영 사실을 알린다
 function flashScreen() {
@@ -232,49 +197,6 @@ function flashScreen() {
   f.classList.add("on");
 }
 
-// 카메라 셔터 "찰-칵"을 WAV로 만든다. 파일을 따로 두지 않으려고 코드로 생성
-//   찰: 셔터가 열리는 날카로운 딸깍 / 칵: 약 70ms 뒤 닫히는 조금 낮고 묵직한 딸깍
-//   딸깍 하나 = 대역 필터를 거친 잡음(마찰) + 짧은 금속 울림 + 낮은 툭(몸체)
-function shutterWav() {
-  const rate = 44100, n = Math.floor(rate * 0.2);
-  const s = new Float32Array(n);
-  let seed = 7;
-  const rand = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x3fffffff) - 1;   // 매번 같은 소리
-
-  function click(at, amp, center, decay, ring, thump) {
-    // 2차 대역 통과 필터 (RBJ biquad)
-    const w = (2 * Math.PI * center) / rate, q = 1.4, alpha = Math.sin(w) / (2 * q), a0 = 1 + alpha;
-    const b0 = alpha / a0, b2 = -alpha / a0, a1 = (-2 * Math.cos(w)) / a0, a2 = (1 - alpha) / a0;
-    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
-    const start = Math.floor(at * rate);
-    for (let i = start; i < n; i++) {
-      const t = (i - start) / rate;
-      if (t > 0.08) break;
-      const x = rand();
-      const y = b0 * x + b2 * x2 - a1 * y1 - a2 * y2;
-      x2 = x1; x1 = x; y2 = y1; y1 = y;
-      const attack = Math.min(1, t / 0.0004);                                   // 0.4ms 만에 올라옴
-      s[i] += amp * attack * (
-        2.2 * y * Math.exp(-t / decay) +                                        // 마찰음
-        0.35 * Math.sin(2 * Math.PI * ring * t) * Math.exp(-t / (decay * 2.5)) + // 금속 울림
-        0.6 * Math.sin(2 * Math.PI * thump * t) * Math.exp(-t / 0.012));       // 몸체 툭
-    }
-  }
-  click(0.000, 1.0, 4200, 0.0035, 2900, 190);   // 찰
-  click(0.068, 0.85, 3000, 0.0050, 2100, 140);  // 칵
-
-  let peak = 0;
-  for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(s[i]));
-  const view = new DataView(new ArrayBuffer(44 + n * 2));
-  const str = (o, t) => { for (let i = 0; i < t.length; i++) view.setUint8(o + i, t.charCodeAt(i)); };
-  str(0, "RIFF"); view.setUint32(4, 36 + n * 2, true); str(8, "WAVE");
-  str(12, "fmt "); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
-  view.setUint32(24, rate, true); view.setUint32(28, rate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
-  str(36, "data"); view.setUint32(40, n * 2, true);
-  for (let i = 0; i < n; i++) view.setInt16(44 + i * 2, (s[i] / peak) * 0.95 * 0x7fff, true);   // 최대 음량으로 맞춤
-  return new Blob([view], { type: "audio/wav" });
-}
-
 function getLocation() {
   if (!cfg.location || !navigator.geolocation) return Promise.resolve(null);
   // 촬영 순간 한 번만 받는다 (이동 경로를 기록하지 않음)
@@ -285,98 +207,33 @@ function getLocation() {
 
 let pending = null;   // 확인 화면에 띄운 가린 사진 (원본 아님)
 
-// 사진은 카메라 영상에서 떼어 온 장면이라 셔터를 누르는 순간의 흔들림이 그대로 찍힌다.
-// 누른 뒤 약 0.3초 동안 몇 장면을 떼어 가장 선명한 것을 쓴다 (서버와 같은 선명도 계산, quality.js)
-const BURST_FRAMES = 5;
-const BURST_GAP_MS = 70;
-let lastBurst = null;   // 시험 정보: 고른 장면과 선명도
-
 async function capture() {
-  const video = $("video");
-  if (!video.videoWidth) return;
-  shutterSound();
-  flashScreen();
-  const capturedAt = new Date().toISOString();
-  let raw = null, spare = null, best = null;
-  for (let i = 0; i < BURST_FRAMES; i++) {
-    if (i) await new Promise((r) => setTimeout(r, BURST_GAP_MS));
-    const c = spare || document.createElement("canvas");
-    c.width = video.videoWidth;
-    c.height = video.videoHeight;
-    c.getContext("2d").drawImage(video, 0, 0);
-    const q = quality.measure(c);
-    if (!best || q.sharpness > best.sharpness) { spare = raw; raw = c; best = { ...q, frame: i }; } else spare = c;
-  }
-  lastBurst = { frames: BURST_FRAMES, picked: best.frame, sharpness: Math.round(best.sharpness * 10) / 10 };
-  if (spare) spare.width = spare.height = 0;   // 고르지 않은 장면은 바로 버린다 (원본을 남기지 않음)
-  closeCamera();
-
-  // 확실히 흐리거나 어두우면 올리지 않고 바로 다시 찍게 한다 (서버도 같은 기준으로 거절하므로 기다림·데이터만 아낌)
-  const bad = quality.problem(best);
-  if (bad) {
-    raw.width = raw.height = 0;
-    reportClientError("quality-local", new Error(bad), {
-      sharpness: Math.round(best.sharpness * 10) / 10, brightness: Math.round(best.brightness * 10) / 10 });
-    return showResult(bad === "dark" ? "사진이 어두워요" : "사진이 흐려요",
-      bad === "dark" ? "밝은 쪽에서 다시 찍어 주세요." : "휴대폰을 잠깐 멈추고 한 번 더 찍어 주세요.",
-      "다시 찍기", openCamera);
-  }
-  show("working");
-  // 가리기 계산은 화면 그리기를 1~3초 막는다(아이폰 WASM). 번쩍임이 실제로 그려진 뒤에 시작해야 보인다
-  await afterPaint(250);
-  processRaw(raw, capturedAt, "camera");
+  const locationP = getLocation();
+  const r = await camera.capture($("video"), { appVersion: APP_VERSION, onShutter: flashScreen, onProcessing: () => show("working") });
+  if (r) afterCapture(r, await locationP, "camera");
 }
 
-async function measureBlob(blob) {
-  const bmp = await createImageBitmap(blob);
-  // fast는 시험 기록용: 브라우저 줄이기 값과 비교해 기기 차이를 본다
-  try { return { ...quality.measure(bmp, { exact: true }), fast: quality.measure(bmp).sharpness }; } finally { bmp.close(); }
-}
-
-function afterPaint(ms) {
-  return new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(res, ms))));
-}
-
-// raw(원본 캔버스)를 가려서 확인 화면이나 전송으로 넘긴다. raw는 maskCapture 안에서 버려진다(크기 0)
-async function processRaw(raw, capturedAt, source) {
-  show("working");
+// camera.capture / camera.fromCanvas 결과를 확인 화면이나 전송으로 넘긴다
+function afterCapture(r, location, source) {
   const fromFile = source === "file";
   const again = fromFile ? pickFile : openCamera;
-  const locationP = fromFile ? Promise.resolve(null) : getLocation();
-
-  let masked;
-  try {
-    // 파일 시험은 서버 기록에서 카메라 촬영과 구분되게 appVersion에 표시
-    masked = await masking.maskCapture(raw, fromFile ? `${APP_VERSION}+file` : APP_VERSION);
-  } catch (e) {
-    console.warn("가리기 실패:", e.message);                  // 사진 내용은 찍지 않음
-    reportClientError("mask", e, { source });
-    return showResult("한 번 더 찍어 주세요", "사진을 정리하지 못했어요. 계속 안 되면 담당자에게 연락해 주세요.",
-      fromFile ? "다른 사진 고르기" : "다시 찍기", again);
-  }
-  // 서버는 가리고 압축한 JPEG로 선명도를 잰다. 압축하면 값이 내려가므로 보낼 사진으로 한 번 더 잰다 (서버와 같은 판정)
-  const tq = performance.now();
-  const sent = await measureBlob(masked.blob);
-  masked.timings.check = Math.round(performance.now() - tq);
-  if (lastBurst && !fromFile) Object.assign(lastBurst, {
-    sentSharpness: Math.round(sent.sharpness * 10) / 10, sentSharpnessFast: Math.round(sent.fast * 10) / 10 });
-  const bad = quality.problem(sent);
-  if (bad) {
-    reportClientError("quality-local", new Error(bad), { source, after: "encode",
-      sharpness: Math.round(sent.sharpness * 10) / 10, brightness: Math.round(sent.brightness * 10) / 10 });
-    return showResult(bad === "dark" ? "사진이 어두워요" : "사진이 흐려요",
-      bad === "dark" ? "밝은 쪽에서 다시 찍어 주세요." : "휴대폰을 잠깐 멈추고 한 번 더 찍어 주세요.",
-      fromFile ? "다른 사진 고르기" : "다시 찍기", again);
+  if (!r.ok) {
+    const { stage, error, burst, sent } = r.info;
+    const q = sent || burst;
+    reportClientError(r.reason === "mask" ? "mask" : "quality-local", new Error(error || r.reason), {
+      source, after: stage === "encode" ? "encode" : undefined, sharpness: q?.sharpness, brightness: q?.brightness });
+    const t = camera.RETAKE_TEXT[r.reason];
+    return showResult(t.title, t.sub, fromFile ? "다른 사진 고르기" : "다시 찍기", again);
   }
   const stop = patrol.stops[stopIdx];
   const slot = currentSlot();
+  const i = r.info;
   pending = {
     clientSubmissionId: crypto.randomUUID(), attemptId: crypto.randomUUID(),
     patrolId: patrol.id, stopId: stop.id, stopName: stop.name, captureSlotId: slot.id,
-    capturedAt, maskingVersion: masking.maskingVersion(), deviceMaskReport: masked.report,
-    blob: masked.blob, location: await locationP,
-    test: { boxes: masked.boxes, size: masked.size, timings: masked.timings, blur: masked.blur, source,
-      burst: fromFile ? null : lastBurst },
+    capturedAt: r.capturedAt, maskingVersion: r.maskingVersion, deviceMaskReport: r.report,
+    blob: r.blob, location,
+    test: { boxes: i.boxes, size: i.size, timings: i.timings, blur: i.blur, source, burst: i.burst },
   };
   if (cfg.preview || fromFile) return showPreview(pending);   // 파일 시험은 항상 가린 결과를 보여 줌
   submit(pending);
@@ -448,7 +305,8 @@ $("pick-file").onchange = async (e) => {
     raw.width = img.naturalWidth;
     raw.height = img.naturalHeight;
     raw.getContext("2d").drawImage(img, 0, 0);
-    processRaw(raw, new Date().toISOString(), "file");
+    // 파일 시험은 서버 기록에서 카메라 촬영과 구분되게 appVersion에 표시
+    afterCapture(await camera.fromCanvas(raw, { appVersion: `${APP_VERSION}+file` }), null, "file");
   } catch (err) {
     reportClientError("file-open", err, { type: file.type, size: file.size });
     showResult("사진을 열지 못했어요", "JPEG나 PNG 사진을 골라 주세요.", "다른 사진 고르기", pickFile);

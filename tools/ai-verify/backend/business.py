@@ -59,7 +59,8 @@ def retakes_left(quality_failures: int) -> int:
 
 
 def _err(status: int, code: str, detail: str, **extra):
-    return JSONResponse({"code": code, "detail": detail, **extra}, status_code=status)
+    # 명세서 2장 오류 형식은 message. 시험용 PWA가 읽던 detail도 함께 둔다
+    return JSONResponse({"code": code, "message": detail, "detail": detail, **extra}, status_code=status)
 
 
 def _slot(stop_id: str, slot_id: str):
@@ -83,7 +84,10 @@ def create_router(run_analyze, store) -> APIRouter:
             return slot_locks.setdefault(slot_id, threading.Lock())
 
     def _kv(key: str):
-        row = store.db.execute("SELECT value FROM kv WHERE key=?", (key,)).fetchone()
+        # 연결 하나를 여러 요청이 함께 쓰므로 읽기도 잠근다. 안 잠그면 동시에 들어온 순회 조회가 500이 났다
+        # (앱이 시작 화면에서 미리 받는 요청과 '순회 시작'이 겹칠 때)
+        with store._lock:
+            row = store.db.execute("SELECT value FROM kv WHERE key=?", (key,)).fetchone()
         return json.loads(row["value"]) if row else None
 
     def _kv_set(key: str, value):

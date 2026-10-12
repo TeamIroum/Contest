@@ -47,9 +47,13 @@ AI_WAIT_S = float(os.environ.get("VERIFY_AI_TIMEOUT_S", "300"))
 ai = AIClient(AI_BASE_URL, AI_API_KEY, timeout_s=AI_WAIT_S)
 store = Store(DATA_DIR)
 app = FastAPI(title="AI 판독 모듈 검증 콘솔", version="1.0")
-# GitHub Pages에 올린 PWA(pwa/deploy_pages.py)가 이 서버의 /api/v1을 부를 수 있게 그 주소만 허용한다
-app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in os.environ.get(
-    "PWA_ORIGINS", "https://teamiroum.github.io").split(",") if o.strip()], allow_methods=["*"], allow_headers=["*"])
+# 다른 주소에서 여는 앱이 이 서버의 /api/v1을 부를 수 있게 그 주소만 허용한다 (PWA_ORIGINS로 바꿈, 쉼표로 구분)
+#   GitHub Pages의 시험용 PWA(pwa/deploy_pages.py), 시니어 앱 개발·미리보기(Vite 5173·4173), 시니어 앱 시연 주소(infra/demo-https)
+# 시니어 앱은 로그인 정보(쿠키·Authorization)를 함께 보내므로 allow_credentials가 필요하다. 이때는 주소를 '*'로 둘 수 없다
+PWA_ORIGINS = ("https://teamiroum.github.io,http://localhost:5173,http://localhost:4173,"
+               "https://xn----f55ey6jz3bl8ah95e.xn--h32bi4v.xn--3e0b707e,https://www.xn----f55ey6jz3bl8ah95e.xn--h32bi4v.xn--3e0b707e")
+app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in os.environ.get("PWA_ORIGINS", PWA_ORIGINS).split(",") if o.strip()],
+                   allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 
 def new_id(prefix: str) -> str:
@@ -588,7 +592,8 @@ app.include_router(business.create_router(run_analyze, store))
 
 
 # 얼굴 검출 코드·모델·시험 사진은 AI 계약 폴더의 것을 그대로 내려준다 (복사본을 두지 않음)
-@app.get("/pwa/lib/yunet.mjs")
+@app.get("/pwa/yunet.mjs")
+@app.get("/pwa/lib/yunet.mjs")   # 예전 주소 (설치된 앱의 캐시가 바뀔 때까지)
 def pwa_yunet_js():
     return FileResponse(YUNET_WEB / "yunet.mjs", media_type="text/javascript")
 
