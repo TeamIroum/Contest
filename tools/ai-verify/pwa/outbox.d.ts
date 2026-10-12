@@ -60,6 +60,9 @@ export interface SendOptions {
   apiBase: string;
 }
 
+/** 저장소(IndexedDB) 이름을 정한다. 기본 "pwa-test-outbox". 대기함을 처음 쓰기 전에 한 번 부른다 */
+export declare function configure(opts?: { dbName?: string }): void;
+
 /** 기기에 먼저 저장한다 (보내기 전에 반드시) */
 export declare function put(item: OutboxItem): Promise<IDBValidKey>;
 export declare function remove(clientSubmissionId: string): Promise<undefined>;

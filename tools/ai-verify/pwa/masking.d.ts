@@ -57,8 +57,25 @@ export declare const status: Record<MaskKind, ModelState> & { backend: string };
 /** 업무 API maskingVersion (모델이 바뀌면 바뀜) */
 export declare function maskingVersion(): string;
 
-/** 얼굴 → 번호판 → 차량 모델을 차례로 받는다 (처음 약 20MB, 이어 받기). 상태가 바뀔 때마다 onChange */
-export declare function loadModels(onChange?: () => void): Promise<void>;
+export interface LoadOptions {
+  /**
+   * 모델 목록(model-manifest.json) 주소. 기본: masking.js 옆. 목록 안의 상대 주소는 목록 위치 기준.
+   * 목록 만들기: python tools/ai-verify/pwa/make_model_manifest.py <모델 폴더>
+   */
+  manifestUrl?: string;
+  /** 모델 주소를 바로 넘김 (manifestUrl 대신). 주소마다 ?v=<내용 해시>가 있어야 한다 */
+  models?: Record<MaskKind, string>;
+  /** ONNX Runtime Web 1.20.1 dist 폴더 주소 (끝에 /). 기본 jsDelivr */
+  ortUrl?: string;
+  /** MediaPipe Tasks Vision 0.10.14 폴더 주소 (끝에 /). 기본 jsDelivr */
+  mediapipeUrl?: string;
+}
+
+/**
+ * 얼굴 → 번호판 → 차량 모델을 차례로 받는다 (처음 약 20MB, 이어 받기). 상태가 바뀔 때마다 onChange.
+ * 모델 주소에 내용 해시(?v=)가 없으면 받지 않는다 (같은 주소의 예전 모델을 캐시에서 계속 쓰게 되므로).
+ */
+export declare function loadModels(onChange?: () => void, opts?: LoadOptions): Promise<void>;
 
 /** 세 모델이 모두 준비되었는지. 준비 전에는 찍기 버튼을 끈다 */
 export declare function ready(): boolean;

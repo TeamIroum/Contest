@@ -71,7 +71,7 @@ PC 브라우저에서 http://localhost:8100/pwa/ 를 엽니다. 카메라가 없
 | `app.js` | 시험용 화면 전환, 확인 화면, 시험 기록 |
 | `camera.js` | 카메라 열기·닫기, 촬영음, 연속 장면 중 가장 선명한 것 고르기, 흐림·어두움 확인, 가리기 호출, 보낼 JPEG 재확인 |
 | `quality.js` | 선명도·밝기 계산 (서버 `ai/quality.py`와 같은 계산) |
-| `masking.js`, `download.js` | 얼굴·번호판·차량 검출과 가리기, 모델 받기 |
+| `masking.js`, `download.js` | 얼굴·번호판·차량 검출과 가리기, 모델 받기. 모델 주소는 `loadModels`의 옵션으로 바꿀 수 있음 (`make_model_manifest.py`로 목록 생성) |
 | `outbox.js` | 대기함(IndexedDB)과 전송·자동 재전송 |
 
 `camera.js`·`masking.js`·`outbox.js`·`quality.js` 옆의 `.d.ts`는 TypeScript 타입 선언입니다. 시험용 PWA는 쓰지 않고, 시니어 앱(React + TypeScript)이 가져갈 때 씁니다. `.js`의 함수나 반환값을 바꾸면 같이 고쳐 주세요.

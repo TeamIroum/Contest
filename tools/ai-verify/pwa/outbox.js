@@ -4,15 +4,21 @@
 //   - 먼저 대기함에 영속 저장한 뒤 보낸다. 서버가 RECEIVED 또는 NO_MEDIA로 답하기 전에는 "전송 대기"로 둔다.
 //   - 503·연결 끊김은 접수가 아니다. 같은 clientSubmissionId/attemptId·같은 파일로 다시 보낸다.
 //   - 앱을 다시 열 때, 연결이 돌아올 때 대기 사진을 보낸다 (백그라운드 전송에 기대지 않음).
-const DB_NAME = "pwa-test-outbox";
+let dbName = "pwa-test-outbox";
 const STORE = "outbox";
 const LOG = "results";
+
+// 저장소 이름을 정한다 (시니어 앱은 자기 이름을 씀). 대기함을 처음 쓰기 전에 한 번 부른다
+export function configure({ dbName: name } = {}) {
+  if (dbp) throw new Error("대기함을 이미 열었습니다. configure는 처음 쓰기 전에 부르세요");
+  if (name) dbName = name;
+}
 
 let dbp;
 function db() {
   if (!dbp) {
     dbp = new Promise((res, rej) => {
-      const req = indexedDB.open(DB_NAME, 1);
+      const req = indexedDB.open(dbName, 1);
       req.onupgradeneeded = () => {
         req.result.createObjectStore(STORE, { keyPath: "clientSubmissionId" });
         req.result.createObjectStore(LOG, { keyPath: "clientSubmissionId" });
