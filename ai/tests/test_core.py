@@ -95,6 +95,12 @@ def test_unknown_facility_is_human_review_not_retake():
     assert r["status"] == "needs_review" and r["action"] == "human_review"
 
 
+def test_no_facility_with_bad_frame_is_not_retake():
+    # 대상이 없으면 틀 판단은 보지 않는다 (보면 어르신이 같은 곳을 계속 다시 찍게 됨)
+    r = run("unknown_bad_frame")
+    assert r["status"] == "needs_review" and "out_of_frame" not in r["quality"]["problems"]
+
+
 def test_bench_and_exercise_flow():
     r = run("bench_broken", lat=37.82580, lon=127.09180)
     assert r["facility"]["facility_id"] == "BN-0001"

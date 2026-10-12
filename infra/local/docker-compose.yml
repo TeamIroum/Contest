@@ -30,7 +30,10 @@ services:
       AI_PROVIDER: ${AI_PROVIDER}
       API_KEYS: ${AI_API_KEYS}
       REQUIRE_DEVICE_MASKING: ${REQUIRE_DEVICE_MASKING}
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      OLLAMA_URL: ${OLLAMA_URL}
+      OLLAMA_MODEL: ${OLLAMA_MODEL}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # Linux에서도 PC의 Ollama에 닿게
     ports:
       - "8000:8000"
     volumes:

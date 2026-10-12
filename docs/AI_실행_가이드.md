@@ -220,6 +220,23 @@ python eval/run_eval.py analyze --labels eval/photos/internet/labels.csv --provi
 
 ### 8.2 실행 (PowerShell 창 5개)
 
+아래 창 1~5를 스크립트 하나로 띄울 수 있습니다. API 키·터널 주소·`.env.local`을 자동으로 채우고, 끝나면 PWA 주소와 Expo Go 주소를 보여 줍니다.
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\start-test.ps1            # PWA + Expo
+powershell -ExecutionPolicy Bypass -File tools\start-test.ps1 -PwaOnly   # PWA만 (창 1~3)
+powershell -ExecutionPolicy Bypass -File tools\stop-test.ps1             # 모두 끄기
+```
+Tailscale이 설치되어 있으면 cloudflared 대신 **Tailscale Funnel**로 열어 주소가 바뀌지 않습니다(PWA `https://<PC 이름>.<tailnet>.ts.net:8443/pwa/`, Expo Go `exp://<PC 이름>.<tailnet>.ts.net`). 앱 코드를 443에 두는 이유: Expo QR의 `exp://` 주소는 443일 때만 https로 접속하고 다른 포트면 http로 접속해 연결이 끊깁니다. 처음 한 번만 준비합니다.
+1. `winget install --id Tailscale.Tailscale -e`로 설치하고 작업 표시줄의 Tailscale에서 로그인
+2. https://login.tailscale.com/admin/dns 에서 MagicDNS와 HTTPS Certificates 켜기
+3. `tailscale funnel --bg --https=8443 http://localhost:8100` 실행. Funnel 허용 링크가 나오면 열어서 허용. 이후로는 스크립트가 알아서 엶
+
+**PWA는 GitHub Pages 주소로 여는 것을 권합니다**: https://teamiroum.github.io/pwa-test/ . 터널은 느려서 화면·모델(약 15MB)은 GitHub Pages(CDN)에서 받고, 사진 전송·업무 API만 터널로 이 PC의 검증 콘솔에 보냅니다. PWA를 고쳤거나 서버 주소가 바뀌면 `python tools/ai-verify/pwa/deploy_pages.py`로 다시 올립니다(서버 주소는 `tools/ai-test-app/.env.local`에서 읽음, `--api`로 지정 가능). 검증 콘솔은 `https://teamiroum.github.io`의 요청만 허용합니다(`PWA_ORIGINS`).
+
+탐색기에서 `tools\start-pwa.bat`(PWA, 창 1~3), `tools\start-expo.bat`(Expo, 창 1~5. PWA도 함께 열림), `tools\stop-test.bat`(끄기)을 더블클릭해도 같습니다.
+
+손으로 띄울 때는 다음과 같습니다.
+
 각 창은 저장소 폴더(이 컴퓨터에서는 `C:\Contest`. 2·3장 예시의 `senior-inspection` 경로 대신)에서 시작합니다. Ollama가 켜져 있어야 합니다.
 
 | 창 | 명령 | 비고 |

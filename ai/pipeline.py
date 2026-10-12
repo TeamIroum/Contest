@@ -453,15 +453,18 @@ def _judge(res: dict, jpeg: bytes, ctx: dict, provider: Provider, t0: float, att
     if attempt:
         meta_extra["retried"] = attempt
 
-    if not raw["framing_ok"]:
+    ftype = raw["facility_type"]
+    no_facility = ftype == "unknown" or facility(ftype) is None or not raw["facility_visible"]
+    # 틀 판단은 점검 대상이 보일 때만 뜻이 있다. 대상이 없는 사진에 모델은 framing_ok=false도 함께 내므로
+    # 먼저 보면 '대상 없음'이 '다시 찍기'로 바뀌어 어르신이 같은 곳을 계속 다시 찍게 된다
+    if not no_facility and not raw["framing_ok"]:
         res["quality"]["ok"] = False
         res["quality"]["problems"].append("out_of_frame")
         res.update(status="retake", action="retake", senior_message=senior_message("retake_frame"))
         res["meta"] = _meta(provider, prompts.ANALYZE_VERSION, t0, meta_extra)
         return res
 
-    ftype = raw["facility_type"]
-    if ftype == "unknown" or facility(ftype) is None or not raw["facility_visible"]:
+    if no_facility:
         if not rules.rules()["review"]["send_unknown_facility_to_human"]:  # 담당자 대신 어르신께 다시 찍기 안내
             res.update(status="retake", action="retake", senior_message=senior_message("retake_no_facility"))
             res["notes"].append("점검 목록에 없는 대상이거나 시설이 분명하지 않음")

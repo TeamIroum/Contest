@@ -33,7 +33,7 @@ python -m uvicorn app:app --port 8100
 
 | 환경 변수 | 기본값 | 설명 |
 |---|---|---|
-| `AI_BASE_URL` | `http://localhost:8000` | AI 판독 모듈 주소 |
+| `AI_BASE_URL` | `http://127.0.0.1:8000` | AI 판독 모듈 주소 |
 | `AI_API_KEY` | (없음) | AI 서버에 `API_KEYS`를 설정했으면 그중 하나 |
 | `VERIFY_DATA_DIR` | `tools/ai-verify/data` | 기록 DB(`verify.db`)와 가린 사진 복사본 위치. `.gitignore`에 들어 있음 |
 
