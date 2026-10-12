@@ -38,7 +38,7 @@ function renderModels() {
     const cls = st === "준비" ? "st-ok" : st === "실패" ? "st-bad" : "";
     return `<li><span>${label}</span><span class="${cls}">${st}</span></li>`;
   }).join("");
-  $("start").disabled = !masking.ready();
+  $("start").disabled = $("collect").disabled = !masking.ready();
 }
 
 async function prepare() {
@@ -132,7 +132,8 @@ function currentSlot() {
 function showStop() {
   const stop = patrol.stops[stopIdx];
   const slot = currentSlot();
-  $("stop-step").textContent = `${stopIdx + 1} / ${patrol.stops.length} 번째 장소`;
+  $("stop-step").textContent = patrol.collect ? "현장 수집" : `${stopIdx + 1} / ${patrol.stops.length} 번째 장소`;
+  $("skip").textContent = patrol.collect ? "다른 시설" : "다음 장소로";
   $("stop-name").textContent = stop.name;
   $("stop-instruction").textContent = stop.instruction;
   const left = slot.retakesRemaining ?? 2;
@@ -161,9 +162,43 @@ async function refreshPatrol() {
   try { patrol = await api("GET", `/patrols/${patrol.id}`); } catch { /* 연결이 없으면 지금 정보로 계속 */ }
 }
 
-$("skip").onclick = () => goNext(null);
+$("skip").onclick = () => (patrol?.collect ? showCollectPick() : goNext(null));
 $("to-home").onclick = goHome;
 function goHome() { show("home"); updatePending(); showRetakeNotice(); }
+
+// ---------------------------------------------------------------- 현장 수집 (시험용: AI 평가 사진 모으기)
+// 시설 종류를 골라 계속 찍는다. 업무 규칙(재촬영 상한·끝난 장소)이 없는 시험용 순회(patrol-collect)로 보낸다.
+// 찍는 방법·가리기·전송은 순회와 같다 (camera.js, outbox.js)
+const COLLECT_PATROL = "patrol-collect";
+$("collect").onclick = async () => {
+  navigator.storage?.persist?.().catch(() => {});
+  try { patrol = await api("GET", `/patrols/${COLLECT_PATROL}`); } catch (e) { return alert(`수집 정보를 받지 못했어요.\n${e.message}`); }
+  showCollectPick();
+};
+$("collect-home").onclick = goHome;
+
+// 이 휴대폰에서 시설별로 보낸 수 (보낸 기록 기준. 전송 대기 중인 것은 빼고 셈)
+async function collectCounts() {
+  const done = await outbox.results().catch(() => []);
+  const n = {};
+  for (const d of done) if (d.stopId?.startsWith("collect-")) n[d.stopId] = (n[d.stopId] || 0) + 1;
+  return n;
+}
+
+async function showCollectPick() {
+  const n = await collectCounts();
+  $("collect-list").innerHTML = patrol.stops.map((s, i) =>
+    `<button class="pick" data-i="${i}"><span>${escapeHtml(s.name)}</span><small>${n[s.id] || 0}장</small></button>`).join("");
+  const total = Object.values(n).reduce((a, b) => a + b, 0);
+  $("collect-total").textContent = `이 휴대폰에서 보낸 수집 사진 ${total}장 (전송 대기 제외)`;
+  show("collect-pick");
+}
+$("collect-list").onclick = (e) => {
+  const b = e.target.closest("button[data-i]");
+  if (!b) return;
+  stopIdx = +b.dataset.i;
+  showStop();
+};
 
 // ---------------------------------------------------------------- 카메라 (앱 안에서만 찍음. 갤러리·기본 카메라 앱을 쓰지 않음)
 // 촬영·가리기·흐림 확인은 camera.js가 한다. 여기서는 화면 전환과 시험 기록만 맡는다
@@ -223,7 +258,8 @@ function afterCapture(r, location, source) {
     reportClientError(r.reason === "mask" ? "mask" : "quality-local", new Error(error || r.reason), {
       source, after: stage === "encode" ? "encode" : undefined, sharpness: q?.sharpness, brightness: q?.brightness });
     const t = camera.RETAKE_TEXT[r.reason];
-    return showResult(t.title, t.sub, fromFile ? "다른 사진 고르기" : "다시 찍기", again);
+    return showResult(t.title, t.sub, fromFile ? "다른 사진 고르기" : "다시 찍기", again,
+      patrol?.collect ? { homeLabel: "다른 시설", home: showCollectPick } : {});
   }
   const stop = patrol.stops[stopIdx];
   const slot = currentSlot();
@@ -353,6 +389,7 @@ function handleResponse(r, test) {
   $("result-debug").innerHTML = escapeHtml(JSON.stringify(debug, null, 2)) +
     (b.testConsoleRunId ? `\n\n<a href="/#run-${b.testConsoleRunId}" target="_blank">검증 콘솔에서 판독 결과 보기</a>` : "");
 
+  if (patrol?.collect) return collectResult(r, b);
   if (!r.done) {
     if (r.offline || r.http >= 500 || b.code === "SUBMISSION_PROCESSING") {
       return showResult("전송 대기", "연결되면 자동으로 보낼게요. 다음 장소로 가셔도 돼요.", "다음 장소로", () => goNext(null));
@@ -382,13 +419,30 @@ function handleResponse(r, test) {
   }
 }
 
-function showResult(text, sub, actionLabel, action) {
+// opts.homeLabel·opts.home: 아래 버튼 (기본 '처음으로')
+function showResult(text, sub, actionLabel, action, opts = {}) {
   $("result-text").textContent = text;
   $("result-sub").textContent = sub;
   $("result-action").textContent = actionLabel;
   $("result-action").onclick = action;
-  $("result-home").onclick = goHome;
+  $("result-home").textContent = opts.homeLabel || "처음으로";
+  $("result-home").onclick = opts.home || goHome;
   show("result");
+}
+
+// 현장 수집 결과: 같은 시설을 계속 찍거나 다른 시설로. 판독 결과는 화면에 띄우지 않고 콘솔 기록에서 본다
+async function collectResult(r, b) {
+  const name = patrol.stops[stopIdx].name;
+  const more = { homeLabel: "다른 시설", home: showCollectPick };
+  if (!r.done) {
+    if (r.offline || r.http >= 500 || b.code === "SUBMISSION_PROCESSING") {
+      return showResult("전송 대기", "연결되면 자동으로 보낼게요. 계속 찍어도 돼요.", "계속 찍기", openCamera, more);
+    }
+    return showResult("보내지 못했어요", `(${b.code || r.http}) ${b.message || b.detail || ""}`, "계속 찍기", openCamera, more);
+  }
+  const n = (await collectCounts())[patrol.stops[stopIdx].id] || 0;
+  const title = b.captureStatus === "RETAKE_REQUIRED" ? "흐리거나 어두워요" : "받았어요";
+  showResult(title, `${name} ${n}장째 · ${b.message || ""}`, "계속 찍기", openCamera, more);
 }
 
 // ---------------------------------------------------------------- 대기함·기록
