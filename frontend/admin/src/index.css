@@ -1,0 +1,114 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+@import 'tailwindcss';
+
+/* 시니어 동네 점검단 공용 토큰: 어르신 앱과 같은 파랑, 하늘·민트 배경 */
+@theme {
+  --color-brand: #2f6beb;
+  --color-brand-700: #1f55c9;
+  --color-brand-600: #4a80f0;
+  --color-brand-100: #d9e6fd;
+  --color-brand-50: #edf3fe;
+  --color-ink: #191f28;
+  --color-sub: #4e5968;
+  --color-mute: #646f7c;
+  --color-line: #e8ebf0;
+  --color-line-strong: #d1d6db;
+  --color-bg: #f4f6fa;
+  --color-surface: #ffffff;
+  --color-mint: #dff5e8;
+  --color-sky: #d7ebfb;
+
+  /* 위험도: 긴급 / 주의 / 관찰 / 정상 */
+  --color-g3: #e5484d;
+  --color-g3-soft: #fdecec;
+  --color-g3-ink: #b42328;
+  --color-g2: #f5b324;
+  --color-g2-soft: #fff5d9;
+  --color-g2-ink: #8a5a00;
+  --color-g1: #5b6ee1;
+  --color-g1-soft: #eef0fd;
+  --color-g1-ink: #3a4bb0;
+  --color-g0: #20a464;
+  --color-g0-soft: #e3f6ec;
+  --color-g0-ink: #157a49;
+
+  /* 가독성: 작은 글자를 한 단계씩 키움 (xs 13px, sm 15px) */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.45;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.55;
+
+  --font-sans: 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --shadow-card: 0 2px 12px rgba(30, 60, 110, 0.06), 0 1px 2px rgba(30, 60, 110, 0.04);
+  --shadow-pop: 0 10px 30px rgba(30, 60, 110, 0.16);
+}
+
+/* 관리자 화면 기준 16px */
+html {
+  font-size: 16px;
+}
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  letter-spacing: -0.01em;
+  line-height: 1.55;
+  /* 시각·숫자 자릿수를 맞춰 줄이 가지런하게 */
+  font-variant-numeric: tabular-nums;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+}
+:focus-visible {
+  outline: 3px solid var(--color-brand-600);
+  outline-offset: 2px;
+}
+/* 잘리는 칸(목록·표·카드) 안에서는 테두리를 안쪽에 그려 잘리지 않게 */
+.overflow-hidden :focus-visible,
+table :focus-visible {
+  outline-offset: -3px;
+}
+/* 입력 칸은 파란 테두리(ring)로 이미 표시하므로 겹치지 않게 */
+input:not([type='checkbox'], [type='radio']):focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+table th {
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-mute);
+  background: #f7f9fc;
+}
+table td {
+  padding-top: 0.8rem !important;
+  padding-bottom: 0.8rem !important;
+}
+table tbody tr:hover {
+  background: #fafbfd;
+}
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.pulse-dot {
+  animation: pulse-dot 1.2s infinite ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot {
+    animation: none;
+  }
+}
