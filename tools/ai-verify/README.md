@@ -18,10 +18,10 @@ AI 판독 모듈(`ai/`)을 **앱 → 업무 백엔드 → AI** 흐름 그대로 
 AI 모듈과 검증 콘솔을 각각 띄웁니다. (PowerShell 기준)
 
 ```powershell
-# 1) AI 판독 모듈 (mock 모드)
+# 1) AI 판독 모듈 (ai/.env: AI_PROVIDER=ollama, Ollama가 켜져 있어야 함)
 cd ai
 pip install -r requirements.txt
-$env:AI_PROVIDER="mock"; python -m uvicorn server:app --port 8000
+python -m uvicorn server:app --port 8000 --env-file .env
 
 # 2) 검증 콘솔 (다른 창)
 cd tools/ai-verify/backend
@@ -29,7 +29,9 @@ pip install -r requirements.txt
 python -m uvicorn app:app --port 8100
 ```
 
-브라우저에서 http://localhost:8100 을 엽니다. 실제 판독을 시험할 때는 AI 모듈만 `--env-file .env`(`AI_PROVIDER=ollama`)로 다시 띄우면 됩니다. 콘솔은 그대로 둡니다.
+브라우저에서 http://127.0.0.1:8100 을 엽니다. 두 창을 한 번에 띄우려면 `tools/start-test.ps1`.
+
+**바깥에서는 휴대폰 앱이 쓰는 곳만 열립니다.** Tailscale Funnel 같은 터널로 열어도 `/api/v1/…`(시험용 업무 API)와 `/pwa/…`(시험용 PWA)만 응답하고, 콘솔 화면·콘솔 API(가린 사진 복사본, 기록 지우기)·`/docs`는 이 PC에서 연 요청이 아니면 403입니다. 터널은 이 PC 안에서 요청을 넘겨주므로 보낸 쪽 주소 대신 주소(Host)와 전달 헤더(`Tailscale-Funnel-Request`, `X-Forwarded-For` 등)로 가립니다.
 
 | 환경 변수 | 기본값 | 설명 |
 |---|---|---|
