@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import sqlite3
 import threading
 from datetime import datetime, timezone, timedelta
@@ -134,13 +135,31 @@ class Store:
             out.append(run)
         return out
 
-    def clear(self):
+    def backup(self) -> Path:
+        """기록(verify.db)과 가린 사진 복사본을 backups/<시각>/에 통째로 남긴다. 백업은 자동으로 지우지 않는다."""
+        dest = self.dir / "backups" / datetime.now(KST).strftime("%Y%m%d-%H%M%S")
+        (dest / "images").mkdir(parents=True, exist_ok=False)
+        with self._lock:
+            out = sqlite3.connect(dest / "verify.db")
+            try:
+                self.db.backup(out)   # 쓰는 중이어도 일관된 사본 (파일 복사보다 안전)
+            finally:
+                out.close()
+        for f in self.image_dir.glob("*"):
+            if f.is_file():
+                shutil.copy2(f, dest / "images" / f.name)
+        return dest
+
+    def clear(self) -> Path:
+        """기록을 모두 지운다. 지우기 전에 반드시 백업한다 (백업이 실패하면 지우지 않음). 돌려주는 것: 백업 위치"""
+        dest = self.backup()
         with self._lock:
             self.db.executescript("DELETE FROM runs; DELETE FROM snapshots; DELETE FROM events; DELETE FROM kv;"
                                   " DELETE FROM sqlite_sequence;")
             self.db.commit()
         for f in self.image_dir.glob("*"):
             f.unlink(missing_ok=True)
+        return dest
 
     # ---- events ----
     def cursor(self) -> int:
