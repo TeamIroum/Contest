@@ -2,13 +2,15 @@
 // 앱은 AI 모듈을 부르지 않고 업무 API(/api/v1)만 부른다. 판독 결과는 어르신 화면에 보이지 않는다.
 import * as masking from "./masking.js";
 import * as outbox from "./outbox.js";
+import * as quality from "./quality.js";
 
 const APP_VERSION = "pwa-test-0.1.0";
 const $ = (id) => document.getElementById(id);
 
 // ---------------------------------------------------------------- 시험 설정 (사진은 넣지 않음)
+const DEFAULT_API = self.PWA_CONFIG?.api || "/api/v1";   // config.js (GitHub Pages 배포본은 터널 주소)
 const cfg = {
-  api: "/api/v1", preview: true, boxes: true, location: false,
+  api: DEFAULT_API, preview: true, boxes: true, location: false,
   ...safeJson(localStorage.getItem("pwa-test-cfg")),
 };
 function safeJson(s) { try { return JSON.parse(s) || {}; } catch { return {}; } }
@@ -19,7 +21,7 @@ $("cfg-api").value = cfg.api;
 $("cfg-preview").checked = cfg.preview;
 $("cfg-boxes").checked = cfg.boxes;
 $("cfg-location").checked = cfg.location;
-$("cfg-api").onchange = (e) => { cfg.api = e.target.value.trim() || "/api/v1"; saveCfg(); };
+$("cfg-api").onchange = (e) => { cfg.api = e.target.value.trim() || DEFAULT_API; saveCfg(); };
 for (const k of ["preview", "boxes", "location"]) $(`cfg-${k}`).onchange = (e) => { cfg[k] = e.target.checked; saveCfg(); };
 
 // ---------------------------------------------------------------- 화면 전환
@@ -41,14 +43,14 @@ function renderModels() {
 
 async function prepare() {
   $("model-retry").hidden = true;
-  $("model-msg").textContent = "처음에는 모델을 내려받느라 시간이 걸려요 (약 15MB).";
+  $("model-msg").textContent = "처음 한 번은 가림 모델을 내려받아요 (약 20MB). Wi-Fi에서 열면 빨라요. 끊겨도 이어서 받아요.";
   const t0 = performance.now();
   try {
     await masking.loadModels(renderModels);
     $("model-msg").textContent = `준비 완료 · ${Math.round(performance.now() - t0)}ms · ${masking.status.backend}`;
   } catch (e) {
     // 모델이 없으면 촬영하지 않는다 (가리지 못한 사진이 생기지 않게)
-    $("model-msg").textContent = "준비가 안 됐어요. 담당자에게 연락해 주세요.";
+    $("model-msg").textContent = "아직 다 받지 못했어요. 받은 것은 남아 있으니 '다시 준비하기'를 눌러 주세요. 계속 안 되면 담당자에게 연락해 주세요.";
     $("model-retry").hidden = false;
     console.warn("모델 준비 실패:", e.message);
     reportClientError("model", e, { status: { ...masking.status } });
@@ -61,26 +63,66 @@ $("model-retry").onclick = prepare;
 let patrol = null;
 let stopIdx = 0;
 
+// 순회 정보는 화면을 열 때 미리 받아 둔다. 휴대폰에서 터널을 거치면 요청 두 번에 1~2초가 걸려
+// 누른 뒤에 받으면 반응이 느려 보인다. 누르면 미리 받은 것으로 바로 보여 주고, 최신 상태는 뒤에서 다시 받는다
+let patrolPrefetch = null;
+const prefetchPatrol = () => (patrolPrefetch = fetchPatrol().catch(() => null));
+
 $("start").onclick = async () => {
-  // 대기 사진이 지워지지 않게 저장소 유지를 요청 (아이폰은 공간이 부족하면 지울 수 있음)
-  try { await navigator.storage?.persist?.(); } catch { /* 지원 안 함 */ }
+  // 대기 사진이 지워지지 않게 저장소 유지를 요청 (아이폰은 공간이 부족하면 지울 수 있음). 기다리지 않는다
+  navigator.storage?.persist?.().catch(() => {});
+  const btn = $("start"), label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "여는 중…";
+  const t0 = performance.now();
+  let early = null;
   try {
-    await loadPatrol();
+    early = await patrolPrefetch;
+    if (early) {
+      applyPatrol(early);
+      openPatrol();
+      // 미리 받은 뒤 바뀐 상태 반영. 그새 촬영으로 넘어갔으면 건드리지 않는다
+      fetchPatrol().then((p) => { if (!$("stop").hidden) { applyPatrol(p); openPatrol(); } }).catch(() => {});
+    } else {
+      await loadPatrol();
+      openPatrol();
+    }
   } catch (e) {
-    return alert(`순회 정보를 받지 못했어요.\n${e.message}`);
+    alert(`순회 정보를 받지 못했어요.
+${e.message}`);
+  } finally {
+    btn.textContent = label;
+    btn.disabled = !masking.ready();
+    prefetchPatrol();   // 처음 화면으로 돌아와 다시 누를 때를 위해
   }
-  showStop();
+  const ms = Math.round(performance.now() - t0);
+  if (ms > 1500) reportClientError("slow-start", new Error(`${ms}ms`), { ms, prefetched: Boolean(early) });
 };
 
-async function loadPatrol() {
+async function fetchPatrol() {
   const list = await api("GET", "/me/patrols");
   if (!list.items?.length) throw new Error("오늘 배정된 순회가 없어요.");
-  patrol = await api("GET", `/patrols/${list.items[0].id}`);
+  return api("GET", `/patrols/${list.items[0].id}`);
+}
+
+function applyPatrol(p) {
+  patrol = p;
   const first = patrol.stops.findIndex((s) => s.captureSlots.some((c) => !isResolved(c)));
   stopIdx = first < 0 ? 0 : first;
 }
 
+async function loadPatrol() {
+  applyPatrol(await fetchPatrol());
+}
+
 const isResolved = (slot) => ["ACCEPTED", "REVIEW_REQUESTED"].includes(slot.captureStatus);
+const allResolved = () => patrol.stops.every((s) => s.captureSlots.every(isResolved));
+
+// 순회 시작: 모두 끝났으면 첫 장소를 다시 열지 않는다 (찍어 올려도 '이미 끝난 곳'으로 거절되기만 함)
+function openPatrol() {
+  if (allResolved()) return showResult("오늘 순회를 모두 마쳤어요", "더 찍을 곳이 없어요. 센터로 돌아가 주세요.", "처음으로", goHome);
+  showStop();
+}
 
 function currentSlot() {
   const stop = patrol.stops[stopIdx];
@@ -96,8 +138,10 @@ function showStop() {
   const left = slot.retakesRemaining ?? 2;
   $("stop-slot").textContent = `찍을 모습: ${slot.label}` +
     (isResolved(slot) ? " · 이미 끝났어요" : slot.captureStatus === "RETAKE_REQUIRED" ? ` · 다시 찍기 ${left}번 남음` : "");
-  $("shoot").disabled = !masking.ready();
-  $("file-test").disabled = !masking.ready();
+  // 끝난 장소는 찍지 못하게 한다. 찍어도 사진을 다 올린 뒤에야 '이미 끝난 곳'이라는 답이 온다 (LTE에서는 몇 초 낭비)
+  const done = isResolved(slot);
+  $("shoot").disabled = !masking.ready() || done;
+  $("file-test").disabled = !masking.ready() || done;
   show("stop");
   showRetakeNotice();   // 촬영 중이라 미뤄 둔 '다시 찍을 곳' 알림
 }
@@ -241,21 +285,52 @@ function getLocation() {
 
 let pending = null;   // 확인 화면에 띄운 가린 사진 (원본 아님)
 
+// 사진은 카메라 영상에서 떼어 온 장면이라 셔터를 누르는 순간의 흔들림이 그대로 찍힌다.
+// 누른 뒤 약 0.3초 동안 몇 장면을 떼어 가장 선명한 것을 쓴다 (서버와 같은 선명도 계산, quality.js)
+const BURST_FRAMES = 5;
+const BURST_GAP_MS = 70;
+let lastBurst = null;   // 시험 정보: 고른 장면과 선명도
+
 async function capture() {
   const video = $("video");
   if (!video.videoWidth) return;
   shutterSound();
   flashScreen();
   const capturedAt = new Date().toISOString();
-  const raw = document.createElement("canvas");
-  raw.width = video.videoWidth;
-  raw.height = video.videoHeight;
-  raw.getContext("2d").drawImage(video, 0, 0);   // 사진은 셔터를 누른 순간의 화면
+  let raw = null, spare = null, best = null;
+  for (let i = 0; i < BURST_FRAMES; i++) {
+    if (i) await new Promise((r) => setTimeout(r, BURST_GAP_MS));
+    const c = spare || document.createElement("canvas");
+    c.width = video.videoWidth;
+    c.height = video.videoHeight;
+    c.getContext("2d").drawImage(video, 0, 0);
+    const q = quality.measure(c);
+    if (!best || q.sharpness > best.sharpness) { spare = raw; raw = c; best = { ...q, frame: i }; } else spare = c;
+  }
+  lastBurst = { frames: BURST_FRAMES, picked: best.frame, sharpness: Math.round(best.sharpness * 10) / 10 };
+  if (spare) spare.width = spare.height = 0;   // 고르지 않은 장면은 바로 버린다 (원본을 남기지 않음)
   closeCamera();
+
+  // 확실히 흐리거나 어두우면 올리지 않고 바로 다시 찍게 한다 (서버도 같은 기준으로 거절하므로 기다림·데이터만 아낌)
+  const bad = quality.problem(best);
+  if (bad) {
+    raw.width = raw.height = 0;
+    reportClientError("quality-local", new Error(bad), {
+      sharpness: Math.round(best.sharpness * 10) / 10, brightness: Math.round(best.brightness * 10) / 10 });
+    return showResult(bad === "dark" ? "사진이 어두워요" : "사진이 흐려요",
+      bad === "dark" ? "밝은 쪽에서 다시 찍어 주세요." : "휴대폰을 잠깐 멈추고 한 번 더 찍어 주세요.",
+      "다시 찍기", openCamera);
+  }
   show("working");
   // 가리기 계산은 화면 그리기를 1~3초 막는다(아이폰 WASM). 번쩍임이 실제로 그려진 뒤에 시작해야 보인다
   await afterPaint(250);
   processRaw(raw, capturedAt, "camera");
+}
+
+async function measureBlob(blob) {
+  const bmp = await createImageBitmap(blob);
+  // fast는 시험 기록용: 브라우저 줄이기 값과 비교해 기기 차이를 본다
+  try { return { ...quality.measure(bmp, { exact: true }), fast: quality.measure(bmp).sharpness }; } finally { bmp.close(); }
 }
 
 function afterPaint(ms) {
@@ -279,6 +354,20 @@ async function processRaw(raw, capturedAt, source) {
     return showResult("한 번 더 찍어 주세요", "사진을 정리하지 못했어요. 계속 안 되면 담당자에게 연락해 주세요.",
       fromFile ? "다른 사진 고르기" : "다시 찍기", again);
   }
+  // 서버는 가리고 압축한 JPEG로 선명도를 잰다. 압축하면 값이 내려가므로 보낼 사진으로 한 번 더 잰다 (서버와 같은 판정)
+  const tq = performance.now();
+  const sent = await measureBlob(masked.blob);
+  masked.timings.check = Math.round(performance.now() - tq);
+  if (lastBurst && !fromFile) Object.assign(lastBurst, {
+    sentSharpness: Math.round(sent.sharpness * 10) / 10, sentSharpnessFast: Math.round(sent.fast * 10) / 10 });
+  const bad = quality.problem(sent);
+  if (bad) {
+    reportClientError("quality-local", new Error(bad), { source, after: "encode",
+      sharpness: Math.round(sent.sharpness * 10) / 10, brightness: Math.round(sent.brightness * 10) / 10 });
+    return showResult(bad === "dark" ? "사진이 어두워요" : "사진이 흐려요",
+      bad === "dark" ? "밝은 쪽에서 다시 찍어 주세요." : "휴대폰을 잠깐 멈추고 한 번 더 찍어 주세요.",
+      fromFile ? "다른 사진 고르기" : "다시 찍기", again);
+  }
   const stop = patrol.stops[stopIdx];
   const slot = currentSlot();
   pending = {
@@ -286,27 +375,34 @@ async function processRaw(raw, capturedAt, source) {
     patrolId: patrol.id, stopId: stop.id, stopName: stop.name, captureSlotId: slot.id,
     capturedAt, maskingVersion: masking.maskingVersion(), deviceMaskReport: masked.report,
     blob: masked.blob, location: await locationP,
-    test: { boxes: masked.boxes, size: masked.size, timings: masked.timings, blur: masked.blur, source },
+    test: { boxes: masked.boxes, size: masked.size, timings: masked.timings, blur: masked.blur, source,
+      burst: fromFile ? null : lastBurst },
   };
   if (cfg.preview || fromFile) return showPreview(pending);   // 파일 시험은 항상 가린 결과를 보여 줌
   submit(pending);
 }
 
 // ---------------------------------------------------------------- 확인 화면 (시험용)
+// 기기 번호판 검출 점수. 거짓 검출(창틀·책상 무늬 등)과 진짜 번호판의 점수를 모아 기준(masking.js PLATE_CONF)을 정한다
+const plateScores = (boxes) => (boxes || []).filter((b) => b.kind === "plate")
+  .map((b) => ({ score: b.score, box: b.box.map((v) => +v.toFixed(4)) }));
 let previewUrl = null;
 function showPreview(item) {
   if (previewUrl) URL.revokeObjectURL(previewUrl);
   previewUrl = URL.createObjectURL(item.blob);
   $("preview-img").src = previewUrl;
-  $("preview-boxes").innerHTML = cfg.boxes ? item.test.boxes.map(({ kind, box: [x0, y0, x1, y1] }) =>
-    `<div class="bx ${kind}" style="left:${x0 * 100}%;top:${y0 * 100}%;width:${(x1 - x0) * 100}%;height:${(y1 - y0) * 100}%"></div>`).join("") : "";
+  $("preview-boxes").innerHTML = cfg.boxes ? item.test.boxes.map(({ kind, score, box: [x0, y0, x1, y1] }) =>
+    `<div class="bx ${kind}" style="left:${x0 * 100}%;top:${y0 * 100}%;width:${(x1 - x0) * 100}%;height:${(y1 - y0) * 100}%">` +
+    (kind === "plate" ? `<span>${score.toFixed(2)}</span>` : "") + "</div>").join("") : "";
+  const plates = plateScores(item.test.boxes);
   const r = item.deviceMaskReport, t = item.test.timings;
   $("preview-info").textContent =
     `얼굴 ${r.faces} · 번호판 ${r.plates} · 차량 ${r.vehicles}  (노랑 얼굴, 하늘 번호판, 분홍 차량)\n` +
     `촬영 ${item.test.size.captured.join("×")} → 전송 ${item.test.size.sent.join("×")}, ${(item.blob.size / 1024).toFixed(0)}KB` +
     `${item.test.blur ? "" : ", 흐림 미지원(모자이크 4칸)"}\n` +
-    `처리 ${t.total}ms = 얼굴 ${t.face} + 번호판 ${t.plate} + 차량 ${t.vehicle} + 가림 ${t.mask} + JPEG ${t.encode}` +
+    `처리 ${t.total}ms = 얼굴 ${t.face} + 번호판 ${t.plate} + 차량 ${t.vehicle} + 가림 ${t.mask} + JPEG ${t.encode}, 선명도 확인 ${t.check}ms` +
     (item.location ? `\n위치 ±${item.location.accuracy}m` : "") +
+    (plates.length ? `\n번호판 점수: ${plates.map((p) => p.score.toFixed(2)).join(", ")} (기준 ${masking.PLATE_CONF})` : "") +
     `\n보낼 곳: ${item.stopName}${item.test.source === "file" ? " (저장된 사진 시험)" : ""}`;
   $("retake").textContent = item.test.source === "file" ? "다른 사진 고르기" : "다시 찍기";
   show("preview");
@@ -366,7 +462,10 @@ $("pick-file").onchange = async (e) => {
 async function submit(item) {
   show("working");
   $("working-text").textContent = "사진을 보내고 있어요";
-  const { test, ...stored } = item;   // 시험 정보는 대기함에 넣지 않음
+  // 대기함에는 가린 위치(boxes) 없이 처리 시간·크기만 남긴다 (서버 기록용 시험 정보)
+  const { test, ...rest } = item;
+  const stored = test ? { ...rest, testInfo: { timings: test.timings, size: test.size, source: test.source, burst: test.burst,
+    plateScores: plateScores(test.boxes) } } : rest;
   try {
     await outbox.put(stored);          // 먼저 기기에 저장한 뒤 보낸다
   } catch (e) {
@@ -378,8 +477,12 @@ ${navigator.userAgent}`;
     return showResult("저장하지 못했어요", "휴대폰 저장 공간을 확인하고 한 번 더 찍어 주세요.", "다시 찍기", openCamera);
   }
   activeSubmission = stored.clientSubmissionId;
+  const ts = performance.now();
   const r = await outbox.send(stored, sendOpts());   // 자동 재전송과 겹치면 같은 전송 결과를 함께 받음
   activeSubmission = null;
+  // 시험 기록: 보내기를 누른 뒤 결과까지 걸린 시간. 서버 기록의 처리 시간을 빼면 올리는 데 걸린 시간이 나온다
+  reportClientError("send-timing", new Error(`${Math.round(performance.now() - ts)}ms`), {
+    ms: Math.round(performance.now() - ts), http: r.http ?? null, bytes: stored.blob?.size, photoId: stored.clientSubmissionId });
   $("working-text").textContent = "얼굴과 번호판을 가리고 있어요";
   updatePending();
   handleResponse(r, test);
@@ -543,4 +646,5 @@ setNet();
 renderModels();
 updatePending();
 flushOutbox();
+prefetchPatrol();
 prepare();

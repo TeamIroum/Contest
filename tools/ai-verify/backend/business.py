@@ -173,6 +173,7 @@ def create_router(run_analyze, store) -> APIRouter:
         latitude: float | None = Form(None),
         longitude: float | None = Form(None),
         locationAccuracyMeters: float | None = Form(None),
+        testClient: str | None = Form(None),   # 시험 앱의 처리 시간 등 (실제 업무 API에는 없음). 기록에만 남김
     ):
         # ---- 형식 검사 (저장 전) ----
         if patrol_id != TEST_PATROL_ID:
@@ -225,7 +226,7 @@ def create_router(run_analyze, store) -> APIRouter:
                     data, f"{clientSubmissionId}.jpg", scenario=None,
                     photo_id=f"pwa-{clientSubmissionId}", participant_id="P-PWA", captured_at=capturedAt,
                     tags=stop["locationTags"], device_masked=True, device_report=report, context=None,
-                    label=f"PWA {stop['name']} (masking {maskingVersion})")
+                    label=f"PWA {stop['name']} (masking {maskingVersion})", client=_test_client(testClient))
                 http, body = _to_business(run, st, idx)
                 if http >= 500:  # 접수 실패: 저장하지 않고 앱이 같은 ID로 다시 보내게 함
                     return JSONResponse(body, status_code=http)
@@ -238,6 +239,17 @@ def create_router(run_analyze, store) -> APIRouter:
                 inflight.discard(clientSubmissionId)
 
     return r
+
+
+def _test_client(raw: str | None) -> dict | None:
+    """시험 앱이 보낸 처리 시간 등. 형식이 틀려도 제출은 막지 않는다 (시험 정보일 뿐)."""
+    if not raw or len(raw) > 4000:
+        return None
+    try:
+        v = json.loads(raw)
+    except ValueError:
+        return None
+    return v if isinstance(v, dict) else None
 
 
 def _to_business(run: dict, st: dict, stop_idx: int) -> tuple[int, dict]:

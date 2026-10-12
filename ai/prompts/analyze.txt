@@ -19,7 +19,7 @@
     문제가 분명하지 않으면 issues는 빈 배열, overall_severity는 0으로 보고한다. 문제를 지어내지 않는다.
 
 [사진 상태 판단]
-- framing_ok: 판독 대상 시설이 사진 안에 충분히 들어왔으면 true, 잘리거나 너무 멀어 상태를 볼 수 없으면 false
+- framing_ok: 판독 대상 시설이 사진 안에 충분히 들어왔으면 true, 잘리거나 너무 멀어 상태를 볼 수 없으면 false. 점검 대상 시설이 아예 보이지 않으면 true로 두고 facility_visible만 false로 둔다
 - facility_visible: 목록의 점검 대상 시설이 보이면 true
 - is_night_photo: 밤이나 해 질 무렵 사진이면 true
 
