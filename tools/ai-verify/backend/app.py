@@ -55,6 +55,19 @@ PWA_ORIGINS = ("https://teamiroum.github.io,http://localhost:5173,http://localho
 app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in os.environ.get("PWA_ORIGINS", PWA_ORIGINS).split(",") if o.strip()],
                    allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
+# 바깥(Tailscale Funnel 등 터널)에는 휴대폰 앱이 쓰는 곳만 연다: 시험용 업무 API와 PWA 화면·모델.
+# 검증 콘솔 화면·콘솔 API(가린 사진 복사본, 기록 지우기, AI 서버 대신 부르기)·자동 문서(/docs)는 이 PC에서만 열린다
+PUBLIC_PREFIXES = ("/api/v1/", "/pwa/")
+
+
+@app.middleware("http")
+async def local_only_console(request, call_next):
+    path = request.url.path
+    if not (path.startswith(PUBLIC_PREFIXES) or path == "/pwa") and business.from_outside(request):
+        return Response("검증 콘솔은 이 PC에서만 열 수 있습니다 (http://127.0.0.1:8100)", status_code=403,
+                        media_type="text/plain; charset=utf-8")
+    return await call_next(request)
+
 
 def new_id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex[:12]}"

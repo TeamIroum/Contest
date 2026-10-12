@@ -58,6 +58,22 @@ def retakes_left(quality_failures: int) -> int:
     return max(0, min(MAX_RETAKES, MAX_RETAKES + 1 - quality_failures))
 
 
+LOCAL_HOSTS = {"127.0.0.1", "::1", "localhost"}
+# 터널(Tailscale Funnel·cloudflared)·프록시를 거친 요청에 붙는 헤더. 터널은 이 PC 안에서 넘겨주므로
+# 보낸 쪽 주소가 127.0.0.1로 보여, 주소만으로는 바깥 요청을 가릴 수 없다
+FORWARD_HEADERS = ("tailscale-funnel-request", "x-forwarded-for", "x-forwarded-host", "forwarded", "cf-connecting-ip")
+
+
+def from_outside(request: Request) -> bool:
+    """이 PC에서 직접 연 요청이 아니면 True (터널·프록시를 거쳤거나 주소가 이 PC 이름이 아님)."""
+    h = request.headers
+    if any(k in h for k in FORWARD_HEADERS):
+        return True
+    host = (h.get("host") or "").strip()
+    host = host[1:host.index("]")] if host.startswith("[") else host.rsplit(":", 1)[0]
+    return host not in LOCAL_HOSTS or request.client is None or request.client.host not in LOCAL_HOSTS
+
+
 def _err(status: int, code: str, detail: str, **extra):
     # 명세서 2장 오류 형식은 message. 시험용 PWA가 읽던 detail도 함께 둔다
     return JSONResponse({"code": code, "message": detail, "detail": detail, **extra}, status_code=status)
@@ -147,8 +163,8 @@ def create_router(run_analyze, store) -> APIRouter:
 
     @r.get("/test-client-logs")
     def list_client_logs(request: Request, limit: int = 50):
-        # 기기 정보·파일 경로가 담겨 있으므로 이 PC에서만 본다. 터널(cloudflared)을 거친 요청은 Cf-Connecting-Ip가 붙음
-        if request.headers.get("cf-connecting-ip") or request.client.host not in ("127.0.0.1", "::1", "localhost"):
+        # 기기 정보·파일 경로가 담겨 있으므로 이 PC에서만 본다
+        if from_outside(request):
             raise HTTPException(403, "이 PC에서만 볼 수 있습니다")
         limit = max(1, min(limit, 500))   # 음수 LIMIT은 SQLite에서 제한 없음이 되므로 막음
         rows = store.db.execute("SELECT * FROM client_logs ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
