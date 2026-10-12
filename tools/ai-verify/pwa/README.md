@@ -62,6 +62,20 @@ PC 브라우저에서 http://localhost:8100/pwa/ 를 엽니다. 카메라가 없
 | 얼굴 검출 점검 | `ai/contract/yunet_web/`의 시험 사진 5장을 이 브라우저에서 돌려 서버(OpenCV)와 같은 얼굴을 찾는지 확인 (`verify.mjs`와 같은 기준) |
 | 구도 상태 초기화 | 시험 코스의 재촬영 횟수·채택 상태를 처음으로 되돌림 |
 
+## 파일 구성
+
+화면 코드(`app.js`)와 나머지를 나눠 두었습니다. `app.js`를 뺀 파일은 화면과 상관없어 시니어 앱에서 그대로 가져다 씁니다([적용 요청](../../../docs/시니어앱_촬영기능_적용요청.md)).
+
+| 파일 | 맡는 것 |
+|---|---|
+| `app.js` | 시험용 화면 전환, 확인 화면, 시험 기록 |
+| `camera.js` | 카메라 열기·닫기, 촬영음, 연속 장면 중 가장 선명한 것 고르기, 흐림·어두움 확인, 가리기 호출, 보낼 JPEG 재확인 |
+| `quality.js` | 선명도·밝기 계산 (서버 `ai/quality.py`와 같은 계산) |
+| `masking.js`, `download.js` | 얼굴·번호판·차량 검출과 가리기, 모델 받기. 모델 주소는 `loadModels`의 옵션으로 바꿀 수 있음 (`make_model_manifest.py`로 목록 생성) |
+| `outbox.js` | 대기함(IndexedDB)과 전송·자동 재전송 |
+
+`camera.js`·`masking.js`·`outbox.js`·`quality.js` 옆의 `.d.ts`는 TypeScript 타입 선언입니다. 시험용 PWA는 쓰지 않고, 시니어 앱(React + TypeScript)이 가져갈 때 씁니다. `.js`의 함수나 반환값을 바꾸면 같이 고쳐 주세요.
+
 ## 마스킹 구현
 
 `masking.js`가 안내서 3·4·5장을 구현합니다. 숫자는 서버(`ai/privacy.py`)와 같습니다.
@@ -72,7 +86,7 @@ PC 브라우저에서 http://localhost:8100/pwa/ 를 엽니다. 카메라가 없
 | 번호판 | `yolo-v9-t-384-license-plate-end2end`. open-image-models와 같은 전처리(비율 유지 + 회색 114 여백, RGB, 0~1), 점수 기준 0.6 (서버는 큰 모델로 0.15). 거짓 검출은 0.53점 이하, 한국 차 사진 속 진짜 번호판은 0.72점 이상이었음 (`ai/eval/privacy/device_plate_threshold.py`) |
 | 차량 | MediaPipe EfficientDet-Lite0, 자동차·버스·트럭·오토바이, 점수 0.4. 안에 번호판 중심이 없으면 차량 전체를 뭉갬 |
 | 가림 | 얼굴·차량: 가로 6칸 모자이크 + 가우시안 흐림(커널은 서버와 같은 식). 흐림 미지원 브라우저는 4칸 모자이크. 번호판: `#3C3C3C`로 덮음. 상자 확장 25% / 20% / 5% |
-| 출력 | 긴 변 1,568px, JPEG 품질 0.88 (`toBlob`, EXIF 없음) |
+| 출력 | 긴 변 1,280px, JPEG 품질 0.88 (`toBlob`, EXIF 없음). 1568에서 줄임: 판독 결과는 같고 용량은 약 39% 감소 |
 | 원본 | 촬영 캔버스는 가린 뒤 크기를 0으로 만듦. IndexedDB·캐시·localStorage에 넣지 않음. 실패하면 사진을 버리고 "한 번 더 찍어 주세요" |
 | 버전 | `maskingVersion = pwa-test-2+<모델 해시>`, `detector = yunet+plate-t384+effdet0`. 규칙 버전(`pwa-test-2`)은 입력 크기·가리는 방법을 바꿀 때 올리고, 모델 파일이 바뀌면 뒤의 해시가 저절로 바뀜 |
 
