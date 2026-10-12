@@ -359,8 +359,12 @@ function handleResponse(r, test) {
     }
     return showResult("보내지 못했어요", `담당자에게 알려 주세요. (${b.code || r.http})`, "장소 안내로", showStop);
   }
-  if (b.code === "SLOT_RESOLVED") {
+  if (b.code === "SLOT_RESOLVED") {   // 검토로 넘긴 구도
     return showResult("이미 끝난 곳이에요", "다음 장소로 가 주세요.", "다음 장소로", () => goNext(null));
+  }
+  if (b.duplicate) {                  // 이미 채택된 구도: 200 + duplicate=true (명세서 6장)
+    refreshPatrol();
+    return showResult("이미 끝난 곳이에요", b.message || "다음 장소로 가 주세요.", "다음 장소로", () => goNext(b.nextStopId));
   }
   refreshPatrol();
   switch (b.nextAction) {
