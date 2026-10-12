@@ -97,7 +97,7 @@ def main() -> int:
         work = Path(tmp) / "site"
         git("clone", "--depth", "1", REPO, str(work), cwd=Path(tmp))
         for p in work.iterdir():
-            if p.name != ".git":
+            if p.name not in (".git", "senior"):   # senior/: 시니어 앱 시험판 (deploy_senior_pages.py가 따로 올림)
                 shutil.rmtree(p) if p.is_dir() else p.unlink()
         version = build(work, args.api)
         git("add", "-A", cwd=work)
