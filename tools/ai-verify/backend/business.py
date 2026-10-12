@@ -202,8 +202,10 @@ def create_router(run_analyze, store) -> APIRouter:
         data = file.file.read()
         if len(data) > MAX_BYTES:
             return _err(413, "PHOTO_TOO_LARGE", "사진은 10 MiB 이하여야 합니다")
-        if not data.startswith(b"\xff\xd8"):
-            return _err(415, "UNSUPPORTED_MEDIA_TYPE", "JPEG만 받습니다")
+        # 명세서 6장: JPEG/PNG (앱 PWA는 JPEG를 보낸다). 내용의 앞부분으로 판단하고 파일 이름·MIME은 믿지 않는다
+        ext = "jpg" if data.startswith(b"\xff\xd8") else "png" if data.startswith(b"\x89PNG\r\n\x1a\n") else None
+        if ext is None:
+            return _err(415, "UNSUPPORTED_MEDIA_TYPE", "JPEG 또는 PNG 사진만 받습니다")
 
         req_key = [patrol_id, stop_id, captureSlotId, attemptId, hashlib.sha256(data).hexdigest()]
 
@@ -224,10 +226,20 @@ def create_router(run_analyze, store) -> APIRouter:
             # 같은 구도의 제출은 한 번에 하나씩: 재촬영 횟수·채택 상태를 덮어쓰지 않게 (실제 백엔드의 구도 행 잠금에 해당)
             with _slot_lock(captureSlotId):
                 st = _slot_state(captureSlotId)
-                if st["status"] in ("ACCEPTED", "REVIEW_REQUESTED"):
+                if st["status"] == "ACCEPTED":
+                    # 명세서 6장: 채택 완료면 200 + duplicate=true + 기존 inspectionId. 새 사진은 판독하지 않고 다음으로 안내
+                    nxt, move_on = _next_stop(idx)
+                    body = {"inspectionId": st["inspectionId"], "clientSubmissionId": clientSubmissionId,
+                            "receiptStatus": "RECEIVED", "captureStatus": "ACCEPTED", "duplicate": True,
+                            "nextAction": move_on, "nextStopId": nxt, "retakesRemaining": retakes_left(st["qualityFailures"]),
+                            "message": "이미 받은 곳이에요. 다음 장소로 가 주세요." if nxt else "이미 받은 곳이에요. 센터로 돌아가 주세요."}
+                    _kv_set(key, {"http": 200, "body": body, "request": req_key})   # 같은 ID로 다시 오면 같은 답
+                    return JSONResponse(body)
+                if st["status"] == "REVIEW_REQUESTED":
+                    # 검토로 인계한 구도에는 새 현장 시도를 자동 접수하지 않는다
                     return _err(409, "SLOT_RESOLVED", "이미 끝난 구도입니다", existingInspectionId=st["inspectionId"])
                 run = run_analyze(
-                    data, f"{clientSubmissionId}.jpg", scenario=None,
+                    data, f"{clientSubmissionId}.{ext}", scenario=None,
                     photo_id=f"pwa-{clientSubmissionId}", participant_id="P-PWA", captured_at=capturedAt,
                     tags=stop["locationTags"], device_masked=True, device_report=report, context=None,
                     label=f"PWA {stop['name']} (masking {maskingVersion})", client=_test_client(testClient))
@@ -256,6 +268,12 @@ def _test_client(raw: str | None) -> dict | None:
     return v if isinstance(v, dict) else None
 
 
+def _next_stop(stop_idx: int) -> tuple[str | None, str]:
+    """다음 장소 ID와 다음 행동 (마지막 장소면 센터 복귀)"""
+    nxt = TEST_STOPS[stop_idx + 1]["id"] if stop_idx + 1 < len(TEST_STOPS) else None
+    return nxt, "NEXT_STOP" if nxt else "RETURN_TO_CENTER"
+
+
 def _to_business(run: dict, st: dict, stop_idx: int) -> tuple[int, dict]:
     """AI /analyze 결과를 어르신용 접수·진행 상태로 바꾼다. st(구도 상태)를 고친다."""
     if run["http_status"] != 200:
@@ -264,8 +282,7 @@ def _to_business(run: dict, st: dict, stop_idx: int) -> tuple[int, dict]:
     ai = run["response"] or {}
     status = ai.get("status")
     saved = bool(ai.get("masked_image_url"))
-    nxt = TEST_STOPS[stop_idx + 1]["id"] if stop_idx + 1 < len(TEST_STOPS) else None
-    move_on = "NEXT_STOP" if nxt else "RETURN_TO_CENTER"
+    nxt, move_on = _next_stop(stop_idx)
     inspection_id = f"insp-{run['id']}"
     base = {"inspectionId": inspection_id, "receiptStatus": "RECEIVED" if saved else "NO_MEDIA",
             "duplicate": False, "nextStopId": None, "message": None}
