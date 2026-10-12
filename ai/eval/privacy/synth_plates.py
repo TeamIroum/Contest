@@ -15,13 +15,14 @@ from PIL import Image, ImageDraw, ImageFont
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import privacy  # noqa: E402
 
-FONT_CANDIDATES = glob.glob("/usr/share/fonts/**/NotoSansCJK-Bold.ttc", recursive=True) + \
-    glob.glob("/usr/share/fonts/**/*Gothic*.tt*", recursive=True) + glob.glob("C:/Windows/Fonts/malgunbd.ttf")
+# 결과가 글꼴에 크게 좌우되므로 어느 컴퓨터에서나 같은 글꼴을 쓴다.
+# Noto Sans CJK Bold(OFL)에서 아래 글자만 잘라 낸 파일이다 (fonts/OFL.txt)
+FONT_PATH = str(Path(__file__).resolve().parent / "fonts" / "NotoSansCJK-Bold-plate-subset.otf")
 HANGUL = "가나다라마거너더러머버서어저고노도로모보소오조구누두루무부수우주하허호배"
 
 
 def plate_image(rng: random.Random, kind: str) -> np.ndarray:
-    font_path = FONT_CANDIDATES[0]
+    font_path = FONT_PATH
     if kind == "new":          # 신형 한 줄 번호판 520x110
         W, H = 520, 110
         text = f"{rng.randint(10, 399)}{rng.choice(HANGUL)} {rng.randint(1000, 9999)}"
@@ -64,7 +65,7 @@ def paste(bg: np.ndarray, plate: np.ndarray, rng: random.Random):
         out = cv2.GaussianBlur(out, (3, 3), 0)
     ys, xs = np.where(mask > 0)
     gt = (xs.min(), ys.min(), xs.max(), ys.max())
-    ok, buf = cv2.imencode(".jpg", out, [cv2.IMWRITE_JPEG_QUALITY, rng.randint(70, 92)])
+    _, buf = cv2.imencode(".jpg", out, [cv2.IMWRITE_JPEG_QUALITY, rng.randint(70, 92)])
     return cv2.imdecode(buf, cv2.IMREAD_COLOR), gt
 
 
@@ -79,8 +80,12 @@ def covered(gt, boxes, W, H) -> float:
 
 def main():
     folder = sys.argv[1] if len(sys.argv) > 1 else str(Path(__file__).resolve().parents[1] / "sample")
-    bgs = [cv2.imread(p) for p in sorted(glob.glob(folder + "/*.jpg")) + sorted(glob.glob(folder + "/*.png"))]
+    # cv2.imread는 Windows에서 한글 경로를 읽지 못하므로 바이트로 읽어 디코딩한다
+    paths = sorted(glob.glob(folder + "/*.jpg")) + sorted(glob.glob(folder + "/*.png"))
+    bgs = [cv2.imdecode(np.fromfile(p, np.uint8), cv2.IMREAD_COLOR) for p in paths]
     bgs = [b for b in bgs if b is not None and min(b.shape[:2]) > 200]
+    if not bgs:
+        sys.exit(f"배경 사진(짧은 변 200px 초과 jpg·png)이 없습니다: {folder}")
     rng = random.Random(7)
     hit = total = 0
     fp_imgs = 0

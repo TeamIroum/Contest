@@ -101,3 +101,43 @@ def test_results_endpoint():
     r = c.get("/results/p_res")
     assert r.status_code == 200 and r.json()["grade"] == "정상"
     assert c.get("/results/p_none").status_code == 404
+
+
+
+def test_health_answers_while_analyze_waits_for_ai(monkeypatch):
+    """판독이 AI 응답을 기다리는 동안에도 /health 같은 다른 요청은 바로 응답해야 한다 (이벤트 루프를 막지 않음).
+    TestClient는 요청마다 이벤트 루프를 따로 만들어 이 문제를 재현하지 못하므로 실제 uvicorn 서버로 확인한다."""
+    import socket
+    import threading
+    import time
+    import httpx
+    import uvicorn
+    import server
+    started, release = threading.Event(), threading.Event()
+
+    def slow_analyze(*a, **k):
+        started.set()
+        release.wait(10)
+        return {"photo_id": "slow"}
+
+    monkeypatch.setattr(server.pipeline, "analyze_photo", slow_analyze)
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+    srv = uvicorn.Server(uvicorn.Config(server.app, host="127.0.0.1", port=port, log_level="warning", lifespan="off"))
+    threading.Thread(target=srv.run, daemon=True).start()
+    base = f"http://127.0.0.1:{port}"
+    for _ in range(100):
+        if srv.started:
+            break
+        time.sleep(0.05)
+    img = (Path(__file__).resolve().parent.parent / "eval" / "sample" / "s01.jpg").read_bytes()
+    t = threading.Thread(target=lambda: httpx.post(base + "/analyze", files={"image": ("a.jpg", img, "image/jpeg")}, timeout=15))
+    t.start()
+    try:
+        assert started.wait(5)
+        assert httpx.get(base + "/health", timeout=2).status_code == 200
+    finally:
+        release.set()
+        t.join(10)
+        srv.should_exit = True

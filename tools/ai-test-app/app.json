@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "점검 사진 시험",
+    "slug": "ai-test-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "kr.iroum.inspection.aitest"
+    },
+    "android": {
+      "package": "kr.iroum.inspection.aitest",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "생활 시설 점검 사진을 앱 안에서 찍기 위해 카메라를 사용합니다. 사진은 얼굴과 번호판을 가린 뒤에만 보냅니다.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "시험용으로 저장된 사진을 골라 가림 처리를 확인합니다."
+        }
+      ]
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "11399159-a9aa-4b7c-a4ad-7fb76749a94a"
+      }
+    },
+    "owner": "hwangsangjin"
+  }
+}

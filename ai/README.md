@@ -1,20 +1,20 @@
 # 시니어 동네 점검단 · AI 판독 모듈 (초안)
 
-기획안 3장 "AI 활용 계획" 표를 실제로 작동하는 코드로 옮긴 초안입니다. 지금 상태로도 mock 모드로 끝까지 돌아가고, API 키를 넣으면 Claude로 실제 판독을 합니다.
+기획안 3장 "AI 활용 계획" 표를 실제로 작동하는 코드로 옮긴 초안입니다. 지금 상태로도 mock 모드로 끝까지 돌아가고, 실제 판독은 자체 서버의 공개 모델(Ollama)로 합니다. 사진을 외부 AI API로 보내지 않습니다.
 
 ## 바로 실행해 보기
 
 ```bash
 pip install -r requirements.txt
 
-python -m pytest -q                                           # 테스트 94개 (규칙, 마스킹, 저장 원칙, 서버 처리, 활동 기록, 백엔드 연동)
+python -m pytest -q                                           # 테스트 135개 (규칙, 마스킹, 저장 원칙, 서버 처리, 활동 기록, 백엔드 연동, 점검 수정 확인)
 AI_PROVIDER=mock uvicorn server:app --reload --port 8000      # 백엔드 연동 시험용 서버 (http://localhost:8000/docs)
 python eval/run_eval.py analyze --labels eval/labels_sample.csv --provider mock   # 평가 스크립트 실행 확인
 
 # 실제 사진 평가 (빠른 순서)
 python eval/make_labels.py eval/photos                         # 사진 폴더 → 라벨 표 자동 생성 (문제 유형·위험도만 채움)
-python eval/run_eval.py analyze --labels eval/photos/labels.csv --provider claude
-python eval/run_eval.py verify  --labels eval/photos/pairs.csv  --provider claude
+python eval/run_eval.py analyze --labels eval/photos/labels.csv --provider ollama
+python eval/run_eval.py verify  --labels eval/photos/pairs.csv  --provider ollama
 python eval/privacy/contact_sheet.py eval/photos/마스킹         # 가린 사진 확인 화면 + 기록표
 python eval/privacy/contact_sheet.py --score eval/mask_check/mask_review.csv
 python eval/quick_report.py --analyze eval/results/<..._analyze> --verify eval/results/<..._verify> --mask eval/mask_check/mask_review.csv
@@ -23,33 +23,31 @@ python eval/quick_report.py --analyze eval/results/<..._analyze> --verify eval/r
 python eval/privacy/synth_plates.py                            # 합성 번호판 회귀 점검
 python eval/privacy/run_mask_eval.py eval/privacy/labels.jsonl # 실제 라벨 사진 평가 (시범 전 필수)
 
-# 무료로 실제 판독 (결제 없음)
-export GEMINI_API_KEY=...                                     # Google AI Studio에서 발급
-python eval/run_eval.py analyze --labels eval/photos/labels.csv --provider gemini
-python eval/run_eval.py analyze --labels eval/photos/labels.csv --provider gemini --sample 20   # 기준 문장 다듬을 때
-# 또는 내 컴퓨터에서: ollama pull qwen2.5vl:7b 후 --provider ollama
-
-# 실제 판독 (유료)
-export ANTHROPIC_API_KEY=...
-python eval/run_eval.py analyze --labels eval/labels.csv --provider claude
+# 공개 모델 비교 (Ollama에 모델을 받아 두고 OLLAMA_MODEL만 바꿔 같은 사진으로 실행)
+ollama pull qwen3-vl:8b-instruct
+python eval/run_eval.py analyze --labels eval/photos/labels.csv --provider ollama --sample 20   # 기준 문장 다듬을 때
+OLLAMA_MODEL=qwen3-vl:8b python eval/run_eval.py analyze --labels eval/photos/labels.csv --provider ollama
 ```
 
-### Windows에서 실제 판독 서버 실행 (Gemini)
+### Windows에서 실제 판독 서버 실행 (Ollama)
+
+모델별 설정(mock·Ollama)과 검증 콘솔 실행, 자주 나는 문제는 [AI 실행 가이드](../docs/AI_실행_가이드.md)에 정리되어 있습니다.
 
 1. 프로젝트를 **한글이 없는 경로**에 둡니다 (예: `C:\contest\ai`). 경로에 한글이 있으면 OpenCV가 얼굴 검출 모델을 읽지 못해 서버가 시작되지 않습니다.
-2. `.env.example`을 복사해 `.env`를 만들고 값을 채웁니다. `.env`는 `.gitignore`에 들어 있어 GitHub에 올라가지 않습니다. API 키는 코드나 채팅에 붙이지 말고 `.env`에만 둡니다.
+2. `.env.example`을 복사해 `.env`를 만들고 값을 채웁니다. `.env`는 `.gitignore`에 들어 있어 GitHub에 올라가지 않습니다. `API_KEYS` 같은 비밀값은 코드나 채팅에 붙이지 말고 `.env`에만 둡니다.
    ```
-   AI_PROVIDER=gemini
-   GEMINI_API_KEY=여기에_키
-   GEMINI_MODEL=gemini-3.5-flash
+   AI_PROVIDER=ollama
+   OLLAMA_MODEL=qwen3-vl:8b-instruct
+   AI_TIMEOUT_S=12
    ```
-3. 한 번만 `pip install python-dotenv`를 설치하고, 이후에는 이 명령으로 실행합니다.
+   Ollama 설치와 모델 받기는 [AI 실행 가이드](../docs/AI_실행_가이드.md) 4.2절을 따릅니다.
+3. 이 명령으로 실행합니다 (`.env`를 읽는 `python-dotenv`는 `requirements.txt`에 들어 있습니다).
    ```powershell
    python -m uvicorn server:app --port 8000 --env-file .env
    ```
 4. 다른 팀원이 같은 와이파이에서 접속하게 하려면 `--host 0.0.0.0`을 붙이고, 이때는 `.env`에 `API_KEYS=팀용_비밀값`을 넣어 인증을 켭니다.
 
-판독이 실패하면 서버 로그에 `AI 판독 실패 photo_id=...: GeminiError: Gemini API <상태 코드> ...` 줄이 찍힙니다. 400·403은 API 키, 404는 모델 이름(종료되었거나 무료 등급에서 쓸 수 없음), 429는 무료 등급 호출 한도 문제입니다.
+판독이 실패하면 서버 로그에 `AI 판독 실패 photo_id=...: <오류 종류> ...` 줄이 찍힙니다. `ConnectError`는 Ollama가 꺼져 있음, `ReadTimeout`은 모델이 아직 GPU에 올라가지 않았거나 12초 안에 답하지 못함, 404는 `OLLAMA_MODEL` 이름이 받아 둔 모델과 다름을 뜻합니다.
 
 마스킹과 AI 서버 처리의 자세한 설계는 **`MASKING_AND_SERVER.md`**에 있습니다. 배포는 `Dockerfile`, 설정 값은 `.env.example`을 봅니다.
 
@@ -59,7 +57,7 @@ python eval/run_eval.py analyze --labels eval/labels.csv --provider claude
 
 | 기획안 문구 | 구현 | 코드 |
 |---|---|---|
-| 1. 촬영 단계 자동 마스킹 | 앱이 가린 사진만 받고, 서버는 저장 전에 가림 상태를 확인해 남은 부분을 가린 수를 기록(`server_added`, 0이 정상). 담당자 표본 점검 목록과 보류 처리 | `pipeline.ingest`, `privacy.py`, `activity.masking_audit_sample`, `contract/APP_MASKING_GUIDE.md` |
+| 1. 촬영 단계 자동 마스킹 | 앱이 가린 사진만 받고, 서버는 저장 전에 가림 상태를 확인해 남은 부분을 가린 수를 기록(`server_added`, 0이 정상. 앱이 가린 위치를 보내면 그 위치에서 다시 찾은 것은 `server_redetected`로 따로 셈). 담당자 표본 점검 목록과 보류 처리 | `pipeline.ingest`, `privacy.py`, `activity.masking_audit_sample`, `contract/APP_MASKING_GUIDE.md` |
 | 2. 시설·이상 자동 판독 | 5종 시설·이상·위험도 판독, 규칙으로 담당 부서 지정, 확신 낮으면 담당자 확인 | `prompts/analyze.txt`, `rules.py`, `taxonomy.json` |
 | 3. 전후 사진 AI 비교 | 같은 장소 확인 → 수리 확인·변화 비교, 미수리 재요청, 악화 시 등급 상향 | `pipeline.verify_photo`, `prompts/verify.txt` |
 | 4. 활동 기록과 주간 보고 | 참여자별 활동 실적(첫·마지막 촬영 시각, 이동 경로 없음), 시설별 이력, 주간 보고와 우선 처리 목록 | `activity.py`, `report.py` |
@@ -85,8 +83,8 @@ python eval/run_eval.py analyze --labels eval/labels.csv --provider claude
 |---|---|---|---|
 | 번호판 검출 (마스킹) | **처음에는 불필요** | 여러 나라 번호판으로 이미 학습된 공개 모델(open-image-models, MIT)을 바로 씀. 번호판을 못 찾은 차량은 사전 학습 차량 검출기로 통째로 가림. 실제 한국 사진 평가에서 기준(98%)에 못 미치면, 이 모델에서 출발해 한국 사진 100~300장으로 **추가 학습** | 시범 전 실제 사진 평가는 필수, 추가 학습은 평가 결과에 따라 |
 | 얼굴 검출 (마스킹) | 불필요 | 이미 학습된 공개 모델 YuNet (서버와 시니어 PWA가 같은 파일 사용) | — |
-| 시설·이상 판독, 전후 비교 | 불필요 (처음에는) | 이미 학습된 멀티모달 AI를 그대로 쓰고, 기준표·프롬프트·예시 사진으로 맞춤. 담당자가 고친 판정을 모아 평가하고 기준표를 고치는 순환 | 시범 기간 내내 |
-| 자체 판독 모델 | 선택 | 시범으로 라벨이 수천 장 쌓이면, 국내 운영이나 비용 절감을 위해 자체 모델 미세조정을 검토 | 3단계 고도화 |
+| 시설·이상 판독, 전후 비교 | 불필요 (처음에는) | 이미 학습된 공개 멀티모달 AI를 자체 서버에 올려 그대로 쓰고, 기준표·프롬프트·예시 사진으로 맞춤. 담당자가 고친 판정을 모아 평가하고 기준표를 고치는 순환 | 시범 기간 내내 |
+| 자체 판독 모델 | 선택 | 시범으로 라벨이 수천 장 쌓이면, 양주시 시설에 맞춘 정확도와 더 작고 싼 모델로 비용 절감을 위해 미세조정을 검토 | 3단계 고도화 |
 
 기획안의 "고친 판정이 학습·검증 자료로 쌓인다"는 처음에는 재학습이 아니라 평가와 기준표 개선을 뜻하고, 데이터가 충분히 쌓인 뒤에 실제 학습으로 이어집니다.
 
@@ -116,9 +114,7 @@ ai/
 ├─ prompts.py             taxonomy로 프롬프트와 출력 스키마 조립 (모델 공통)
 ├─ providers/             ← 모델 교체 지점
 │   ├─ base.py            공통 인터페이스: analyze(), verify(), generate_text()
-│   ├─ gemini_provider.py Gemini API (무료 등급 가능)
-│   ├─ ollama_provider.py 내 컴퓨터의 공개 비전 모델 (무료, 사진이 밖으로 안 나감)
-│   ├─ claude_provider.py Claude API (유료)
+│   ├─ ollama_provider.py 자체 서버의 공개 비전 모델 (운영, 사진이 밖으로 안 나감)
 │   └─ mock_provider.py   API 없이 개발·테스트용
 ├─ images.py              업로드 검증, 회전 보정, 메타데이터 제거, 축소
 ├─ quality.py             흐림·어두움 확인 (OpenCV, AI 호출 전)
@@ -146,7 +142,7 @@ AI가 하는 일과 코드가 하는 일은 기획안대로 나눴습니다.
 |---|---|---|
 | 사진 품질 확인 | 코드(흐림·어두움) + AI(틀 밖·시설 안 보임) | `quality.py`, `pipeline.py` |
 | 시설·문제 인식 | AI | `prompts/analyze.txt` |
-| 위험도 판정 | AI(정도 0~3) + 코드(위치 가중치·최소 등급) | `rules.py`, `rules.json` |
+| 위험도 판정 | AI(정도 0~3) + 코드(위치 가중치·최소 등급). 업무 시스템은 등급을 쓰지 않고 원문 결과에만 보관(`docs/AI_기능_설계.md`, 2026-10-11 결정) | `rules.py`, `rules.json` |
 | 위치·중복 확인 | 코드 | `ledger.py` |
 | 담당자 배정 | 코드 | `taxonomy.json`의 `dept` |
 | 변화 비교 | AI(change 모드) + 코드(재등급) | `pipeline.verify_photo` |
@@ -177,7 +173,7 @@ AI가 하는 일과 코드가 하는 일은 기획안대로 나눴습니다.
 7. **문제 정리**: 시설과 맞지 않는 문제 유형 제외 (예: 빗물받이에 '들뜸')
 8. **대장 매칭**: GPS 반경 20m 안 같은 종류 시설 중 가장 가까운 것, 5m 안에 다른 후보가 있으면 '애매'
 9. **등급 계산**: 정도 → 기본 등급, 정도 2 이상이면 위치 가중치 +1, 악화면 +1, 문제 유형별 최소 등급
-10. **확신 낮음**: 담당자 확인으로. 단, 잠정 긴급이면 어르신에게는 접근 금지 안내를 먼저 띄움
+10. **확신 낮음**: 담당자 확인으로. 잠정 긴급이면 `danger_keep_away` 문구를 내지만, 업무 백엔드는 어르신에게 보여 주지 않음(2026-10-11 팀 결정)
 11. **중복 확인**: 같은 시설·같은 문제가 미처리로 남아 있으면 기존 건에 묶음
 12. **결과 저장**: `GET /results/{photo_id}`로 최신 결과 조회
 
@@ -232,20 +228,18 @@ AI가 하는 일과 코드가 하는 일은 기획안대로 나눴습니다.
 
 1. **기획안 점검 대상 문구**: 점검 대상을 사진으로 확인할 수 있는 5종(보도블록, 빗물받이, 벤치, 안전펜스, 운동기구)으로 바꿨습니다. 기획안의 보안등·놀이터·맨홀·도로표지판 언급과 시설-담당 분야 그림을 이 5종에 맞춰 고쳐야 합니다.
 2. **위치 가중치 강도**: 지금은 정도 2 이상일 때만 +1입니다. 정도 1도 통학로면 올릴지 정합니다.
-3. **잠정 긴급 처리**: 확신이 낮은 잠정 긴급을 담당자에게 즉시 알릴지, 확인 대기로만 둘지 정합니다. 지금은 즉시 확인 요청(`human_review_urgent`)입니다.
+3. **잠정 긴급 처리**: 결정됨(2026-10-11). 업무 시스템은 AI 위험도 등급과 등급에서 나오는 action(`alert_now`, `human_review_urgent` 등)을 화면·판정·알림·우선순위에 쓰지 않습니다. 검토 분류는 `status`와 `issues`로 정합니다. AI 계약은 바꾸지 않으므로 AI는 지금처럼 등급을 계산해 원문 결과에 남깁니다(`/verify`의 `prior_json.severity` 입력용). `danger_keep_away` 안내도 어르신에게 보여 주지 않습니다.
 4. **기획안 문구 조정**: "고친 판정이 학습 자료로 쌓인다"는 LLM 방식에서는 재학습이 아니라 기준표·예시 사례 개선을 뜻합니다. 발표에서 정확히 설명할 수 있게 문구를 다듬습니다.
 5. **가린 사진 보존 기간**: 지금은 지우지 않고 계속 쌓입니다. 정상 판정 사진은 몇 개월, 처리된 건의 사진은 시설 이력용으로 몇 년처럼 기간을 정하고 자동 삭제를 붙여야 합니다.
 6. **업로드 실패 시**: 가린 사진을 기기에 보관했다가 다시 보내는 방식은 업무 백엔드의 오프라인 계약을 따릅니다. 원본은 기기에도 남기지 않습니다. 기기 보관 사진의 암호화와 보관 기한은 백엔드 담당과 정합니다.
-7. **실제 운영 시 모델**: 공공기관 사진의 해외 API 전송은 보안 규정 검토가 필요하다는 점, 판독 모듈만 교체하면 되는 구조라는 점을 실현 가능성 부분에 넣습니다.
+7. **실제 운영 시 모델**: 결정됨(2026-10-11). 처음부터 공개 모델을 자체 서버에 올려 운영합니다(사진이 외부 API로 나가지 않음). 어떤 공개 모델을 쓸지는 같은 라벨 사진으로 평가해 정합니다(현재 시험 모델 `qwen3-vl:8b-instruct`). Gemini·Claude provider는 없앴습니다(코드는 `archive/ai-external-providers/`). GPU 서버는 활동 시간에만 켭니다(`docs/AI_실행_가이드.md` 4.6절).
 
 ## 알려진 한계 (초안)
 
 - 변경 알림(`GET /events`)과 재판독 대기열은 서버 작업자 1개 기준입니다. 작업자를 늘리려면 둘 다 DB나 Redis로 옮겨야 합니다.
 - `/images`는 API 키로 막혀 있어 웹 화면 `<img>`로 바로 띄울 수 없습니다. 운영 단계에서 서명 주소 방식으로 바꿔야 합니다.
-- 번호판은 사전 학습 모델 + 규칙 기반 + 차량 안전망으로 가립니다. 합성 점검 60%는 참고치일 뿐이고, 실제 한국 사진 평가를 통과하기 전에는 시범 운영을 하면 안 됩니다.
+- 번호판은 사전 학습 모델 + 규칙 기반 + 차량 안전망으로 가립니다. 합성 점검 65%는 참고치일 뿐이고, 실제 한국 사진 평가를 통과하기 전에는 시범 운영을 하면 안 됩니다.
 - `quality.py`의 흐림·어두움 기준값은 임시값입니다. 테스트셋의 재촬영 판정 결과를 보고 조정합니다.
 - `data/sample_ledger.csv`는 가짜 좌표입니다. 실제 시설 대장을 받을 수 없으면 공공데이터포털에서 양주시 도시공원·어린이보호구역 같은 공개 데이터가 있는지 찾아보고, 시범 구역은 팀이 직접 좌표를 찍어 만들어도 됩니다.
 - AI가 내는 `certainty`는 모델의 자기 평가라 완벽하지 않습니다. 담당자 확인 비율과 실제 오답 비율을 비교해 신뢰할 만한지 확인합니다.
-- Gemini 기본 모델은 `gemini-3.5-flash`입니다. `gemini-2.5-flash`는 2026년 10월 종료되어 404를 돌려주므로 쓰지 않습니다. 모델이 다시 종료되면 `GEMINI_MODEL` 환경 변수만 바꿉니다.
 - 규칙 기반 번호판 검출(`heuristic`)이 보도블록 줄눈·점자블록 무늬, 간판 글자 등을 번호판으로 잡는 경우가 있습니다. 거리 사진 테스트에서 사진의 25%가 가려진 사례가 있어, 판독에 필요한 부분이 가려지지 않는지 확인하고 기준 점수를 조정해야 합니다.
-- `CLAUDE_MODEL` 기본값은 `claude-sonnet-5-5`입니다. 정확도·비용 비교 후 환경 변수로 바꿉니다.

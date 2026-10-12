@@ -2,12 +2,14 @@
 
 작성일: 2026-10-10. PostgreSQL 선택은 확정이며, 아래 구조는 최신 운영안과 API를 반영한 설계 제안이다. 테이블 관계와 주요 컬럼·제약조건을 정의했다. 완성된 실행용 마이그레이션이나 운영기관 승인 문서는 아니다.
 
-AI 계약 대조 수정: [AI_연동_계약.md](AI_연동_계약.md)에 따라 저장 전 메모리 검사, 사진 없는 실패 시도, 결과 스냅샷, 현재 보수 확인 회차를 추가했다. 업무 API는 [API_명세서.md](API_명세서.md)를 따른다.
+2026-10-11 AI 계약 v2.0 반영: AI 관련 기준은 [AI_기능_설계.md](AI_기능_설계.md)가 최우선이고, AI 호출 형식은 [AI 판독 API 계약서 v2.0](../ai/contract/API_CONTRACT.md)를 따른다. 개인정보 단독 검사, 사진 버전·보류 전파, 보고 문장을 연동 가능 항목으로 고쳤다.
+
+AI 계약 대조 수정: [AI_연동_계약.md](AI_연동_계약.md)(v2.0 이전)에 따라 저장 전 메모리 검사, 사진 없는 실패 시도, 결과 스냅샷, 현재 보수 확인 회차를 추가했다. 업무 API는 [API_명세서.md](API_명세서.md)를 따른다.
 
 ## 1. 핵심 구분
 
 - 로그인 계정과 개인 출결은 별개다.
-- 평소 조 구성과 오늘 실제 참여한 두 사람은 별개다.
+- 평소 조 구성과 오늘 실제 참여한 조원은 별개다.
 - 시설, 코스의 장소, 오늘 방문 장소, 촬영 구도, 촬영 시도는 각각 다른 ID다.
 - 활동 완료와 업로드·AI 분석·관리자 검토·시설 문제 종결은 별개다.
 - 보수 완료 보고 후 재점검과 사람의 확인을 거쳐 사건을 닫는다.
@@ -73,11 +75,11 @@ erDiagram
 |---|---|---|
 | `programs` | name, status, timezone | 사업 단위. 초기에는 1행 |
 | `organizations` | program_id, parent_id, type, name, status | 수행기관/담당부서/집결거점. 부모는 같은 사업. 조직 순환은 서버 검증 |
-| `users` | name, phone_ciphertext, phone_lookup_hmac, login_id, password_hash, status, auth_version | 전화 HMAC과 login_id 각각 UNIQUE. 불필요한 로그인 수단은 NULL |
+| `users` | name, phone_ciphertext, phone_lookup_hmac, login_id, password_hash, status, auth_version, must_change_password, failed_login_count, locked_until, password_changed_at | 전화 HMAC과 login_id 각각 UNIQUE. 불필요한 로그인 수단은 NULL. 임시 비밀번호 발급·초기화 시 must_change_password=true |
 | `user_role_scopes` | user_id, organization_id, role, include_descendants, revoked_at | 같은 사용자·조직·역할의 유효 권한은 하나. 시니어 조회는 실제 순회 배정도 검사 |
 | `participants` | user_id, organization_id, status, available_schedule_json | UNIQUE(program_id,user_id). 계정과 사업 참여 상태 분리 |
 | `teams` | organization_id, name, status | 평소 조의 식별자 |
-| `team_memberships` | team_id, participant_id, seat_no, valid_from, valid_until | 자리 1/2. 기간별 구성 이력. 유효기간 중 자리·참여자 중복 금지 |
+| `team_memberships` | team_id, participant_id, seat_no, valid_from, valid_until | 자리 1~3(기본 2명, 인원이 홀수면 3인 조). 기간별 구성 이력. 유효기간 중 자리·참여자 중복 금지 |
 
 역할: SENIOR / ACTIVITY_MANAGER / FACILITY_MANAGER / PROGRAM_MANAGER. 관리자 한 명에게 여러 역할을 부여할 수 있다. 사진 촬영자를 고정하는 컬럼은 만들지 않는다.
 
@@ -101,23 +103,23 @@ erDiagram
 
 | 테이블 | 주요 컬럼 | 관계와 제약 |
 |---|---|---|
-| `patrols` | team_id, route_version_id, organization_id, activity_date, scheduled_start_at, expected_return_at, route_name_snapshot, activity_status, return_reason, departed_at, departure_confirmed_by, finished_at, sync_deadline_at, revision | 조 단위의 오늘 활동. 예정 종료 > 시작. 같은 날 여러 회차 가능 |
-| `patrol_members` | patrol_id, participant_id, seat_no, attendance, attendance_checked_by/at, returned_at, return_confirmed_by | UNIQUE(patrol_id,participant_id), UNIQUE(patrol_id,seat_no). 개인별 출석·복귀 |
+| `patrols` | team_id, route_version_id, organization_id, activity_date, scheduled_start_at, expected_return_at, route_name_snapshot, activity_status, return_reason, departure_confirmed_by/at, departed_at(어르신 활동 시작 시각), started_by, finished_at, sync_deadline_at, revision | 조 단위의 오늘 활동. 예정 종료 > 시작. 같은 날 여러 회차 가능 |
+| `patrol_members` | patrol_id, participant_id, seat_no, attendance_requested_at, attendance, attendance_checked_by/at, returned_at, return_confirmed_by | UNIQUE(patrol_id,participant_id), UNIQUE(patrol_id,seat_no), seat_no 1~3. 어르신 출석 요청과 담당자 확정을 구분. 개인별 출석·복귀 |
 | `patrol_stops` | patrol_id, source_route_stop_id, facility_id, sequence_no, name/type/location/instruction/department_snapshot, visit_status | 배정 당시 장소 복사. UNIQUE(patrol_id,sequence_no) |
 | `capture_slots` | patrol_stop_id, source_template_id, sequence_no, label, instruction, reference_media_id, required, purpose, accepted_inspection_id, active_inspection_id, quality_failure_count, resolution | 오늘 필요한 한 구도. UNIQUE(patrol_stop_id,sequence_no). purpose=REGULAR/REINSPECTION. resolution=OPEN/ACCEPTED/REVIEW_REQUESTED/SKIPPED |
-| `patrol_events` | patrol_id, patrol_stop_id, actor_user_id, client_event_id, request_hash, type, reason_code, occurred_at, received_at, payload_json | 쉬기/건너뛰기/복귀 요청/연락/예외 이력. UNIQUE(actor_user_id,client_event_id). 같은 ID의 다른 내용은 409 |
+| `patrol_events` | patrol_id, patrol_stop_id, actor_user_id, client_event_id, request_hash, type, reason_code, occurred_at, received_at, payload_json | 출석 요청/활동 시작/쉬기/건너뛰기/복귀 요청/연락/예외 이력. UNIQUE(actor_user_id,client_event_id). 같은 ID의 다른 내용은 409 |
 
-**출발 시 두 명 보장:** CHECK만으로 자식 행 2개를 보장할 수 없다. 출발 트랜잭션에서 순회와 참여자 행을 잠그고 실제 출석 2명·유효 자격·다른 순회와 시간 중복 없음을 검사한다. 배정·일정 수정 API도 동일한 잠금 규칙을 사용한다.
+**출발 시 두 명 이상 보장:** CHECK만으로 자식 행 수를 보장할 수 없다. 출발 확인 트랜잭션에서 순회와 참여자 행을 잠그고 출석 확정 2명 이상·유효 자격·다른 순회와 시간 중복 없음을 검사한다. 3인 조는 1명이 결석해도 2명이면 출발할 수 있다. 어르신의 활동 시작은 DEPARTURE_CONFIRMED에서만 받는다. 배정·일정 수정 API도 동일한 잠금 규칙을 사용한다.
 
-출발 전 결원 교체는 patrol_members를 변경하고 audit에 이전 구성을 기록한다. 출발 후에는 일반 구성·코스 수정을 금지한다. 평소 조를 수정해도 과거 순회의 두 사람은 바뀌지 않는다.
+출발 전 결원 교체는 patrol_members를 변경하고 audit에 이전 구성을 기록한다. 출발 후에는 일반 구성·코스 수정을 금지한다. 평소 조를 수정해도 과거 순회의 조원은 바뀌지 않는다.
 
 상태:
 
-- 활동: ASSIGNED → IN_PROGRESS → RETURNING → COMPLETED. 중도 종료는 RETURNING 이후 ABORTED. 출발 전 취소는 CANCELLED.
+- 활동: ASSIGNED → DEPARTURE_CONFIRMED → IN_PROGRESS → RETURNING → COMPLETED. 중도 종료는 RETURNING 이후 ABORTED. 활동 시작 전 취소는 CANCELLED.
 - 장소: PENDING / CAPTURED / SKIPPED / REVIEW_REQUESTED / NOT_VISITED.
-- 건너뛰기 이유: UNSAFE / NOT_FOUND / OTHER. 자유 입력은 요구하지 않는다.
+- 건너뛰기 이유: UNSAFE / NOT_FOUND / FACILITY_MISSING / OTHER. 자유 입력은 요구하지 않는다. FACILITY_MISSING은 시설 담당자 알림으로 넘겨 시설 대장을 확인한다.
 
-두 사람 복귀를 각각 확인해야 활동이 완료된다. 사진 전송·분석 대기는 복귀 확인을 막지 않는다. 늦게 도착한 사진 때문에 완료된 활동을 진행 중으로 되돌리지 않는다. 건너뛰기와 미방문 사실은 이벤트 이력으로 보존한다.
+출석한 조원 모두의 복귀를 각각 확인해야 활동이 완료된다. 사진 전송·분석 대기는 복귀 확인을 막지 않는다. 늦게 도착한 사진 때문에 완료된 활동을 진행 중으로 되돌리지 않는다. 건너뛰기와 미방문 사실은 이벤트 이력으로 보존한다.
 
 ## 7. 사진·분석 — 4개
 
@@ -126,19 +128,19 @@ erDiagram
 | `media` | uploaded_by, bucket, object_key, purpose, privacy_status, source_media_id, content_type, size_bytes, sha256, provider_photo_id, provider_image_revision, privacy_report_json, deleted_at | UNIQUE(bucket,object_key). 재마스킹은 새 객체·새 행. AI 사진 식별자/버전은 선택. 임시 URL 저장 금지 |
 | `inspections` | capture_slot_id, submitted_by, client_submission_id, request_hash, submission_sha256, attempt_id, attempt_no, media_id, approved_media_id, captured_at, submitted_at, received_at, receipt_status, ingestion_lease_token/until, masking_version, device_masked, device_mask_report_json, capture_status, latitude/longitude/accuracy | UNIQUE(submitted_by,client_submission_id), UNIQUE(submitted_by,attempt_id), UNIQUE(capture_slot_id,attempt_no). 예약·사진 없는 실패는 media_id/approved_media_id/received_at=NULL. 운영 device_masked=true 필수 |
 | `analysis_jobs` | inspection_id, verification_id, media_id, type, status, retry_owner, provider_photo_id, input_hash, attempt_count, next_run_at, locked_until, lease_token, model_version, input_version, error_code, started_at, finished_at | ANALYZE/QUALITY/DEFECT는 inspection, COMPARISON은 verification, PRIVACY는 media. 대상은 정확히 하나. 대상별 부분 UNIQUE로 대상/type/input_version 중복 금지. provider_photo_id는 외부 호출 ID |
-| `analysis_results` | analysis_job_id, snapshot_no, provider_result_version, result_hash, result_json, model_version, prompt_version, contract_version, observed_at, image_media_id | 추가 방식. UNIQUE(analysis_job_id,snapshot_no). 현재와 같은 결과 해시는 재추가하지 않음. 사람 판단이 참조한 스냅샷 고정. JSON에서 사진 URL·비밀 값 제거 |
+| `analysis_results` | analysis_job_id, snapshot_no, provider_result_version, result_hash, result_json, model_version, prompt_version, contract_version, observed_at, image_media_id | 추가 방식. UNIQUE(analysis_job_id,snapshot_no). 현재와 같은 결과 해시는 재추가하지 않음. 사람 판단이 참조한 스냅샷 고정. JSON에서 사진 URL·비밀 값 제거. AI의 grade·grade_reasons·severity는 원문 그대로 두되 관리자 조회·분류·우선순위에 쓰지 않음(/verify의 prior_json.severity 입력에만 사용) |
 
 media 목적: INSPECTION / REFERENCE / REPAIR_EVIDENCE. 개인정보 상태: QUARANTINED / APPROVED / REJECTED. 서버 최초 검사 전 사진은 메모리에서만 처리하고 S3·디스크에 저장하지 않는다. QUARANTINED는 이미 검사된 저장본의 추가 검토/재검사 보류용이다. 승인 사진만 조회·시설 판독에 사용한다. approved_media_id가 원래 검사된 media 또는 source_media_id 계보의 파생본인지 같은 사업·출처까지 검증한다.
 
-참고 사진·보수 증거는 사진 판독 실적을 만들지 않는 개인정보 단독 검사 경로가 필요하다. 현재 AI에 그 API가 없으므로 일반 업로드는 연동 전 비활성화한다. 최초 저장 전 검사는 동기 경로이고, analysis_jobs.PRIVACY는 저장된 모든 종류의 media 재검사용이다. 존재하지 않는 업로드 바이트를 DB 작업만으로 복구한다고 가정하지 않는다.
+참고 사진·보수 증거는 사진 판독 실적을 만들지 않는 개인정보 단독 검사 경로를 쓴다. AI `POST /privacy/mask`(purpose `reference`/`repair_evidence`)로 메모리에서 검사하고, 검사 완료본만 media(purpose=REFERENCE/REPAIR_EVIDENCE)로 저장한다. 이 경로는 ANALYZE 작업이나 판독 실적을 만들지 않는다. AI에 연결할 수 없으면 업로드를 거절한다(API 503 PRIVACY_SERVICE_NOT_READY). 최초 저장 전 검사는 동기 경로이고, analysis_jobs.PRIVACY는 저장된 모든 종류의 media 재검사용이다. 존재하지 않는 업로드 바이트를 DB 작업만으로 복구한다고 가정하지 않는다.
 
-AI에 현재 있는 /analyze는 ANALYZE 작업 하나로 통합 호출한다. 내부 품질·이상 결과를 분리 저장할 수 있지만 동일 사진을 QUALITY/DEFECT 별도 외부 호출로 중복 처리하지 않는다. retry_owner=BACKEND/AI로 재시도 책임을 구분하고, AI 재판독은 /results 추적으로 결과 스냅샷을 추가한다. provider_photo_id는 외부 작업별 UUID이며 comparison은 analyze와 다른 ID를 쓴다. 같은 외부 ID의 입력 해시는 변경 금지다. 아직 없는 provider_result_version은 NULL로 두고 수신 순서를 직렬화한다. 결과와 이미지 버전을 원자적으로 묶는 운영 계약은 AI 측 보완이 필요하다.
+AI에 현재 있는 /analyze는 ANALYZE 작업 하나로 통합 호출한다. 내부 품질·이상 결과를 분리 저장할 수 있지만 동일 사진을 QUALITY/DEFECT 별도 외부 호출로 중복 처리하지 않는다. retry_owner=BACKEND/AI로 재시도 책임을 구분하고, AI 재판독은 /results 추적으로 결과 스냅샷을 추가한다. provider_photo_id는 외부 작업별 UUID이며 comparison은 analyze와 다른 ID를 쓴다. 같은 외부 ID의 입력 해시는 변경 금지다. 아직 없는 provider_result_version은 NULL로 두고 수신 순서를 직렬화한다. AI가 응답 후 사진을 다시 가리거나(image_remasked) 가림 점검에서 보류하거나(image_hidden) 재판독 결과를 바꾸면(result_updated) AI `GET /events`로 알린다. 백엔드는 마지막으로 처리한 순번을 저장하고 이어서 가져온다. 다시 가린 사진은 새 media 행·새 객체로 저장하고 provider_image_revision을 기록하며 이전 버전 조회를 차단한다. 보류는 privacy_status=QUARANTINED로 바꾸고 재검토로 넘긴다. 재판독은 새 analysis_results 스냅샷으로 추가하고 사람 판단이 참조한 스냅샷은 바꾸지 않는다.
 
 receipt_status: RECEIVING / RECEIVED / NO_MEDIA / RETRY_REQUIRED. RECEIVED는 media_id·received_at 필수, 나머지 접수 상태에서는 media_id·approved_media_id·received_at이 모두 NULL이다. 최초 제출 파일 해시와 요청 해시는 이미지가 없어도 남긴다. 최초 RECEIVED 전환은 승인 사진이 있어야 한다. 이후 개인정보 보류/거절 시 receipt_status는 과거 영속 접수 사실을 유지하고 현재 조회는 media.privacy_status로 차단한다. 이때 approved_media_id·구도 채택 포인터를 해제하고 capture_status/resolution을 REVIEW_REQUESTED로 바꾸어 재검토한다. 과거 채택·활동 이력은 보존한다.
 
 사진 상태: PROCESSING / ACCEPTED / RETAKE_REQUIRED / TECHNICAL_FAILED / REVIEW_REQUESTED. AI 작업 상태: PENDING / PROCESSING / SUCCEEDED / FAILED.
 
-### 두 사람의 동시 제출과 재촬영
+### 조원의 동시 제출과 재촬영
 
 1. 로그인 사용자와 실제 순회 배정·동기화 허용 기간을 검증한다.
 2. 동일 제출 ID는 대상·파일·메타데이터 해시가 같을 때 기존 접수 결과를 반환한다. 내용이 다르면 409. 예약 중이면 SUBMISSION_PROCESSING, 재전송 필요면 동일 시도의 예약을 재획득한다.
@@ -153,13 +155,13 @@ accepted/active는 `(inspection_id,slot_id)` 복합 FK로 같은 구도의 사�
 
 재전송은 동일 ID, 실제 재촬영은 새 ID다. 서버 기술 재처리는 같은 inspection에서 작업을 재시도한다. 수정안의 상한은 구도별 최초+재촬영2회이며 품질 실패만 반영한다. 실패 수 증가는 각 시도별 한 번만 원자적으로 적용한다. 3번째 품질 실패 또는 사람 확인 인계는 resolution=REVIEW_REQUESTED다. 모든 필수 구도가 ACCEPTED/REVIEW_REQUESTED이면 진행하고, 필수 구도 모두 채택 시 장소 CAPTURED, 검토 인계가 있으면 REVIEW_REQUESTED다. 선행 실패 후 미접수 상대 폰 사진을 새 시도로 쓸 수 있다. attemptId와 clientSubmissionId는 계약대로 보존한다.
 
-S3와 DB는 하나의 트랜잭션이 아니다. DB 예약(사진 없음) → 메모리에서 AI 통합 호출·검사 완료 사진 확보 → 승인본 S3 저장 → DB 결과·작업 커밋 → 접수 응답 순서다. retake에 저장 사진이 없으면 NO_MEDIA와 실패 이력만 커밋한다. 중간 장애는 접수 리스·동일 AI ID 결과 조회로 복구하고, 사진 복구 불가이면 RETRY_REQUIRED로 앱 재전송을 요구한다. 고아 S3 파일은 정리한다. Redis 알림 유실은 DB 작업에서 복구한다. AI의 재마스킹·보류를 S3 복사본까지 반영하는 계약은 운영 전 필수다.
+S3와 DB는 하나의 트랜잭션이 아니다. DB 예약(사진 없음) → 메모리에서 AI 통합 호출·검사 완료 사진 확보 → 승인본 S3 저장 → DB 결과·작업 커밋 → 접수 응답 순서다. retake에 저장 사진이 없으면 NO_MEDIA와 실패 이력만 커밋한다. 중간 장애는 접수 리스·동일 AI ID 결과 조회로 복구하고, 사진 복구 불가이면 RETRY_REQUIRED로 앱 재전송을 요구한다. 고아 S3 파일은 정리한다. Redis 알림 유실은 DB 작업에서 복구한다. AI의 재마스킹·보류는 위 `GET /events` 처리로 S3 복사본까지 반영한다.
 
 ## 8. 관리자 검토·시설 문제 — 5개
 
 | 테이블 | 주요 컬럼 | 관계와 제약 |
 |---|---|---|
-| `review_tasks` | facility_id, patrol_stop_id, reinspection_request_id, type, status, priority, trigger_key, assigned_department_id, claimed_by | INSPECTION/CAPTURE_FAILURE/REPAIR_VERIFICATION. UNIQUE(program_id,trigger_key)로 동일 원인 재전달 중복 방지. priority=NORMAL/URGENT. 사진 없는 실패도 가능 |
+| `review_tasks` | facility_id, patrol_stop_id, reinspection_request_id, type, status, trigger_key, assigned_department_id, claimed_by | INSPECTION/CAPTURE_FAILURE/REPAIR_VERIFICATION. UNIQUE(program_id,trigger_key)로 동일 원인 재전달 중복 방지. AI 위험도를 쓰지 않으므로 우선순위 컬럼을 두지 않음. 사진 없는 실패도 가능 |
 | `review_task_inspections` | review_task_id, inspection_id | 조합 UNIQUE. 같은 시설인지 검증 |
 | `review_decisions` | review_task_id, analysis_result_id, decided_by, decision, follow_up_type, reason, decided_at | 판단 이력 추가. 참조 AI snapshot은 선택. 사진 없는 실패는 FOLLOW_UP_REQUIRED/RESOLVE_CAPTURE_PROBLEM만 허용 |
 | `issues` | facility_id, defect_code, summary, status, assigned_department_id, source_review_decision_id, previous_issue_id, current_reinspection_request_id, opened_at, closed_at | 사람 확인으로 생성. defect_code는 시설 종류와 AI taxonomy 조합 매핑. 재발은 새 사건+이전 사건 연결. 현재 보수 확인 요청을 명시 |
@@ -191,7 +193,7 @@ S3와 DB는 하나의 트랜잭션이 아니다. DB 예약(사진 없음) → �
 
 사건: OPEN → REPAIR_REQUESTED → IN_REPAIR → AWAITING_VERIFICATION → CLOSED. 재보수 요청이면 REPAIR_REQUESTED로 돌아가고 이력을 추가한다. 배정 시 요청 시설과 순회 장소 시설의 일치도 검증한다.
 
-## 10. 공통 운영 — 5개
+## 10. 공통 운영 — 6개
 
 | 테이블 | 주요 컬럼 | 관계와 제약 |
 |---|---|---|
@@ -199,9 +201,10 @@ S3와 DB는 하나의 트랜잭션이 아니다. DB 예약(사진 없음) → �
 | `audit_events` | actor_user_id, action, resource_type/id, reason, before_json, after_json, request_id, created_at | 변경 감사. 토큰·전화 평문·사진 URL 제외. 범용 대상 ID는 FK가 아니므로 앱에서 검증 |
 | `outbox_events` | event_type, aggregate_id, payload_json, status, next_run_at, attempts | 커밋 후 작업·알림 발행. 중복 전달 가능하므로 수신자도 멱등 처리 |
 | `notifications` | user_id, type, resource_type/id, message, read_at | 관리자 알림. 조회 시에도 권한 검사 |
-| `report_jobs` | organization_id, week_start, status, requested_by, metrics_json, narrative, generated_at, source_cutoff_at, revision_no | UNIQUE(organization_id,week_start,revision_no). 서버 집계값과 AI 문장을 분리 |
+| `report_jobs` | organization_id, week_start, status, requested_by, metrics_json, narrative, generated_at, source_cutoff_at, revision_no | UNIQUE(organization_id,week_start,revision_no). 서버 집계값과 AI 문장을 분리. metrics_json을 AI `/report/narrative` 입력 항목(key·label·value·unit)으로 변환 |
+| `export_jobs` | organization_id, requested_by, period_start, period_end, status, bucket, object_key, expires_at | 엑셀 내보내기 작업. 파일은 비공개 S3, 보관 기한 뒤 삭제. 내려받기는 audit_events에 기록 |
 
-총 **38개 테이블**이다. AI 결과 스냅샷 1개를 추가했다. 알림·보고·확인 메모 등은 후순위이며 한꺼번에 모두 구현할 필요는 없다.
+총 **39개 테이블**이다. AI 결과 스냅샷 1개와 엑셀 내보내기 1개를 추가했다. 알림·보고·확인 메모 등은 후순위이며 한꺼번에 모두 구현할 필요는 없다.
 
 ## 11. 인덱스와 서비스 검증
 
@@ -223,7 +226,7 @@ S3와 DB는 하나의 트랜잭션이 아니다. DB 예약(사진 없음) → �
 
 - 기본 격리는 READ COMMITTED. 검사와 변경은 같은 트랜잭션에서 수행하고, 잠금 대기 후 최신 값을 다시 확인한다. JPA 캐시의 오래된 엔티티를 검증에 재사용하지 않도록 실제 구현을 확인한다.
 - 사진 접수/결과·건너뛰기·복귀 등 순회 흐름은 **patrols → capture_slots → inspections → media** 순서로 필요한 행을 잠근다. 여러 행은 각 단계에서 UUID 오름차순. 구도를 먼저 잠근 뒤 순회 revision을 갱신하는 순서는 사용하지 않는다.
-- 출발·출결·조원/일정 수정은 **대상 patrols(ID순) → participants(ID순) → patrol_members** 순서다. 출발은 두 명 출석·유효 참여 상태·진행 중 중복을 검사하고, 배정/일정 수정은 예정 배정의 겹침도 검사한다. 모든 수정 경로가 동일 규칙을 따라야 한다.
+- 출발·출결·조원/일정 수정은 **대상 patrols(ID순) → participants(ID순) → patrol_members** 순서다. 출발 확인은 출석 확정 2명 이상·유효 참여 상태·진행 중 중복을 검사하고, 배정/일정 수정은 예정 배정의 겹침도 검사한다. 모든 수정 경로가 동일 규칙을 따라야 한다.
 - 사건 처리·최종 판단은 **issues → reinspection_requests → verifications** 순서다. 현재 요청·보수 회차·버전을 검사한 후 사건/요청/판정/outbox를 함께 커밋한다. 요청만 잠그고 사건을 나중에 잡는 역순을 피한다.
 - 요청과 순회를 함께 다루는 재배정은 **issues(사건이 있으면) → reinspection_requests → patrols → capture_slots**로 고정한다. 사진 워커는 순회 잠금을 유지한 채 요청/사건을 역순으로 잠그지 않는다. 필요 후속 업무는 같은 커밋의 outbox 이후 별도 트랜잭션에서 처리한다.
 - 작업 lease 확보는 짧은 별도 트랜잭션으로 종료한다. 외부 작업 후 상태 적용은 위 업무 잠금 순서를 따르고 작업 세대/lease token을 검증한다. 외부 호출 중 DB 잠금을 유지하지 않는다.
@@ -240,7 +243,7 @@ S3와 DB는 하나의 트랜잭션이 아니다. DB 예약(사진 없음) → �
 
 10월 15일 시연은 **로그인 → 오늘 조별 순회 → 담당자 출발 확인 → 사진 접수/품질 → 다음 장소 → 복귀 확인 → 관리자 사진 확인**부터 완성한다. 모든 테이블의 관리 화면 완성을 시연 조건으로 잡지 않는다.
 
-Flyway로 마이그레이션하고 실행 환경에서는 ddl-auto=validate를 사용한다. 개발·시연 시드는 실제 서비스 데이터와 분리한다. [핵심 SQL 초안](database/core-schema-draft.sql)은 촬영 구도·동시 접수·사진 없는 시도 제약을 설명하는 독립 예제이며, 전체 38개 테이블의 실행용 DDL은 아니다.
+Flyway로 마이그레이션하고 실행 환경에서는 ddl-auto=validate를 사용한다. 개발·시연 시드는 실제 서비스 데이터와 분리한다. [핵심 SQL 초안](database/core-schema-draft.sql)은 촬영 구도·동시 접수·사진 없는 시도 제약을 설명하는 독립 예제이며, 전체 39개 테이블의 실행용 DDL은 아니다.
 
 ## 13. 남은 운영 설정과 검증 범위
 
@@ -248,9 +251,11 @@ Flyway로 마이그레이션하고 실행 환경에서는 ddl-auto=validate를 �
 
 - 오프라인 동기화 허용 기간과 초과 접수 처리.
 - 구도별 총 3회·미접수 상대 폰 대기 사진 활용 정책의 현장 검증.
-- AI 개인정보 단독 처리, 이미지 버전/보류 전파, 영속 멱등 처리와 실제 fixtures 검증.
-- 시설별 촬영 장수, AI 계약, 사진 용량·보관 기간.
+- AI 계약 v2.0 항목(개인정보 단독 검사, 이미지 버전/보류 전파, 보고 문장)의 실제 서버 연동 검증, 영속 멱등 처리, 예시 응답(`ai/contract/fixtures/`) 대조.
+- `GET /events` 마지막 처리 순번을 저장할 위치(별도 테이블 추가 또는 기존 테이블 활용).
+- 시설별 촬영 장수, 사진 용량·보관 기간.
 - 개인정보·감사·활동 이력 보관 기간과 전화번호 변경/재할당 절차.
 - 관리자 MFA 방식. TOTP 등을 사용한다면 암호화 인증정보 테이블을 별도 추가한다.
+- 관리자 로그인 실패 잠금 횟수·시간, 임시 비밀번호 유효 기간, 엑셀 파일 보관 기한.
 
-2026-10-10 트랜잭션 실행 검증을 추가했다. [검증 구성·재현 방법](database/transaction-tests/README.md)과 [실행 결과](database/transaction-tests/results.json)를 따른다. 기존 7개 테이블과 검증용 축약 7개 테이블에서 독립 PostgreSQL 연결로 핵심 경쟁 조건·롤백을 검사한다. 전체 38개 테이블과 실제 Spring/JPA 구현을 검증한 것은 아니다.
+2026-10-10 트랜잭션 실행 검증을 추가했다. [검증 구성·재현 방법](database/transaction-tests/README.md)과 [실행 결과](database/transaction-tests/results.json)를 따른다. 기존 7개 테이블과 검증용 축약 7개 테이블에서 독립 PostgreSQL 연결로 핵심 경쟁 조건·롤백을 검사한다. 전체 39개 테이블과 실제 Spring/JPA 구현을 검증한 것은 아니다.

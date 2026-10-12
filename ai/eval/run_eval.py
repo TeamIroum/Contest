@@ -1,8 +1,9 @@
 """테스트셋으로 판독 정확도를 잰다. provider만 바꿔 같은 테스트셋을 돌리면 모델 비교가 된다.
 
 사용:
-  python eval/run_eval.py analyze --labels eval/labels.csv --provider claude
-  python eval/run_eval.py verify  --labels eval/pairs.csv  --provider claude
+  python eval/run_eval.py analyze --labels eval/labels.csv --provider ollama
+  python eval/run_eval.py verify  --labels eval/pairs.csv  --provider ollama
+  (공개 모델끼리 비교할 때는 OLLAMA_MODEL만 바꿔 다시 돌린다)
 
 결과: eval/results/<시각>_<provider>_<task>/ 에 predictions.csv, summary.json, summary.md
 라벨 작성법은 eval/LABELING_GUIDE.md 참고.
@@ -26,6 +27,7 @@ from config import taxonomy  # noqa: E402
 from providers import get_provider  # noqa: E402
 
 GRADES = taxonomy()["grades"]
+NO_GRADE = "판독 없음"
 
 
 def _tags(s: str) -> list[str]:
@@ -84,7 +86,7 @@ def run_analyze(labels: Path, provider, out: Path) -> dict:
             "pred_status": r["status"],
             "pred_facility": (r["facility"] or {}).get("type"),
             "pred_issue": top["type"] if top else "",
-            "pred_severity": r["ai_severity"],
+            "pred_severity": r["ai_severity"] or 0,
             "pred_grade": r["grade"],
             "pred_action": r["action"],
             "certainty": (r["facility"] or {}).get("certainty"),
@@ -93,33 +95,33 @@ def run_analyze(labels: Path, provider, out: Path) -> dict:
         })
         print(f"[{i}/{len(rows)}] {row['photo_id']}: {r['status']} {r['grade']}", flush=True)
 
-    with (out / "predictions.csv").open("w", encoding="utf-8", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=list(preds[0].keys()))
-        w.writeheader()
-        w.writerows(preds)
+    _write_preds(out, preds)
 
     # 품질(재촬영) 판정
     should_retake = [p for p in preds if p["label_quality_ok"] == "0"]
     did_retake = [p for p in preds if p["pred_status"] == "retake"]
     both = [p for p in should_retake if p["pred_status"] == "retake"]
 
-    # 판독 대상: 라벨상 품질 정상이고 예측도 재촬영이 아닌 사진
-    scored = [p for p in preds if p["label_quality_ok"] != "0" and p["pred_status"] != "retake"
-              and p["pred_grade"] is not None]
+    # 판독 대상: 라벨상 품질 정상이고 예측도 재촬영이 아닌 사진.
+    # AI가 '목록 외 시설'로 답했거나 시간 초과·오류로 등급이 없는 사진도 분모에 넣고 틀린 것으로 센다.
+    # 빼면 가장 나쁜 실패가 수치에서 사라져 정확도가 부풀려진다.
+    scored = [p for p in preds if p["label_quality_ok"] != "0" and p["pred_status"] != "retake"]
+    graded = [p for p in scored if p["pred_grade"] is not None]
     fac_ok = sum(p["pred_facility"] == p["label_facility"] for p in scored)
-    has_ok = sum((p["pred_severity"] > 0) == (p["label_severity"] > 0) for p in scored)
-    sev_exact = sum(p["pred_severity"] == p["label_severity"] for p in scored)
-    sev_near = sum(abs(p["pred_severity"] - p["label_severity"]) <= 1 for p in scored)
-    grade_ok = sum(p["pred_grade"] == p["label_grade"] for p in scored)
+    has_ok = sum((p["pred_severity"] > 0) == (p["label_severity"] > 0) for p in graded)
+    sev_exact = sum(p["pred_severity"] == p["label_severity"] for p in graded)
+    sev_near = sum(abs(p["pred_severity"] - p["label_severity"]) <= 1 for p in graded)
+    grade_ok = sum(p["pred_grade"] == p["label_grade"] for p in graded)
 
     urgent_true = [p for p in scored if p["label_grade"] == "긴급"]
-    urgent_pred = [p for p in scored if p["pred_grade"] == "긴급"]
+    urgent_pred = [p for p in graded if p["pred_grade"] == "긴급"]
     urgent_hit = [p for p in urgent_true if p["pred_grade"] == "긴급"]
     missed = [p["photo_id"] for p in urgent_true if p["pred_grade"] in ("정상", "관찰")]
+    not_graded = [p["photo_id"] for p in urgent_true if p["pred_grade"] is None]
 
     confusion = {lg: Counter() for lg in GRADES}
     for p in scored:
-        confusion[p["label_grade"]][p["pred_grade"]] += 1
+        confusion[p["label_grade"]][p["pred_grade"] or NO_GRADE] += 1
 
     lat = [p["latency_ms"] for p in preds]
     summary = {
@@ -131,6 +133,7 @@ def run_analyze(labels: Path, provider, out: Path) -> dict:
         "rules_version": rules.rules()["version"],
         "n_photos": len(preds),
         "n_scored": len(scored),
+        "n_not_graded": len(scored) - len(graded),   # 판독 대상인데 등급이 없음 (목록 외·시간 초과·오류)
         "retake_recall_pct": _pct(len(both), len(should_retake)),
         "retake_precision_pct": _pct(len(both), len(did_retake)),
         "facility_accuracy_pct": _pct(fac_ok, len(scored)),
@@ -141,6 +144,7 @@ def run_analyze(labels: Path, provider, out: Path) -> dict:
         "urgent_recall_pct": _pct(len(urgent_hit), len(urgent_true)),
         "urgent_precision_pct": _pct(len(urgent_hit), len(urgent_pred)),
         "urgent_missed_as_normal_or_observe": missed,
+        "urgent_not_graded": not_graded,
         "needs_review_pct": _pct(sum(p["pred_status"] == "needs_review" for p in preds), len(preds)),
         "latency_ms_mean": int(statistics.mean(lat)) if lat else None,
         "latency_ms_max": max(lat) if lat else None,
@@ -149,8 +153,17 @@ def run_analyze(labels: Path, provider, out: Path) -> dict:
     return summary
 
 
+def _write_preds(out: Path, preds: list[dict]) -> None:
+    if not preds:
+        raise SystemExit("라벨 파일에 평가할 행이 없습니다")
+    with (out / "predictions.csv").open("w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(preds[0].keys()))
+        w.writeheader()
+        w.writerows(preds)
+
+
 def run_verify(labels: Path, provider, out: Path) -> dict:
-    rows = list(csv.DictReader(labels.open(encoding="utf-8-sig")))
+    rows = _sample(list(csv.DictReader(labels.open(encoding="utf-8-sig"))))
     preds = []
     for i, row in enumerate(rows, 1):
         prior = {
@@ -163,7 +176,12 @@ def run_verify(labels: Path, provider, out: Path) -> dict:
         }
         before = (labels.parent / row["before_path"]).read_bytes()
         after = (labels.parent / row["after_path"]).read_bytes()
-        r = pipeline.verify_photo(before, after, prior, row.get("mode") or "repair", {}, provider)
+        try:
+            r = pipeline.verify_photo(before, after, prior, row.get("mode") or "repair", {}, provider)
+        except pipeline.RequestError as e:  # 라벨 행이 잘못됨 (시설·문제 유형 오타 등): 그 행만 알리고 계속
+            print(f"[{i}/{len(rows)}] {row['pair_id']}: 라벨 오류 {e}", flush=True)
+            r = {"status": "error", "result": None, "action": None, "same_facility": None,
+                 "meta": {"latency_ms": 0}, "evidence": str(e)}
         preds.append({
             "pair_id": row["pair_id"],
             "expected": row["expected"],
@@ -176,10 +194,7 @@ def run_verify(labels: Path, provider, out: Path) -> dict:
         })
         print(f"[{i}/{len(rows)}] {row['pair_id']}: expected={row['expected']} -> {r['action']}", flush=True)
 
-    with (out / "predictions.csv").open("w", encoding="utf-8", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=list(preds[0].keys()))
-        w.writeheader()
-        w.writerows(preds)
+    _write_preds(out, preds)
 
     want = {"fixed": "close_case", "not_fixed": "re_request", "different_place": "retake",
             "worse": "regrade", "same": "keep", "better": "keep"}
@@ -214,11 +229,11 @@ def to_markdown(s: dict) -> str:
         lines.append(f"- {k}: {v}")
     if "grade_confusion" in s:
         lines += ["", "## 등급 혼동표 (행: 정답, 열: 예측)", "",
-                  "| 정답 \\ 예측 | " + " | ".join(GRADES) + " |",
-                  "|" + "---|" * (len(GRADES) + 1)]
+                  "| 정답 \\ 예측 | " + " | ".join(GRADES + [NO_GRADE]) + " |",
+                  "|" + "---|" * (len(GRADES) + 2)]
         for lg in GRADES:
             row = s["grade_confusion"].get(lg, {})
-            lines.append(f"| {lg} | " + " | ".join(str(row.get(pg, 0)) for pg in GRADES) + " |")
+            lines.append(f"| {lg} | " + " | ".join(str(row.get(pg, 0)) for pg in GRADES + [NO_GRADE]) + " |")
     return "\n".join(lines) + "\n"
 
 
@@ -226,7 +241,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("task", choices=["analyze", "verify"])
     ap.add_argument("--labels", required=True, type=Path)
-    ap.add_argument("--provider", default=None, help="mock | gemini | ollama | claude (기본: AI_PROVIDER 환경 변수)")
+    ap.add_argument("--provider", default=None, help="mock | ollama (기본: AI_PROVIDER 환경 변수)")
     ap.add_argument("--sample", type=int, default=None, help="일부만 무작위로 돌리기 (기준 문장 다듬을 때 호출 절약)")
     args = ap.parse_args()
     global SAMPLE
@@ -235,7 +250,12 @@ def main():
     provider = get_provider(args.provider)
     out = Path(__file__).resolve().parent / "results" / f"{time.strftime('%Y%m%d_%H%M%S')}_{provider.name}_{args.task}"
     out.mkdir(parents=True, exist_ok=True)
-    storage.set_store(storage.LocalImageStore(out / "images"))  # 평가 중 가린 사진은 결과 폴더에 저장
+    # 평가 중 가린 사진과 판독 결과는 이번 결과 폴더에만 저장한다. 서버 저장소(data/results)를 쓰면
+    # 같은 photo_id의 이전 결과를 그대로 돌려줘서(재요청 처리) 프롬프트를 고쳐도 다시 판독하지 않는다.
+    storage.set_store(storage.LocalImageStore(out / "images"))
+    storage.set_results(storage.LocalResultStore(out / "_results"))
+    storage.set_media(storage.LocalMediaStore(out / "_results" / "media"))
+    storage.set_events(storage.EventLog(out / "_results" / "_events.jsonl"))
 
     summary = (run_analyze if args.task == "analyze" else run_verify)(args.labels, provider, out)
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")

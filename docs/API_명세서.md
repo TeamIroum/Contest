@@ -1,8 +1,8 @@
 # 시니어 동네 점검단 API 명세서 v1.0
 
-작성일: 2026-10-10. 모바일 대응 웹과 관리자 웹의 공통 REST 개발 기준이다. 기존 v0.2의 최신 수정 내용과 DB 트랜잭션 보완을 기준본 v1.0으로 정리했다. 실제 구현·기관 승인·운영 인증을 의미하지 않는다. 시연용 고정 인증은 운영 인증과 구분하며, 아래 경로는 `/api/v1` 기준이다. 미정 운영값과 미지원 AI 연동은 12절에 별도로 남긴다.
+작성일: 2026-10-10. 모바일 대응 웹과 관리자 웹의 공통 REST 개발 기준이다. 기존 v0.2의 최신 수정 내용과 DB 트랜잭션 보완을 기준본 v1.0으로 정리했다. 실제 구현·기관 승인·운영 인증을 의미하지 않는다. 시연용 고정 인증은 운영 인증과 구분하며, 아래 경로는 `/api/v1` 기준이다. 미정 운영값과 AI 연동의 남은 검증은 12절에 별도로 남긴다.
 
-2026-10-10 AI 계약 대조 수정: 업무 API의 기준 문서는 이 파일이다. [AI_연동_계약.md](AI_연동_계약.md)는 제공된 AI API와의 변환·연동 선결 사항을 정의한다. [프론트_전달용_API.md](프론트_전달용_API.md)는 이 계약의 요약이다. AI 판독 모듈의 호출 형식은 [AI 판독 API 계약서 v2.0](../ai/contract/API_CONTRACT.md)을 따른다. 앱은 AI를 직접 호출하지 않고, AI의 사건 종결·재요청 제안은 사람 판단 전에는 업무 상태를 바꾸지 않는다.
+2026-10-10 AI 계약 대조 수정: 업무 API의 기준 문서는 이 파일이다. AI 관련 내용은 [AI_기능_설계.md](AI_기능_설계.md)를 최우선으로 따른다(2026-10-11 결정). [AI_연동_계약.md](AI_연동_계약.md)는 제공된 AI API와의 변환·연동 선결 사항을 정의하며, v2.0 이전에 쓰였으므로 v2.0과 다르면 v2.0을 따른다. [프론트_전달용_API.md](프론트_전달용_API.md)는 이 계약의 요약이다. AI 판독 모듈의 호출 형식은 [AI 판독 API 계약서 v2.0](../ai/contract/API_CONTRACT.md)을 따른다. 앱은 AI를 직접 호출하지 않고, AI의 사건 종결·재요청 제안은 사람 판단 전에는 업무 상태를 바꾸지 않는다.
 
 2026-10-10 PWA 확정 반영: 시니어 앱은 PWA로 확정했다. 네이티브 앱 전용 인증 경로(응답 본문의 갱신 토큰, OS 보안 저장소)를 이 계약에서 뺐다. AI 계약 v2.0에 따라 개인정보 단독 검사, 보고 문장 생성, 사진 버전·보류 전파를 연동 가능 항목으로 고쳤다.
 
@@ -11,7 +11,7 @@
 1. 개인이 로그인하고 조 단위 순회를 공유한다. 로그인과 출석은 다르다.
 2. 시설, 코스의 장소, 날짜별 순회 장소, 사진 시도를 별도 ID로 식별한다.
 3. 활동 완료, 사진 전송, AI 분석, 사람 검토, 시설 문제 종결을 분리한다.
-4. 시니어에게 시설 이상·AI 위험도를 반환하지 않는다. 품질 재촬영과 진행 안내만 제공한다.
+4. 시니어에게 시설 이상을 반환하지 않는다. 품질 재촬영과 진행 안내만 제공한다. AI 위험도 등급은 어느 사용자에게도 반환하지 않고 업무 판단에 쓰지 않는다(2026-10-11 결정).
 5. 기관·지역·시설 관할은 서버에서 검증한다. 프론트가 보내는 조직 ID만으로 권한을 부여하지 않는다.
 6. 실제 부서 배정은 시설 대장의 관리 주체를 우선한다. AI 시설 분류는 검증 자료다.
 7. 업무 변경은 수행자·시간·전후 값·사유를 감사 이력으로 남긴다.
@@ -55,8 +55,9 @@
 ### JWT + Redis
 
 - Access Token은 JWT, Refresh Token은 예측 불가능한 임의 문자열이다. Redis에는 Refresh Token 해시·사용자·로그인 세션 ID·만료·회전 상태를 저장한다.
-- 하나의 계정이 여러 기기에 로그인할 수 있다. 시니어 두 명은 서로 다른 계정이며, 기기별 세션과 조별 순회는 별개다.
+- 하나의 계정이 여러 기기에 로그인할 수 있다. 조원은 각자 다른 계정이며, 기기별 세션과 조별 순회는 별개다.
 - SMS 검증 또는 관리자 MFA 최종 성공 시 토큰을 발급한다. MFA 전 중간 응답에는 업무용 토큰을 발급하지 않는다.
+- 관리자 계정의 첫 로그인과 비밀번호 초기화 뒤에는 비밀번호 변경을 먼저 요구한다. 변경 전 응답에는 업무용 토큰을 발급하지 않는다. 로그인이 연속으로 실패하면 계정을 잠그고, 사업 총괄이 잠금을 해제한다. 실패 횟수·잠금 시간·비밀번호 규칙은 12절 운영값이다.
 - 갱신 토큰은 응답 본문으로 반환하지 않고 Secure/HttpOnly 쿠키로만 전달한다. 클라이언트(시니어 PWA, 관리자 웹)는 등록된 클라이언트 정책과 요청 검증으로 구분하며 비밀 값이 아닌 clientId만으로 신뢰를 부여하지 않는다.
 - PWA 페이지를 다시 열면 메모리의 Access Token이 없으므로 쿠키 갱신으로 새 토큰을 받는다. 오프라인으로 쌓인 사진·이벤트는 갱신 성공 후 전송한다.
 - API는 Access JWT의 서명·만료·issuer·audience를 검증하고, 세션/계정 상태·권한 버전도 확인해 계정 중지·권한 변경을 반영한다. Redis 장애 시 보호 API를 임의 허용하지 않는다. 가용성·복구 정책은 별도 설계한다.
@@ -67,7 +68,8 @@
 | GET `/auth/csrf` | csrfToken |
 | POST `/auth/sms-challenges` | phoneNumber → challengeId, expiresAt, resendAvailableAt. 202 |
 | POST `/auth/sms-verifications` | challengeId, code, clientId, deviceLabel → 인증 성공 시 토큰 응답 |
-| POST `/auth/admin/sessions` | loginId, password, clientId, deviceLabel → MFA 요청 또는 최종 토큰 응답 |
+| POST `/auth/admin/sessions` | loginId, password, clientId, deviceLabel → 비밀번호 변경 요청(passwordChangeRequired, passwordChangeChallengeId), MFA 요청 또는 최종 토큰 응답. 잠긴 계정은 423 ACCOUNT_LOCKED |
+| POST `/auth/admin/password-changes` | passwordChangeChallengeId, newPassword → MFA 요청 또는 최종 토큰 응답. 임시 비밀번호와 같은 값 금지 |
 | POST `/auth/admin/mfa-verifications` | mfaChallengeId, code → 최종 토큰 응답 |
 | POST `/auth/token/refresh` | HttpOnly 쿠키 + CSRF → 새 Access 발급, 새 Refresh는 쿠키로 회전 |
 | DELETE `/auth/session` | 현재 로그인 세션 폐기, 웹 쿠키 제거 |
@@ -101,13 +103,16 @@ SMS 발송·검증 횟수, 만료, 재전송 제한, 전화번호 정규화를 �
 
 | API | 역할·핵심 필드 |
 |---|---|
+| GET/POST `/admin/users` | 총괄: 담당 공무원 계정 발급. name, loginId, roleScopes[{role, organizationId}] → 201 + 임시 비밀번호(이 응답에서 한 번만 표시). Idempotency-Key 필수 |
+| POST `/admin/users/{id}/password-resets` | 총괄: 임시 비밀번호 재발급, 기존 세션 모두 종료, 다음 로그인 때 변경 요구. reason, version |
+| POST `/admin/users/{id}/unlocks` | 총괄: 로그인 잠금 해제. reason, version |
 | GET/POST `/admin/organizations` | 총괄: 수행기관·부서·거점(유형과 관계) |
 | PATCH `/admin/organizations/{id}` | 이름·상태·version |
 | GET/POST `/admin/participants` | 활동 담당: name, phoneNumber, organizationId, 활동 가능 일정 |
 | GET/PATCH `/admin/participants/{id}` | 상세·허용 프로필 수정, version |
 | POST `/admin/participants/{id}/phone-change-requests` | 새 번호 소유 확인·기관 확인 절차 시작 |
 | POST `/admin/participants/{id}/status-changes` | ACTIVE/SUSPENDED/ENDED, reason, version; 세션 처리 포함 |
-| GET/POST `/admin/teams` | 조명·기관·조원 두 명 |
+| GET/POST `/admin/teams` | 조명·기관·조원 2~3명(자리 1~3). 기본 2인 1조, 인원이 홀수면 3인 조 허용 |
 | PATCH `/admin/teams/{id}` | 조명·기본 구성 변경, effectiveFrom, version |
 | GET/POST `/admin/facilities` | 관할 담당: 시설 종류·좌표·관리 부서·구역·상태 |
 | GET/PATCH `/admin/facilities/{id}` | 시설 정보 수정·담당 변경, version |
@@ -131,10 +136,14 @@ SMS 발송·검증 횟수, 만료, 재전송 제한, 전화번호 정규화를 �
 | POST `/patrols/{id}/stops/{stopId}/inspections` | multipart, 마스킹 사진 접수 |
 | GET `/inspections/{id}/capture-status` | 품질 상태·허용 다음 행동만 반환 |
 | POST `/inspections/{id}/processing-retries` | 영속 접수한 사진의 기술 재처리. Idempotency-Key 필수 |
-| POST `/patrols/{id}/stops/{stopId}/skip-events` | reason=UNSAFE/NOT_FOUND/OTHER, clientEventId, occurredAt |
+| POST `/patrols/{id}/attendance-requests` | clientEventId, occurredAt. 본인 출석 요청만 기록. 출석 확정은 담당자(8절) |
+| POST `/patrols/{id}/start-events` | clientEventId, occurredAt. DEPARTURE_CONFIRMED에서만 허용, IN_PROGRESS로 전환. 조원 누구든 한 번 누르면 조 전체가 시작 |
+| POST `/patrols/{id}/stops/{stopId}/skip-events` | reason=UNSAFE/NOT_FOUND/FACILITY_MISSING/OTHER, clientEventId, occurredAt |
 | POST `/patrols/{id}/pause-events` | type=PAUSE_STARTED/PAUSE_ENDED, clientEventId, occurredAt |
 | POST `/patrols/{id}/return-requests` | returnReason=NORMAL/ABORT, abortReason=HEALTH/DEVICE/OTHER(ABORT 때), clientEventId, occurredAt |
 | GET `/patrols/{id}/sync-state` | revision, 장소·구도 접수/품질 결과, 사용자 권한·동기화 허용 상태 |
+
+FACILITY_MISSING(시설이 없어졌어요)은 장소를 SKIPPED로 기록하고 시설 담당자 알림으로 넘겨 시설 대장을 확인하게 한다.
 
 시니어 요청의 사용자 ID를 신뢰하지 않고 세션 사용자에서 제출자를 결정한다. 초기 동기화는 온라인 활성 화면 5초 주기 조회 제안. WebSocket/SSE는 이후 선택한다. 권한 철회·계정 중지 시 동기화 중단과 기관 문의를 안내한다.
 
@@ -180,7 +189,7 @@ offline-package는 packageVersion, patrol(동일 순회 형식), assets[{mediaId
 
 ### 사진 제출 계약
 
-multipart: file, clientSubmissionId(UUID), captureSlotId(UUID), attemptId(UUID), capturedAt, maskingVersion, deviceMasked(true), deviceMaskReport(JSON: faces, plates, vehicles, detector, appVersion), 선택 위치(latitude/longitude/locationAccuracyMeters).
+multipart: file, clientSubmissionId(UUID), captureSlotId(UUID), attemptId(UUID), capturedAt, maskingVersion, deviceMasked(true), deviceMaskReport(JSON: faces, plates, vehicles, detector, appVersion, 선택 boxes[{kind, box:[x1,y1,x2,y2]}] 0~1 비율), 선택 위치(latitude/longitude/locationAccuracyMeters).
 
 - JPEG/PNG, 파일당 10 MiB(10,485,760 bytes) 이하로 정리한다. AI 입력 15MB 한도보다 작은 업무 제한이다. 실제 MIME·디코딩 결과·픽셀 수를 서버 검증한다. 시니어 PWA는 앱 안 카메라 화면을 캔버스에서 마스킹한 뒤 JPEG로 만들어 전송한다(EXIF 없음). HEIC/AVIF/WebP는 받지 않는다.
 - 파일은 기기 내 마스킹 완료본만 전송한다. 클라이언트 주장만 신뢰하지 않고 서버 재검사한다. 기기 마스킹 기준은 [앱 마스킹 구현 안내서](../ai/contract/APP_MASKING_GUIDE.md)를 따른다.
@@ -251,12 +260,12 @@ nextAction: WAIT/RETAKE/RETRY/NEXT_CAPTURE/NEXT_STOP/RETURN_TO_CENTER.
 |---|---|
 | GET `/admin/patrols?date=&activityStatus=&organizationId=` | 활동 목록 |
 | GET `/admin/patrols/{id}` | 개인 출결·진행·복귀 지연·이력 |
-| PUT `/admin/patrols/{id}/attendance/{participantId}` | attendance=PRESENT/ABSENT, version |
-| POST `/admin/patrols/{id}/departure-confirmations` | version; 두 명 출석 검증 후 출발 |
+| PUT `/admin/patrols/{id}/attendance/{participantId}` | attendance=PRESENT/ABSENT, version. 어르신 출석 요청이 있으면 함께 표시하고, 요청이 없어도 담당자가 직접 기록할 수 있음 |
+| POST `/admin/patrols/{id}/departure-confirmations` | version; 출석 확정 2명 이상 검증 후 DEPARTURE_CONFIRMED. 3인 조는 1명이 결석해도 2명이면 가능 |
 | POST `/admin/patrols/{id}/return-confirmations` | participantId, returnedAt, version |
 | POST `/admin/patrols/{id}/follow-up-records` | 연락·지연 확인·대응 기록 |
 
-활동 상태: ASSIGNED → IN_PROGRESS → RETURNING → COMPLETED. 중도 종료도 먼저 RETURNING(returnReason=ABORT), 두 명 복귀 확인 후 ABORTED. 출발 전 취소는 CANCELLED.
+활동 상태: ASSIGNED → DEPARTURE_CONFIRMED(담당자 출발 확인) → IN_PROGRESS(어르신 활동 시작) → RETURNING → COMPLETED. 중도 종료도 먼저 RETURNING(returnReason=ABORT), 출석한 조원 모두의 복귀 확인 후 ABORTED. 활동 시작 전 취소는 CANCELLED.
 
 장소 상태: PENDING/CAPTURED/SKIPPED/REVIEW_REQUESTED/NOT_VISITED. 전송·품질·분석 상태는 별도다. 모든 장소가 촬영·건너뛰기·확인 요청으로 처리되면 정상 복귀한다. 오프라인 미동기화가 있더라도 실제 사람의 복귀 확인은 막지 않는다.
 
@@ -294,7 +303,11 @@ nextAction: WAIT/RETAKE/RETRY/NEXT_CAPTURE/NEXT_STOP/RETURN_TO_CENTER.
 
 AI 상태 PENDING/PROCESSING/SUCCEEDED/FAILED와 사람 검토 OPEN/IN_REVIEW/RESOLVED를 분리한다. 확인 필요·반복 실패·수리 확인은 전부 검토하고 사진상 이상 미발견은 표본 검토한다. 활동일마다 모아서 검토하며 표본 비율·긴급 대응은 운영기관과 협의한다.
 
-관리자 AI 결과에는 status, suggestedAction, grade, gradeReasons, findings, facilityMatch, retry, modelVersion, promptVersion, resultSnapshotId를 정규화해 반환한다. 결과 스냅샷은 추가 저장하고 사람 판단이 참조한 버전을 고정한다. AI action=close_case는 사건 상태를 변경하지 않는다. 같은 검토 작업·입력 결과에 대한 재시도는 작업을 중복 생성하지 않는다. 사진 없는 기술 실패·AI gave_up도 검토에서 누락하지 않는다.
+관리자 AI 결과에는 status, findings, facilityMatch, retry, modelVersion, promptVersion, resultSnapshotId를 정규화해 반환한다. 판독 근거는 findings(AI `issues[]`의 문제 유형·위치·근거)로 보여 준다. suggestedAction은 수리 확인의 close_case/re_request만 반환한다.
+
+AI 위험도는 쓰지 않는다(2026-10-11 결정). AI의 `grade`·`grade_reasons`와 등급에서 나오는 action(alert_now/weekly_list/recheck_next/record_only/human_review_urgent)은 반환하지 않고 분류·알림·우선순위에 쓰지 않는다. AI 계약은 바꾸지 않으므로 원문 결과 스냅샷에는 그대로 보관한다. `/verify`의 `prior_json.severity`에 처음 판독 값을 넘겨야 하기 때문이다.
+
+검토 분류는 AI `status`와 `issues`로 정한다: needs_review → 확인 필요, ok이고 issues 있음 → 확인 필요(이상 의심), ok이고 issues 없음 → 이상 미발견(표본 검토), retake → 품질 재촬영, error → 기술 실패. 결과 스냅샷은 추가 저장하고 사람 판단이 참조한 버전을 고정한다. AI action=close_case는 사건 상태를 변경하지 않는다. 같은 검토 작업·입력 결과에 대한 재시도는 작업을 중복 생성하지 않는다. 사진 없는 기술 실패·AI gave_up도 검토에서 누락하지 않는다.
 
 AI가 응답 이후 사진을 다시 가리거나(image_remasked) 가림 점검에서 보류(image_hidden)하거나 재판독 결과를 바꾸면(result_updated) AI `GET /events`로 알린다. 백엔드는 마지막으로 처리한 순번을 저장해 두고 이어서 가져온다. 다시 가린 사진은 새 media 행·새 객체로 저장하고(이전 버전 조회 차단), 보류 알림은 privacy_status를 QUARANTINED로 바꾸고 재검토로 넘긴다. 재판독 결과는 새 결과 스냅샷으로 추가하며 사람 판단이 참조한 스냅샷을 바꾸지 않는다.
 
@@ -336,6 +349,8 @@ REPAIR_AGAIN은 현재 요청 종료 + 사건 REPAIR_REQUESTED + 보수 재요�
 |---|---|
 | GET `/admin/reports/weekly?weekStart=&organizationId=` | DB 집계·보고 문장·생성 상태 |
 | POST `/admin/reports/weekly-generation-requests` | 기간·범위, 202 + jobId |
+| POST `/admin/exports` | 기간(from, to)·organizationId → 202 + jobId. 기간 집계를 엑셀로 생성(시트 구성은 feature-spec 결정 4). 전화번호는 넣지 않음 |
+| GET `/admin/exports/{id}/content` | 권한 확인 후 엑셀 내려받기. 내려받기는 감사 이력에 기록, 파일은 보관 기한 뒤 삭제 |
 | GET `/admin/jobs/{id}` | 비동기 관리 작업 상태 |
 | GET `/admin/audit-events?resourceType=&resourceId=` | 허용 관리자만 감사 조회·페이지네이션 |
 | GET `/admin/notifications?read=` | 검토·처리 알림 |
@@ -360,6 +375,8 @@ OpenAPI 작성 전에 구체화할 내용:
 - 최대 해상도·삭제·인증 이미지 조회·오프라인 폐기 전파.
 - 출발 후 예외 배정 변경.
 - 알림 채널·개인 활동시간 정정·감사 권한.
+- 관리자 로그인 실패 잠금 횟수·시간, 임시 비밀번호 규칙과 유효 기간, 엑셀 파일 보관 기한.
+- AI 정상 판정에서 `issues`가 비어 오는지 예시 응답(`ai/contract/fixtures/`의 drain_normal)으로 확인. 검토 분류 규칙의 전제다.
 
 구현 순서: 인증 → 순회/출발·복귀 → 촬영/품질/예외 → 관리자 검토 → 보수/재점검 → 집계·기준 데이터 편집. 실서비스 전체 계약과 10월 15일 시연 구현 범위는 구분한다.
 

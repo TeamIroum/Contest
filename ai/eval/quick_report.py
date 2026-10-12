@@ -1,8 +1,8 @@
 """평가 결과를 발표·공유용 한 장(HTML)으로 정리한다.
 
 사용:
-  python eval/quick_report.py --analyze eval/results/<시각>_claude_analyze \\
-                              --verify  eval/results/<시각>_claude_verify \\
+  python eval/quick_report.py --analyze eval/results/<시각>_ollama_analyze \\
+                              --verify  eval/results/<시각>_ollama_verify \\
                               --mask    eval/mask_check/mask_review.csv \\
                               --out     eval/평가결과.html
 셋 중 있는 것만 넣어도 된다.
@@ -11,9 +11,14 @@ import argparse
 import csv
 import html
 import json
+import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent / "privacy"))
+from contact_sheet import tally  # noqa: E402
+
 GRADES = ["정상", "관찰", "주의", "긴급"]
+COLS = GRADES + ["판독 없음"]  # run_eval의 NO_GRADE와 같은 이름
 
 
 def pct(v):
@@ -27,16 +32,9 @@ def stat(label, value, note=""):
 
 def mask_score(path: Path):
     rows = list(csv.DictReader(path.open(encoding="utf-8-sig")))
-
-    def n(v):
-        try:
-            return int(v)
-        except (TypeError, ValueError):
-            return 0
     out = {"photos": len(rows)}
     for k in ("faces", "plates"):
-        total = sum(n(r.get(f"total_{k}")) for r in rows)
-        vis = sum(n(r.get(f"visible_{k}")) for r in rows)
+        total, vis = tally(rows, k)
         out[k] = (total, total - vis)
     return out
 
@@ -53,15 +51,15 @@ def main():
     if a.analyze:
         s = json.loads((Path(a.analyze) / "summary.json").read_text(encoding="utf-8"))
         conf = s.get("grade_confusion", {})
-        rows = "".join(f"<tr><th>{g}</th>" + "".join(f"<td>{conf.get(g, {}).get(p, 0)}</td>" for p in GRADES) + "</tr>"
+        rows = "".join(f"<tr><th>{g}</th>" + "".join(f"<td>{conf.get(g, {}).get(p, 0)}</td>" for p in COLS) + "</tr>"
                        for g in GRADES)
-        missed = s.get("urgent_missed_as_normal_or_observe") or []
+        missed = (s.get("urgent_missed_as_normal_or_observe") or []) + (s.get("urgent_not_graded") or [])
         sections.append(f"""<section><h2>시설·이상 판독</h2><p class="sub">실제 사진 {s['n_photos']}장 (판독 대상 {s['n_scored']}장)</p>
 <div class="stats">{stat('시설 분류 정확도', pct(s['facility_accuracy_pct']))}{stat('문제 유무 정확도', pct(s['issue_presence_accuracy_pct']))}
 {stat('등급 일치율', pct(s['grade_agreement_pct']))}{stat('긴급 재현율', pct(s['urgent_recall_pct']), '실제 긴급 중 긴급으로 잡은 비율')}
 {stat('담당자 확인으로 넘긴 비율', pct(s['needs_review_pct']))}{stat('평균 처리 시간', f"{s['latency_ms_mean'] / 1000:.1f}초" if s.get('latency_ms_mean') else '-')}</div>
-<h3>등급 혼동표 (행: 정답, 열: AI)</h3><table><tr><th></th>{''.join(f'<th>{g}</th>' for g in GRADES)}</tr>{rows}</table>
-<p class="sub">{'긴급을 정상·관찰로 놓친 사진: ' + ', '.join(map(html.escape, missed)) if missed else '긴급을 정상·관찰로 놓친 사진 없음'}</p></section>""")
+<h3>등급 혼동표 (행: 정답, 열: AI)</h3><table><tr><th></th>{''.join(f'<th>{g}</th>' for g in COLS)}</tr>{rows}</table>
+<p class="sub">{'긴급을 놓친 사진(정상·관찰로 판정했거나 판독하지 못함): ' + ', '.join(map(html.escape, missed)) if missed else '긴급을 놓친 사진 없음'}</p></section>""")
 
     if a.verify:
         s = json.loads((Path(a.verify) / "summary.json").read_text(encoding="utf-8"))

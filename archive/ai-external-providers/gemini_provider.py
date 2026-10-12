@@ -8,7 +8,8 @@
   AI_MIN_INTERVAL_S    호출 사이 최소 간격(초). 무료 등급의 분당 호출 제한에 맞춘다 (기본 6초 = 분당 10회)
 
 주의
-  - 무료 등급은 분당·하루 호출 수 제한이 있다. 제한에 걸리면(429) 잠시 기다렸다 최대 2번 다시 시도한다.
+  - 무료 등급은 분당·하루 호출 수 제한이 있다. 제한에 걸리면(429) 5초 이내로 기다리면 될 때만 다시 시도하고,
+    아니면 바로 실패로 돌린다 (재판독 대기열이 나중에 다시 판독).
   - 무료 등급에서는 보낸 내용이 Google 서비스 개선에 쓰일 수 있다. 이 시스템은 가린 사진만 보내지만,
     실제 운영에서는 유료 등급이나 국내·자체 모델로 바꾼다.
 """
@@ -24,6 +25,7 @@ from providers.base import Provider
 
 API = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 DEFAULT_MODEL = "gemini-3.5-flash"  # 2.5 계열은 2026-10 종료(404)
+MAX_429_WAIT_S = 5  # 호출 한도(429)일 때 요청 안에서 기다리는 최대 시간
 _ALLOWED = {"type", "properties", "required", "enum", "items", "description",
             "minimum", "maximum", "minItems", "maxItems", "nullable"}
 
@@ -66,7 +68,7 @@ class GeminiProvider(Provider):
         if not self.api_key:
             raise RuntimeError("GEMINI_API_KEY가 없습니다. Google AI Studio에서 무료 키를 발급하세요.")
         self.interval = float(os.environ.get("AI_MIN_INTERVAL_S", "6"))
-        self.client = httpx.Client(timeout=float(os.environ.get("AI_TIMEOUT_S", "30")), transport=transport)
+        self.client = httpx.Client(timeout=float(os.environ.get("AI_TIMEOUT_S", "12")), transport=transport)
         self._lock = threading.Lock()
         self._last = 0.0
 
@@ -83,9 +85,12 @@ class GeminiProvider(Provider):
             self._wait_turn()
             r = self.client.post(url, headers={"x-goog-api-key": self.api_key}, json=body)
             if r.status_code == 429 and attempt < 2:
-                wait = float(r.headers.get("retry-after", 0) or 0) or (15 * (attempt + 1))
-                time.sleep(wait)
-                continue
+                # 잠깐 기다리면 되는 경우만 여기서 다시 시도한다. 오래 기다려야 하면(하루 한도 등)
+                # 바로 실패로 돌려 담당자 확인으로 넘기고, 재판독은 jobs.RetryQueue가 30초·2분·10분 뒤에 한다.
+                wait = float(r.headers.get("retry-after", 0) or 0)
+                if 0 < wait <= MAX_429_WAIT_S:
+                    time.sleep(wait)
+                    continue
             if r.status_code == 429:
                 raise RateLimited("무료 등급 호출 한도 초과 (429)")
             if r.status_code >= 400:
@@ -124,7 +129,16 @@ class GeminiProvider(Provider):
         return {"inline_data": {"mime_type": "image/jpeg", "data": base64.b64encode(jpeg).decode()}}
 
     def analyze(self, image_jpeg, prompt, schema):
-        return self._json_call(prompt, [self._img(image_jpeg), {"text": "이 점검 사진을 판독해 형식에 맞춰 보고해 주세요."}], schema)
+        # Gemini는 위치를 [ymin, xmin, ymax, xmax](0~1000)로 내도록 학습되어 있어, 계약 형식
+        # [왼쪽, 위, 오른쪽, 아래](0~1)를 요구해도 세로·가로를 바꿔 내는 일이 잦다.
+        # 그래서 Gemini에는 익숙한 형식으로 받고 여기서 계약 형식으로 바꾼다.
+        data = self._json_call(prompt + BBOX_NOTE, [self._img(image_jpeg), {"text": "이 점검 사진을 판독해 형식에 맞춰 보고해 주세요."}],
+                               _bbox_1000(schema))
+        for key in ("issues", "privacy_leaks"):
+            for item in data.get(key) or []:
+                if isinstance(item, dict):
+                    item["bbox"] = from_gemini_box(item.get("bbox"))
+        return data
 
     def verify(self, before_jpeg, after_jpeg, prompt, schema):
         parts = [{"text": "이전 사진:"}, self._img(before_jpeg), {"text": "이번에 다시 찍은 사진:"},
@@ -134,6 +148,35 @@ class GeminiProvider(Provider):
     def generate_text(self, prompt):
         body = {"contents": [{"role": "user", "parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.3}}
         return self._text(self._post(body)).strip()
+
+
+BBOX_NOTE = """
+
+[위치 형식 (Gemini 전용, 8번·11번의 좌표 형식보다 우선)]
+bbox는 [ymin, xmin, ymax, xmax] 순서로, 사진 전체를 0~1000으로 본 정수로 적는다.
+ymin·ymax는 세로(위→아래), xmin·xmax는 가로(왼쪽→오른쪽) 위치다. 문제 부위만 감싼다."""
+
+
+def _bbox_1000(schema: dict) -> dict:
+    """판독 스키마의 bbox 범위를 0~1 대신 0~1000으로 바꾼 사본."""
+    s = json.loads(json.dumps(schema))
+    for key in ("issues", "privacy_leaks"):
+        item = s.get("properties", {}).get(key, {}).get("items", {}).get("properties", {}).get("bbox")
+        if item:
+            item["items"] = {"type": "number", "minimum": 0, "maximum": 1000}
+    return s
+
+
+def from_gemini_box(b):
+    """Gemini [ymin, xmin, ymax, xmax] (0~1000) → 계약 [왼쪽, 위, 오른쪽, 아래] (0~1).
+    값이 모두 1 이하면 이미 비율로 낸 것으로 보고 1000으로 나누지 않는다. 형식이 틀리면 그대로 둔다."""
+    if not (isinstance(b, list) and len(b) == 4 and all(isinstance(v, (int, float)) for v in b)):
+        return b
+    scale = 1000.0 if max(b) > 1 else 1.0
+    y0, x0, y1, x1 = (min(max(v / scale, 0.0), 1.0) for v in b)
+    l, r = sorted((x0, x1))
+    t, btm = sorted((y0, y1))
+    return [round(l, 4), round(t, 4), round(r, 4), round(btm, 4)]
 
 
 def _fill_defaults(data: dict, schema: dict) -> dict:

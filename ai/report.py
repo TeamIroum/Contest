@@ -2,6 +2,8 @@
 
 숫자는 항상 코드가 센다. LLM은 문장만 다듬고, 문장 속 숫자가 계산값과 다르면 버리고 템플릿 문장을 쓴다.
 기획안의 'AI 문장 생성 (계산값만 인용)'을 실제로 보장하는 부분이다.
+검사: 문장 속 숫자가 템플릿과 같은 순서로 하나도 빠짐없이 나와야 하고(서로 바꿔 쓰면 순서가 달라져 걸린다),
+'다섯 장'처럼 숫자를 한글로 쓰면 검사할 수 없으므로 받지 않는다.
 """
 import re
 from collections import Counter
@@ -91,10 +93,19 @@ def numbers_in(text: str) -> list[int]:
     return [int(n.replace(",", "")) for n in re.findall(r"\d[\d,]*", text)]
 
 
+# 숫자를 한글로 쓴 경우 (한 건, 다섯 장, 열두 명 …). 검사할 수 없으므로 이런 문장은 쓰지 않는다
+_WORD_NUMBER = re.compile(r"(한|두|세|네|다섯|여섯|일곱|여덟|아홉|열|스무|서른|마흔|쉰|백|천|만)\s*(장|건|명|곳|개|번|차례)")
+
+
+def same_numbers(text: str, base: str) -> bool:
+    """생성 문장의 숫자가 기준 문장(템플릿)의 숫자와 순서까지 같아야 한다.
+    숫자를 서로 바꿔 쓰거나(긴급 2·주의 1 ↔ 1·2), 빼거나, 새로 만들면 걸린다."""
+    return numbers_in(text) == numbers_in(base) and not _WORD_NUMBER.search(text)
+
+
 def numbers_match(text: str, stats: dict) -> bool:
-    """문장 속 모든 숫자가 계산값 중 하나여야 한다."""
-    allowed = {int(v) for v in stats.values() if isinstance(v, (int, float))}
-    return all(n in allowed for n in numbers_in(text))
+    """주간 보고 문장 검사: 템플릿 문장과 숫자가 순서까지 같아야 한다."""
+    return same_numbers(text, template_report(stats))
 
 
 def write_report(stats: dict, provider: Provider | None = None) -> dict:
@@ -103,7 +114,8 @@ def write_report(stats: dict, provider: Provider | None = None) -> dict:
         return {"text": base, "source": "template"}
     prompt = (
         "다음은 시청 시설 담당 부서에 보낼 주간 점검 실적이다. 공문 보고체로 3~5문장으로 다듬어라.\n"
-        "숫자는 아래 문장에 있는 숫자만 그대로 쓰고, 새 숫자(비율, 합계, 날짜 포함)를 만들지 마라.\n\n" + base
+        "숫자는 아래 문장에 있는 숫자를 모두, 나온 순서 그대로 아라비아 숫자로 쓰고, "
+        "새 숫자(비율, 합계, 날짜 포함)를 만들지 마라.\n\n" + base
     )
     try:
         text = provider.generate_text(prompt)
@@ -116,13 +128,10 @@ def write_report(stats: dict, provider: Provider | None = None) -> dict:
 
 def weekly_from_store(start: str, end: str, corrections: int = 0, provider: Provider | None = None) -> dict:
     """결과 저장소에서 기간(YYYY-MM-DD~YYYY-MM-DD)의 기록을 모아 주간 보고를 만든다."""
+    import activity
     import storage
 
-    def day(r):
-        t = r.get("captured_at") or (r.get("meta") or {}).get("created_at") or ""
-        return t[:10]
-
-    rows = [r for r in storage.get_results().all() if start <= day(r) <= end]
+    rows = [r for r in storage.get_results().all() if start <= (activity.day_of(r) or "") <= end]
     analyze = [r for r in rows if not r.get("mode")]
     verify = [r for r in rows if r.get("mode")]
     stats = weekly_stats(analyze, verify, corrections)
@@ -170,12 +179,9 @@ def template_narrative(items: list[dict]) -> str:
 
 
 def narrative_ok(text: str, items: list[dict], base: str) -> bool:
-    """생성 문장 검사.
-    1) 문장 속 모든 숫자가 입력(항목 값, 이름·단위에 들어 있던 숫자) 중 하나여야 한다 → 새 숫자 금지
-    2) 모든 항목 값이 문장에 한 번 이상 나와야 한다 → 빠뜨리기 금지"""
-    allowed = set(numbers_in(base))
-    found = numbers_in(text)
-    return all(n in allowed for n in found) and all(it["value"] in found for it in items)
+    """생성 문장 검사: 숫자가 기준 문장(항목 순서대로)과 순서까지 같아야 한다 → 새 숫자·빠뜨리기·뒤바꾸기 금지.
+    항목 이름에 숫자가 들어 있어도 기준 문장에 같은 자리로 들어 있으므로 함께 맞춰 본다."""
+    return same_numbers(text, base)
 
 
 def write_narrative(items, provider: Provider | None = None, audience: str = "시청 시설 담당 부서") -> dict:
@@ -188,7 +194,7 @@ def write_narrative(items, provider: Provider | None = None, audience: str = "�
     prompt = (
         f"다음은 {audience}에 보낼 점검 실적 집계값이다. 공문 보고체로 3~6문장으로 정리하라.\n"
         "규칙:\n"
-        "1. 아래 항목의 숫자를 모두, 그대로 쓴다. 하나도 빼지 않는다.\n"
+        "1. 아래 항목의 숫자를 모두, 항목 순서대로, 아라비아 숫자 그대로 쓴다. 하나도 빼지 않는다.\n"
         "2. 새 숫자(합계, 비율, 증감, 날짜, 순번)를 만들지 않는다.\n"
         "3. 항목 이름의 뜻을 바꾸지 않는다. 예를 들어 '수리 확인 제안'을 '수리 완료'로 쓰지 않는다.\n"
         "4. 문장만 출력한다. 제목·목록·따옴표를 쓰지 않는다.\n\n" + lines

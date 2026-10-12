@@ -54,10 +54,13 @@ PRIOR = {"case_id": "C-0388", "facility_id": "SW-0001", "facility_type": "sidewa
          "location_tags": ["school_route"]}
 
 
-def stable(res: dict, name: str) -> dict:
-    res["photo_id"] = f"p_example_{name[:2]}"
-    if res.get("masked_image_url"):
-        res["masked_image_url"] = f"/images/{res['photo_id']}_masked.jpg"
+def example_id(name: str) -> str:
+    """예시 photo_id. 처음부터 이 ID로 판독해야 시설 이력·주간 보고 예시의 ID와 맞는다. (05와 05b는 서로 다름)"""
+    return f"p_example_{name.split('_')[0]}"
+
+
+def stable(res: dict) -> dict:
+    """실행할 때마다 달라지는 값(처리 시간·생성 시각·재시도 시각)을 예시 값으로 고정한다."""
     if res.get("meta"):
         res["meta"]["latency_ms"] = 2400  # 예시 값
         res["meta"]["created_at"] = "2026-10-08T09:14:03+09:00"
@@ -79,14 +82,16 @@ def main():
         p = _Fail() if scenario == "__fail__" else MockProvider()
         p.next_scenario = None if scenario == "__fail__" else scenario
         full = dict({"participant_id": "P-001", "captured_at": "2026-10-08T09:14:00+09:00", "device": DEVICE}, **ctx)
-        res = stable(pipeline.analyze_photo(img, dict(full, photo_id="ex_" + name), p), name)
-        (OUT / f"analyze_{name}.json").write_text(json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8")
-    for name, scenario, mode in VERIFY_CASES:
+        res = stable(pipeline.analyze_photo(img, dict(full, photo_id=example_id(name)), p))
+        (OUT / f"analyze_{name}.json").write_text(json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
+    for i, (name, scenario, mode) in enumerate(VERIFY_CASES):
         p = MockProvider()
         p.next_scenario = scenario
-        res = stable(pipeline.verify_photo(IMG, IMG, PRIOR, mode, {"participant_id": "P-001", "device": DEVICE,
-                                                                     "captured_at": "2026-10-08T09:14:00+09:00"}, p), name)
-        (OUT / f"verify_{name}.json").write_text(json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8")
+        # 04번(같은 보도블록)을 처음 판독한 사진으로 비교한다. 첫 판독 뒤로 한 시간씩 늦춰 시설 이력 순서가 늘 같게 한다
+        ctx = {"photo_id": example_id(name), "before_photo_id": example_id("04_urgent"), "participant_id": "P-001",
+               "device": DEVICE, "captured_at": f"2026-10-08T{10 + i}:00:00+09:00"}
+        res = stable(pipeline.verify_photo(None, IMG, PRIOR, mode, ctx, p))
+        (OUT / f"verify_{name}.json").write_text(json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
     # 조회 응답 예시 (위에서 만든 기록으로 계산)
     import activity
     import report
@@ -114,7 +119,7 @@ def main():
         e["at"] = f"2026-10-08T09:{14 + i:02d}:05+09:00"
     extra["events"] = evs
     for name, data in extra.items():
-        (OUT / f"get_{name}.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        (OUT / f"get_{name}.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
     print(f"{len(ANALYZE_CASES) + len(VERIFY_CASES) + len(extra)}개 파일 생성: {OUT}")
 
 

@@ -22,8 +22,12 @@ AI 실패 처리
 import logging
 import os
 import time
+import uuid
 from datetime import datetime, timedelta, timezone
 
+import numpy as np
+
+import activity
 import images
 import jobs
 import ledger
@@ -42,14 +46,37 @@ KST = timezone(timedelta(hours=9))
 REQUIRE_DEVICE_MASKING = os.environ.get("REQUIRE_DEVICE_MASKING", "0") == "1"
 OVERLAP_REVIEW = 0.25        # 문제 위치가 가린 영역과 이만큼 겹치면 담당자 확인
 MASKED_AREA_WARN = 0.30      # 사진의 이만큼이 가려지면 판독에 지장이 있을 수 있음
+REPLAY_STATUSES = ("ok", "needs_review", "retake")
 
 RETAKE_KEY = {
     "blur": "retake_blur",
     "dark": "retake_dark",
     "unreadable": "retake_blur",
     "out_of_frame": "retake_frame",
-    "no_facility": "retake_no_facility",
 }
+
+
+
+class RequestError(ValueError):
+    """요청 값이 계약과 다름 (서버는 400). 사진을 저장하기 전에 확인한다.
+    code는 백엔드가 분기에 쓰는 오류 코드 (contract/API_CONTRACT.md의 오류 코드 표)."""
+
+    def __init__(self, message: str, code: str = "INVALID_REQUEST"):
+        super().__init__(message)
+        self.code = code
+
+
+class PhotoIdConflict(Exception):
+    """같은 photo_id가 이미 다른 종류(판독 ↔ 전후 비교)로 쓰임 (서버는 409)."""
+
+
+class PhotoHidden(Exception):
+    """가림 점검에서 보류된 사진을 비교에 쓰려 함 (서버는 410)."""
+
+
+class BadModelOutput(RuntimeError):
+    """AI 응답이 출력 형식과 다름. AI 실패와 같이 담당자 확인 + 나중에 다시 판독으로 처리한다."""
+
 
 _default_provider: Provider | None = None
 
@@ -95,6 +122,10 @@ def _log(res: dict, kind: str) -> None:
 # =====================================================================
 # 받기: 검증 → 품질 → 마스킹 → 저장
 # =====================================================================
+DEVICE_BOX_MAX = 200      # 앱이 보낸 가린 위치는 이만큼만 본다
+DEVICE_BOX_COVER = 0.5    # 서버가 찾은 상자의 이 비율 이상을 앱이 이미 가렸으면 '앱이 가린 곳을 다시 찾은 것'
+
+
 def _device_report(device: dict | None) -> dict | None:
     """앱이 보낸 가림 보고에서 필요한 값만 남긴다 (앱이 보낸 값은 검증 대상이지 사실이 아니다)."""
     if not device or not device.get("masked"):
@@ -105,13 +136,62 @@ def _device_report(device: dict | None) -> dict | None:
             return max(0, int(v))
         except (TypeError, ValueError):
             return None
-    return {"faces": num(r.get("faces")), "plates": num(r.get("plates")), "vehicles": num(r.get("vehicles")),
-            "detector": str(r.get("detector") or "")[:40], "app_version": str(r.get("app_version") or "")[:20]}
+    out = {"faces": num(r.get("faces")), "plates": num(r.get("plates")), "vehicles": num(r.get("vehicles")),
+           "detector": str(r.get("detector") or "")[:40], "app_version": str(r.get("app_version") or "")[:20]}
+    boxes = _device_boxes(r.get("boxes"))
+    if boxes is not None:
+        out["boxes"] = len(boxes)   # 위치 목록은 기록하지 않고 개수만 남긴다
+    return out
+
+
+def _device_boxes(raw) -> list[list[float]] | None:
+    """앱이 가린 위치 [{"kind", "box": [x1, y1, x2, y2]}] (0~1 비율, [x1, y1, x2, y2] 배열만 보내도 됨).
+    형식이 틀린 상자는 버린다. 앱이 위치를 보내지 않았으면 None."""
+    if not isinstance(raw, list):
+        return None
+    out = []
+    for item in raw[:DEVICE_BOX_MAX]:
+        box = item.get("box") if isinstance(item, dict) else item
+        try:
+            x1, y1, x2, y2 = (min(1.0, max(0.0, float(v))) for v in box)
+        except (TypeError, ValueError):
+            continue
+        if x2 > x1 and y2 > y1:
+            out.append([x1, y1, x2, y2])
+    return out
+
+
+def _server_added(rep, device: dict | None) -> dict:
+    """저장 전 확인에서 서버가 가린 것 중 앱이 놓친 수(server_added).
+    모자이크한 얼굴도 다시 얼굴로 검출되므로, 앱이 가린 위치(boxes)를 보냈으면 그 위치와 대부분 겹치는 검출은
+    놓친 것으로 세지 않고 server_redetected로 따로 센다. 가리기는 둘 다 그대로 한다 (안전망).
+    위치를 보내지 않은 앱은 예전처럼 서버가 가린 수 전체를 센다."""
+    total = rep.faces + rep.plates + rep.vehicles
+    boxes = _device_boxes(((device or {}).get("report") or {}).get("boxes"))
+    if boxes is None:
+        return {"server_added": total}
+    again = sum(1 for b in rep.boxes if _union_fraction(b["box"], boxes) >= DEVICE_BOX_COVER)
+    return {"server_added": total - again, "server_redetected": again}
 
 
 def ingest(image_bytes: bytes, photo_id: str, device: dict | None = None) -> tuple[bytes | None, dict]:
     """가린 JPEG과 받기 단계 정보를 돌려준다. 가린 JPEG이 None이면 여기서 끝난 것(재촬영·오류).
     device: {"masked": bool, "report": {faces, plates, detector, app_version}} 앱이 1차로 가렸는지와 그 보고."""
+    jpeg, info = mask_upload(image_bytes, photo_id, device)
+    del image_bytes
+    if jpeg is not None:
+        save_ingested(photo_id, jpeg, info)
+    return jpeg, info
+
+
+def save_ingested(photo_id: str, jpeg: bytes, info: dict) -> None:
+    info["masked_image_url"] = storage.get_store().save_masked(photo_id, jpeg)
+    info["image_revision"] = storage.get_store().revision(photo_id)
+
+
+def mask_upload(image_bytes: bytes, photo_id: str, device: dict | None = None,
+                check_quality: bool = True) -> tuple[bytes | None, dict]:
+    """ingest에서 저장만 뺀 것. 사진 두 장을 모두 가린 뒤에 함께 저장해야 할 때(전후 비교) 쓴다."""
     info = {"quality": None, "privacy": None, "stop": None}
     dev = _device_report(device)
     if dev is None and REQUIRE_DEVICE_MASKING:
@@ -124,11 +204,12 @@ def ingest(image_bytes: bytes, photo_id: str, device: dict | None = None) -> tup
         info["stop"] = ("error", "retake", "retry_later", f"사진을 받을 수 없음: {e.code}")
         return None, info
 
-    q = quality.check_array(img)
-    info["quality"] = q
-    if not q["ok"]:  # 흐림·어두움이면 마스킹·저장·AI 모두 하지 않는다
-        info["stop"] = ("retake", "retake", RETAKE_KEY[q["problems"][0]], None)
-        return None, info
+    if check_quality:
+        q = quality.check_array(img)
+        info["quality"] = q
+        if not q["ok"]:  # 흐림·어두움이면 마스킹·저장·AI 모두 하지 않는다
+            info["stop"] = ("retake", "retake", RETAKE_KEY[q["problems"][0]], None)
+            return None, info
 
     try:
         masked, rep = privacy.mask_image(img)       # 서버 검사: 받은 해상도 그대로에서 검출
@@ -141,16 +222,14 @@ def ingest(image_bytes: bytes, photo_id: str, device: dict | None = None) -> tup
 
     priv = rep.as_dict()
     if dev is not None:
-        # 기기에서 이미 가린 사진: 서버가 찾아 가린 것은 기기 마스킹이 놓친 것
-        priv.update(mode="device+server", device=dev, server_added=rep.faces + rep.plates + rep.vehicles)
+        # 기기에서 이미 가린 사진: 서버가 찾아 가린 것 중 앱이 가린 곳과 겹치지 않는 것이 기기 마스킹이 놓친 것
+        priv.update(mode="device+server", device=dev, **_server_added(rep, device))
         if priv["server_added"]:
             log.warning("앱 마스킹 누락: 저장 전 확인에서 가림 photo_id=%s count=%d detector=%s",
                         photo_id, priv["server_added"], dev["detector"])
     else:
         priv.update(mode="server_only", device=None, server_added=None)
     info["privacy"] = priv
-    info["masked_image_url"] = storage.get_store().save_masked(photo_id, jpeg)
-    info["image_revision"] = storage.get_store().revision(photo_id)
     return jpeg, info
 
 
@@ -168,8 +247,12 @@ def _remask_leaks(photo_id: str, jpeg: bytes, leaks: list[dict], priv: dict) -> 
             img[p.y:p.y + p.h, p.x:p.x + p.w] = privacy._pixelate(img[p.y:p.y + p.h, p.x:p.x + p.w])
         else:
             img[p.y:p.y + p.h, p.x:p.x + p.w] = privacy.PLATE_FILL
-        priv["boxes"].append({"kind": lk["kind"], "source": "ai", "score": 1.0,
-                              "box": [round(p.x / W, 4), round(p.y / H, 4), round((p.x + p.w) / W, 4), round((p.y + p.h) / H, 4)]})
+        priv.setdefault("boxes", []).append(
+            {"kind": lk["kind"], "source": "ai", "score": 1.0,
+             "box": [round(p.x / W, 4), round(p.y / H, 4), round((p.x + p.w) / W, 4), round((p.y + p.h) / H, 4)]})
+        count_key = "faces" if lk["kind"] == "face" else "plates"
+        priv[count_key] = (priv.get(count_key) or 0) + 1
+    priv["masked_area_ratio"] = round(_union_fraction([0.0, 0.0, 1.0, 1.0], [b["box"] for b in priv["boxes"]]), 4)
     new = images.encode_jpeg(img)
     store = storage.get_store()
     store.save_masked(photo_id, new)
@@ -181,11 +264,140 @@ def _remask_leaks(photo_id: str, jpeg: bytes, leaks: list[dict], priv: dict) -> 
     return new
 
 
-def _overlap(issue_bbox, mask_box) -> float:
-    ix = max(0.0, min(issue_bbox[2], mask_box[2]) - max(issue_bbox[0], mask_box[0]))
-    iy = max(0.0, min(issue_bbox[3], mask_box[3]) - max(issue_bbox[1], mask_box[1]))
-    area = max(1e-6, (issue_bbox[2] - issue_bbox[0]) * (issue_bbox[3] - issue_bbox[1]))
-    return ix * iy / area
+def _union_fraction(region, boxes, grid: int = 64) -> float:
+    """region(정규화 좌표 [x1, y1, x2, y2]) 중 boxes 합집합이 덮는 비율. 상자 여러 개가 조금씩 덮는 경우도
+    합쳐서 센다. 격자 점으로 어림하므로 1/grid 정도의 오차가 있다."""
+    x1, y1, x2, y2 = region
+    if x2 <= x1 or y2 <= y1 or not boxes:
+        return 0.0
+    xs = x1 + (np.arange(grid) + 0.5) * (x2 - x1) / grid
+    ys = y1 + (np.arange(grid) + 0.5) * (y2 - y1) / grid
+    gx, gy = np.meshgrid(xs, ys)
+    hit = np.zeros(gx.shape, bool)
+    for b in boxes:
+        hit |= (gx >= b[0]) & (gx <= b[2]) & (gy >= b[1]) & (gy <= b[3])
+    return float(hit.mean())
+
+
+def _hidden_by_mask(bbox, priv: dict | None) -> bool:
+    """문제 위치가 가린 영역(모든 가림 상자의 합집합)과 OVERLAP_REVIEW 이상 겹치는지."""
+    boxes = [b["box"] for b in (priv or {}).get("boxes") or []]
+    return _valid_bbox(bbox) and _union_fraction(bbox, boxes) >= OVERLAP_REVIEW
+
+
+def _masked_area_note(priv: dict | None, notes: list) -> None:
+    ratio = (priv or {}).get("masked_area_ratio") or 0
+    if ratio >= MASKED_AREA_WARN:
+        notes.append(f"사진의 {int(ratio * 100)}%가 가려져 판독에 지장이 있을 수 있음")
+
+
+# =====================================================================
+# 입력·AI 응답 형식 확인
+# =====================================================================
+def _is_int(v) -> bool:
+    return isinstance(v, int) and not isinstance(v, bool)
+
+
+def _valid_bbox(b) -> bool:
+    return (isinstance(b, (list, tuple)) and len(b) == 4
+            and all(isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v <= 1 for v in b)
+            and b[0] < b[2] and b[1] < b[3])
+
+
+def _str_list(v) -> bool:
+    return isinstance(v, list) and all(isinstance(t, str) for t in v)
+
+
+def check_context(ctx: dict) -> None:
+    """앱·백엔드가 보낸 맥락 값의 형식. 틀리면 RequestError. 사진을 저장하기 전에 부른다."""
+    for k in ("lat", "lon"):
+        v = ctx.get(k)
+        if v is not None and (isinstance(v, bool) or not isinstance(v, (int, float))):
+            raise RequestError(f"{k}는 숫자여야 합니다", "INVALID_CONTEXT")
+    h = ctx.get("capture_hour")
+    if h is not None and not (_is_int(h) and 0 <= h <= 23):
+        raise RequestError("capture_hour는 0~23 정수여야 합니다", "INVALID_CONTEXT")
+    for k in ("participant_id", "captured_at"):
+        if ctx.get(k) is not None and not isinstance(ctx[k], str):
+            raise RequestError(f"{k}는 문자열이어야 합니다", "INVALID_CONTEXT")
+    if ctx.get("location_tags") is not None and not _str_list(ctx["location_tags"]):
+        raise RequestError("location_tags는 문자열 목록이어야 합니다", "INVALID_CONTEXT")
+    hist = ctx.get("history")
+    if hist is not None:
+        if not isinstance(hist, dict):
+            raise RequestError("history는 JSON 객체여야 합니다", "INVALID_CONTEXT")
+        sev = hist.get("severity", 0)
+        if not (_is_int(sev) and 0 <= sev <= 3):
+            raise RequestError("history.severity는 0~3 정수여야 합니다", "INVALID_CONTEXT")
+    cases = ctx.get("open_cases")
+    if cases is not None and not (isinstance(cases, list) and all(isinstance(c, dict) for c in cases)):
+        raise RequestError("open_cases는 JSON 객체 목록이어야 합니다", "INVALID_CONTEXT")
+
+
+def check_prior(prior) -> None:
+    """전후 비교에 쓰는 이전 판독 정보의 형식. 틀리면 RequestError."""
+    if not isinstance(prior, dict):
+        raise RequestError("prior_json은 JSON 객체여야 합니다", "INVALID_PRIOR")
+    ftype = prior.get("facility_type")
+    f = facility(ftype) if isinstance(ftype, str) else None
+    if f is None:
+        raise RequestError("prior.facility_type이 시설 목록에 없습니다", "INVALID_PRIOR")
+    if prior.get("issue_type") not in f["issues"]:
+        raise RequestError("prior.issue_type이 그 시설의 문제 유형에 없습니다", "INVALID_PRIOR")
+    sev = prior.get("severity")
+    if sev is not None and not (_is_int(sev) and 0 <= sev <= 3):
+        raise RequestError("prior.severity는 0~3 정수여야 합니다", "INVALID_PRIOR")
+    if prior.get("bbox") is not None and not _valid_bbox(prior["bbox"]):
+        raise RequestError("prior.bbox는 0~1 사이 [x1, y1, x2, y2]여야 합니다", "INVALID_PRIOR")
+    if prior.get("location_tags") is not None and not _str_list(prior["location_tags"]):
+        raise RequestError("prior.location_tags는 문자열 목록이어야 합니다", "INVALID_PRIOR")
+
+
+def check_analyze_output(raw) -> None:
+    """AI 판독 응답이 출력 형식(prompts.analyze_schema)을 지키는지 다시 확인한다. 어기면 BadModelOutput.
+    Ollama의 형식 강제가 값 범위·필수 항목까지 늘 지켜 주지는 않기 때문이다."""
+    def bad(what):
+        raise BadModelOutput(f"AI 응답 형식 오류: {what}")
+    if not isinstance(raw, dict):
+        bad("JSON 객체가 아님")
+    if not isinstance(raw.get("facility_type"), str):
+        bad("facility_type")
+    for k in ("facility_visible", "framing_ok", "is_night_photo"):
+        if not isinstance(raw.get(k), bool):
+            bad(k)
+    if raw.get("certainty") not in ("high", "medium", "low"):
+        bad("certainty")
+    if not isinstance(raw.get("issues"), list):
+        bad("issues")
+    for i in raw["issues"]:
+        if not (isinstance(i, dict) and isinstance(i.get("type"), str) and _is_int(i.get("severity"))
+                and 1 <= i["severity"] <= 3 and _valid_bbox(i.get("bbox")) and isinstance(i.get("evidence"), str)):
+            bad(f"issues 항목 {str(i)[:80]}")
+    leaks = raw.setdefault("privacy_leaks", [])
+    if not isinstance(leaks, list):
+        bad("privacy_leaks")
+    for lk in leaks:
+        if not (isinstance(lk, dict) and lk.get("kind") in ("face", "plate") and _valid_bbox(lk.get("bbox"))):
+            bad(f"privacy_leaks 항목 {str(lk)[:80]}")
+
+
+def check_verify_output(raw, mode: str) -> None:
+    def bad(what):
+        raise BadModelOutput(f"AI 응답 형식 오류: {what}")
+    if not isinstance(raw, dict):
+        bad("JSON 객체가 아님")
+    if raw.get("same_facility") not in ("yes", "no", "unclear"):
+        bad("same_facility")
+    if not isinstance(raw.get("clearly_visible"), bool):
+        bad("clearly_visible")
+    if raw.get("result") not in prompts.RESULT_ENUMS[mode]:
+        bad("result")
+    if not (_is_int(raw.get("current_severity")) and 0 <= raw["current_severity"] <= 3):
+        bad("current_severity")
+    if not isinstance(raw.get("evidence"), str):
+        bad("evidence")
+    if raw.get("certainty") not in ("high", "medium", "low"):
+        bad("certainty")
 
 
 # =====================================================================
@@ -219,7 +431,8 @@ def _judge(res: dict, jpeg: bytes, ctx: dict, provider: Provider, t0: float, att
     priv = (res.get("meta") or {}).get("privacy") or {"faces": 0, "plates": 0, "boxes": []}
     try:
         raw = jobs.ai_gate.run(provider.analyze, jpeg, prompts.analyze_prompt(), prompts.analyze_schema())
-    except Exception as e:  # 오류·시간 초과·혼잡: 담당자 확인 + 나중에 다시 판독
+        check_analyze_output(raw)
+    except Exception as e:  # 오류·시간 초과·혼잡·응답 형식 오류: 담당자 확인 + 나중에 다시 판독
         log.warning("AI 판독 실패 photo_id=%s: %s: %s", res.get("photo_id"), type(e).__name__, e)
         res.update(status="needs_review", action="human_review", senior_message=senior_message("human_review"))
         res["notes"] = [f"판독 지연: {type(e).__name__}. 저장된 가린 사진으로 다시 판독합니다."]
@@ -248,7 +461,12 @@ def _judge(res: dict, jpeg: bytes, ctx: dict, provider: Provider, t0: float, att
         return res
 
     ftype = raw["facility_type"]
-    if ftype == "unknown" or not raw["facility_visible"]:
+    if ftype == "unknown" or facility(ftype) is None or not raw["facility_visible"]:
+        if not rules.rules()["review"]["send_unknown_facility_to_human"]:  # 담당자 대신 어르신께 다시 찍기 안내
+            res.update(status="retake", action="retake", senior_message=senior_message("retake_no_facility"))
+            res["notes"].append("점검 목록에 없는 대상이거나 시설이 분명하지 않음")
+            res["meta"] = _meta(provider, prompts.ANALYZE_VERSION, t0, meta_extra)
+            return res
         res.update(status="needs_review", action="human_review", senior_message=senior_message("human_review"))
         res["facility"] = {"type": "unknown", "label": "목록 외 시설", "certainty": raw["certainty"]}
         res["notes"].append("점검 목록에 없는 대상이거나 시설이 분명하지 않음")
@@ -286,9 +504,8 @@ def _judge(res: dict, jpeg: bytes, ctx: dict, provider: Provider, t0: float, att
     res.update(issues=issues, ai_severity=severity, grade=grade, grade_reasons=reasons, dept=f["dept"])
 
     # 가린 영역이 판독을 가렸을 수 있는지
-    hidden = [i for i in issues for b in priv.get("boxes", []) if _overlap(i["bbox"], b["box"]) >= OVERLAP_REVIEW]
-    if priv.get("masked_area_ratio", 0) >= MASKED_AREA_WARN:
-        res["notes"].append(f"사진의 {int(priv['masked_area_ratio'] * 100)}%가 가려져 판독에 지장이 있을 수 있음")
+    hidden = [i for i in issues if _hidden_by_mask(i["bbox"], priv)]
+    _masked_area_note(priv, res["notes"])
     if hidden:
         res["notes"].append("문제 위치가 개인정보 가림 영역과 겹침: 담당자 확인 필요")
 
@@ -306,7 +523,7 @@ def _judge(res: dict, jpeg: bytes, ctx: dict, provider: Provider, t0: float, att
         res.update(status="ok", action=rules.action_for_grade(grade),
                    senior_message=senior_message(rules.SENIOR_KEY_BY_GRADE[grade]))
 
-    if issues:
+    if issues and rules.rules()["duplicate"]["same_facility_and_issue_while_open"]:
         top = max(issues, key=lambda i: i["severity"])
         res["duplicate_of"] = ledger.find_duplicate(ctx.get("open_cases"), res["facility"]["facility_id"], top["type"])
         if res["duplicate_of"]:
@@ -324,15 +541,43 @@ def analyze_photo(image_bytes: bytes, context: dict | None = None, provider: Pro
     t0 = time.time()
     ctx = dict(context or {})
     provider = _provider(provider)
-    photo_id = storage.safe_photo_id(ctx.get("photo_id"))
-    results = storage.get_results()
+    check_context(ctx)
+    photo_id = _photo_id(ctx)
+    # 같은 photo_id의 요청은 한 번에 하나씩: 앱이 응답을 기다리다 다시 보내도 AI 판독은 한 번만 하고,
+    # 두 번째 요청은 첫 요청이 저장한 결과를 돌려받는다
+    with storage.photo_lock(photo_id):
+        return _analyze_locked(image_bytes, ctx, provider, photo_id, t0)
 
-    # 같은 photo_id 재요청(네트워크 재시도): 저장된 결과를 그대로 돌려준다 → 알림 중복 없음
-    if ctx.get("photo_id") == photo_id:
-        prev = results.load(photo_id)
-        if prev and prev.get("status") in ("ok", "needs_review", "retake"):
-            prev.setdefault("meta", {})["replayed"] = True
-            return prev
+
+def _photo_id(ctx: dict) -> str:
+    """요청의 photo_id. 없으면 새로 만들고, 형식이 틀리면 RequestError (조용히 바꾸면 재요청 확인이 깨진다)."""
+    pid = ctx.get("photo_id")
+    if pid is None or pid == "":
+        return storage.safe_photo_id(None)
+    if not isinstance(pid, str) or not storage.is_client_photo_id(pid):
+        raise RequestError("photo_id는 영문·숫자·_·- 80자 이하이며 m_로 시작할 수 없습니다", "INVALID_PHOTO_ID")
+    return pid
+
+
+def _replay(photo_id: str, want_verify: bool) -> dict | None:
+    """같은 photo_id 재요청(네트워크 재시도)이면 저장된 결과를 그대로 돌려준다 → 알림 중복 없음.
+    판독 결과가 있는 ID로 전후 비교를 요청하거나 그 반대면 PhotoIdConflict."""
+    prev = storage.get_results().load(photo_id)
+    if prev is None:
+        return None
+    if bool(prev.get("mode")) != want_verify:
+        raise PhotoIdConflict(photo_id)
+    if prev.get("status") in REPLAY_STATUSES:
+        prev.setdefault("meta", {})["replayed"] = True
+        return prev
+    return None
+
+
+def _analyze_locked(image_bytes: bytes, ctx: dict, provider: Provider, photo_id: str, t0: float) -> dict:
+    results = storage.get_results()
+    prev = _replay(photo_id, want_verify=False)
+    if prev is not None:
+        return prev
 
     res = _empty_result(photo_id)
     res["participant_id"] = ctx.get("participant_id")
@@ -362,13 +607,19 @@ def analyze_photo(image_bytes: bytes, context: dict | None = None, provider: Pro
 
 def reanalyze(photo_id: str, attempt: int = 1, provider: Provider | None = None) -> dict | None:
     """저장된 가린 사진과 맥락으로 다시 판독한다 (RetryQueue가 호출). 원본은 필요 없다."""
+    with storage.photo_lock(photo_id):  # 그동안 들어온 가림 점검 기록을 덮어쓰지 않도록
+        return _reanalyze_locked(photo_id, attempt, _provider(provider))
+
+
+def _reanalyze_locked(photo_id: str, attempt: int, provider: Provider) -> dict | None:
     t0 = time.time()
-    provider = _provider(provider)
     results = storage.get_results()
     prev, ctx = results.load(photo_id), results.load_ctx(photo_id) or {}
     jpeg = storage.get_store().load_masked(photo_id)
     if prev is None or jpeg is None:
         return None
+    if activity.is_hidden(photo_id):  # 보류된 사진은 다시 가릴 때까지 AI로 보내지 않는다
+        return give_up_retry(photo_id, attempt, "가림 점검에서 보류된 사진이라 다시 판독하지 않음")
     res = _empty_result(photo_id)
     res.update(masked_image_url=prev["masked_image_url"], quality=prev["quality"],
                participant_id=prev.get("participant_id"), captured_at=prev.get("captured_at"),
@@ -393,13 +644,14 @@ def give_up_retry(photo_id: str, attempt: int, reason: str) -> dict | None:
     """재판독을 더 할 수 없을 때(사진·맥락이 없거나 반복 예외) 대기 상태를 끝내고 담당자 확인으로 둔다.
     이렇게 하지 않으면 결과가 '재판독 중'으로 영원히 남고 서버를 켤 때마다 다시 집어 든다."""
     results = storage.get_results()
-    r = results.load(photo_id)
-    if r is None:
-        return None
-    r["retry"] = {"pending": False, "attempts": attempt, "gave_up": True, "reason": reason}
-    r.update(status="needs_review", action="human_review")
-    r["notes"] = list(r.get("notes") or []) + [f"다시 판독할 수 없어 담당자 확인으로 둡니다 ({reason})."]
-    results.save(r)
+    with storage.photo_lock(photo_id):
+        r = results.load(photo_id)
+        if r is None:
+            return None
+        r["retry"] = {"pending": False, "attempts": attempt, "gave_up": True, "reason": reason}
+        r.update(status="needs_review", action="human_review")
+        r["notes"] = list(r.get("notes") or []) + [f"다시 판독할 수 없어 담당자 확인으로 둡니다 ({reason})."]
+        results.save(r)
     _result_updated(r)
     log.warning("재판독 포기 photo_id=%s attempt=%d reason=%s", photo_id, attempt, reason)
     return r
@@ -413,6 +665,7 @@ def _verify_core(res: dict, before: bytes, after: bytes, prior: dict, mode: str,
     try:
         raw = jobs.ai_gate.run(provider.verify, before, after, prompts.verify_prompt(prior, mode),
                                prompts.verify_schema(mode))
+        check_verify_output(raw, mode)
     except Exception as e:
         res.update(status="needs_review", action="human_review", senior_message=senior_message("human_review"))
         res["notes"] = [f"비교 지연: {type(e).__name__}. 저장된 가린 사진으로 다시 비교합니다."]
@@ -444,6 +697,11 @@ def _verify_core(res: dict, before: bytes, after: bytes, prior: dict, mode: str,
                        senior_message=senior_message(rules.SENIOR_KEY_BY_GRADE[grade]))
         else:
             res.update(action="keep", senior_message=senior_message("observe_recheck"))
+    # 문제 부위가 이번 사진에서 가려졌으면 AI가 '고쳐짐'으로 잘못 볼 수 있으므로 담당자가 확인한다
+    _masked_area_note(priv, res["notes"])
+    if res["status"] == "ok" and _hidden_by_mask(prior.get("bbox"), priv):
+        res.update(status="needs_review", action="human_review", senior_message=senior_message("human_review"))
+        res["notes"].append("문제 위치가 개인정보 가림 영역과 겹침: 담당자 확인 필요")
     extra = {"privacy": priv}
     if attempt:
         extra["retried"] = attempt
@@ -451,22 +709,42 @@ def _verify_core(res: dict, before: bytes, after: bytes, prior: dict, mode: str,
     return res
 
 
-def verify_photo(before_jpeg: bytes, after_bytes: bytes, prior: dict, mode: str = "repair",
+def verify_photo(before_jpeg: bytes | None, after_bytes: bytes, prior: dict, mode: str = "repair",
                  context: dict | None = None, provider: Provider | None = None) -> dict:
     """prior: {case_id, facility_type, issue_type, severity, bbox, evidence, location_tags?}
     mode: repair(처리 완료 후 수리 확인) | change(미처리 건 변화 비교)
-    before_jpeg: 처음 판독 때 저장된 가린 사진. context의 before_photo_id가 있으면 재비교에 쓴다.
+    context의 before_photo_id가 있으면(권장) 처음 판독 때 저장된 가린 사진을 쓴다. before_jpeg를 함께 주면
+    그 저장본으로 보고, 비우면 저장소에서 읽는다. before_photo_id가 없으면 before_jpeg는 앱이 올린 사진이므로
+    판독 사진과 같은 검사(기기 가림 확인·크기 제한·가림)를 거쳐 m_vb_로 시작하는 이름으로 따로 저장한다.
     """
     t0 = time.time()
     ctx = dict(context or {})
     provider = _provider(provider)
-    photo_id = storage.safe_photo_id(ctx.get("photo_id"))
+    if mode not in prompts.MODE_INSTRUCTIONS:
+        raise RequestError("mode는 repair 또는 change", "INVALID_MODE")
+    check_prior(prior)
+    check_context(ctx)
+    photo_id = _photo_id(ctx)
+    with storage.photo_lock(photo_id):
+        return _verify_locked(before_jpeg, after_bytes, prior, mode, ctx, provider, photo_id, t0)
+
+
+def _verify_locked(before_jpeg, after_bytes, prior, mode, ctx, provider, photo_id, t0) -> dict:
     results = storage.get_results()
-    if ctx.get("photo_id") == photo_id:
-        prev = results.load(photo_id)
-        if prev and prev.get("mode") and prev.get("status") in ("ok", "needs_review", "retake"):
-            prev.setdefault("meta", {})["replayed"] = True
-            return prev
+    prev = _replay(photo_id, want_verify=True)
+    if prev is not None:
+        return prev
+
+    before_id = ctx.get("before_photo_id")
+    if before_id:
+        if activity.is_hidden(before_id):
+            raise PhotoHidden(before_id)  # 보류된 사진은 비교(AI 전송)에 쓰지 않는다
+        if before_jpeg is None:
+            before_jpeg = storage.get_store().load_masked(before_id)
+            if before_jpeg is None:
+                raise RequestError(f"저장된 가린 사진이 없습니다: {before_id}", "PHOTO_NOT_FOUND")
+    elif before_jpeg is None:
+        raise RequestError("before_photo_id 또는 before 사진 중 하나가 필요합니다", "BEFORE_REQUIRED")
 
     res = {
         "photo_id": photo_id, "case_id": prior.get("case_id"), "facility_id": prior.get("facility_id"),
@@ -477,38 +755,63 @@ def verify_photo(before_jpeg: bytes, after_bytes: bytes, prior: dict, mode: str 
         "evidence": None, "new_grade": None, "grade_reasons": [], "senior_message": None,
         "retry": None, "notes": [], "meta": None,
     }
-    after, info = ingest(after_bytes, photo_id, ctx.get("device"))
-    del after_bytes
-    if after is None:
+
+    def stop(info, which: str = ""):
         status, action, msg, note = info["stop"]
         res.update(status=status, action=action, senior_message=senior_message(msg))
         if note:
-            res["notes"].append(note)
+            res["notes"].append(which + note)
         res["meta"] = _meta(provider, None, t0)
         return res
+
+    # 두 장을 모두 가린 뒤에 함께 저장한다. 한 장이 실패하면 아무것도 저장하지 않는다.
+    after, info = mask_upload(after_bytes, photo_id, ctx.get("device"))
+    del after_bytes
+    if after is None:
+        return stop(info)
+    if not before_id:
+        before_id = storage.MEDIA_PREFIX + "vb_" + uuid.uuid4().hex[:12]
+        before_jpeg, before_info = mask_upload(before_jpeg, before_id, ctx.get("device"), check_quality=False)
+        if before_jpeg is None:
+            return stop(before_info, "수리 전 사진: ")
+        save_ingested(before_id, before_jpeg, before_info)
+        _save_before_record(before_id, before_info, t0)
+    save_ingested(photo_id, after, info)
     res["masked_image_url"] = info["masked_image_url"]
     res["image_revision"] = info["image_revision"]
-    if not ctx.get("before_photo_id"):
-        # 처리 전 사진을 직접 받은 경우: 한 번 더 가려서 저장해 두어야 나중에 다시 비교할 수 있다
-        before_jpeg, _ = privacy.anonymize(before_jpeg)
-        ctx["before_photo_id"] = photo_id + "_before"
-        storage.get_store().save_masked(ctx["before_photo_id"], before_jpeg)
+
     before = images.encode_jpeg(images.resize_max(images.decode_jpeg(before_jpeg), images.AI_MAX_SIDE))
     res = _verify_core(res, before, after, prior, mode, provider, t0, info["privacy"])
-    results.save(res, {"prior": prior, "mode": mode, "before_photo_id": ctx.get("before_photo_id")})
+    results.save(res, {"prior": prior, "mode": mode, "before_photo_id": before_id})
     _log(res, "verify")
     return res
 
 
+def _save_before_record(before_id: str, info: dict, t0: float) -> None:
+    """앱이 직접 올린 수리 전 사진의 가림 기록. 참고·보수 사진 기록과 같은 곳에 두어 가림 점검(보류)을 받을 수 있게 한다.
+    판독 결과가 아니므로 활동 실적·주간 보고에는 들어가지 않는다."""
+    rec = {"media_id": before_id[len(storage.MEDIA_PREFIX):], "photo_id": before_id, "purpose": "verify_before",
+           "status": "ok", "masked_image_url": info["masked_image_url"], "image_revision": info["image_revision"],
+           "privacy": info["privacy"], "notes": []}
+    storage.get_media().save(_media_meta(rec, t0))
+
+
 def reverify(photo_id: str, attempt: int = 1, provider: Provider | None = None) -> dict | None:
+    with storage.photo_lock(photo_id):
+        return _reverify_locked(photo_id, attempt, _provider(provider))
+
+
+def _reverify_locked(photo_id: str, attempt: int, provider: Provider) -> dict | None:
     t0 = time.time()
-    provider = _provider(provider)
     results = storage.get_results()
     prev, ctx = results.load(photo_id), results.load_ctx(photo_id) or {}
+    before_id = ctx.get("before_photo_id") or ""
     after = storage.get_store().load_masked(photo_id)
-    before = storage.get_store().load_masked(ctx.get("before_photo_id") or "")
+    before = storage.get_store().load_masked(before_id)
     if prev is None or after is None or before is None:
         return None
+    if activity.is_hidden(photo_id) or activity.is_hidden(before_id):
+        return give_up_retry(photo_id, attempt, "가림 점검에서 보류된 사진이라 다시 비교하지 않음")
     res = _verify_core(dict(prev), before, after, ctx["prior"], ctx["mode"], provider, t0,
                        (prev.get("meta") or {}).get("privacy"), attempt=attempt)
     results.save(res)
@@ -577,7 +880,7 @@ def mask_media(image_bytes: bytes, media_id: str, purpose: str, device: dict | N
 
     priv = rep.as_dict()
     if dev is not None:
-        priv.update(mode="device+server", device=dev, server_added=rep.faces + rep.plates + rep.vehicles)
+        priv.update(mode="device+server", device=dev, **_server_added(rep, device))
     else:
         priv.update(mode="server_only", device=None, server_added=None)
     store = storage.get_store()
