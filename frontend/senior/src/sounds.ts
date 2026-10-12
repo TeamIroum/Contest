@@ -1,6 +1,6 @@
 // 어르신 앱 효과음과 진동.
 // 파일 없이 브라우저(Web Audio)에서 짧은 소리를 합성한다. 오프라인에서도 동작한다.
-// - 촬영음은 늘 재생한다 (촬영 사실을 알리는 장치라 끌 수 없음)
+// - 촬영음("찰칵")은 늘 재생한다 (공공장소 촬영 사실을 알리는 장치라 끌 수 없음)
 // - 나머지 효과음은 [소리] 버튼으로 끌 수 있다
 // - 진동은 지원하는 휴대폰에서만 동작한다
 
@@ -30,6 +30,7 @@ function audio(): Ctx | null {
 export function unlockAudio() {
   const once = () => {
     audio()
+    primeShutter()
     window.removeEventListener('pointerdown', once)
   }
   window.addEventListener('pointerdown', once)
@@ -62,57 +63,101 @@ function vibrate(pattern: number | number[]) {
   }
 }
 
-/** 짧은 잡음 조각: 한 대역만 남겨 날카롭지 않은 "딸깍" 소리를 만든다 */
-function click(c: Ctx, at: number, dur: number, freq: number, q: number, vol: number) {
-  const len = Math.max(1, Math.floor(c.sampleRate * dur))
-  const buf = c.createBuffer(1, len, c.sampleRate)
-  const d = buf.getChannelData(0)
-  // 앞부분이 세고 빠르게 줄어드는 잡음
-  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3)
-  const src = c.createBufferSource()
-  const f = c.createBiquadFilter()
-  const g = c.createGain()
-  f.type = 'bandpass'
-  f.frequency.value = freq
-  f.Q.value = q
-  g.gain.value = vol
-  src.buffer = buf
-  src.connect(f).connect(g).connect(c.destination)
-  src.start(c.currentTime + at)
-}
-
-/** 낮게 떨어지는 짧은 음: 셔터 몸체가 "툭" 울리는 느낌 */
-function thump(c: Ctx, at: number) {
-  const t0 = c.currentTime + at
-  const o = c.createOscillator()
-  const g = c.createGain()
-  o.type = 'sine'
-  o.frequency.setValueAtTime(190, t0)
-  o.frequency.exponentialRampToValueAtTime(80, t0 + 0.07)
-  g.gain.setValueAtTime(0.0001, t0)
-  g.gain.exponentialRampToValueAtTime(0.28, t0 + 0.004)
-  g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.09)
-  o.connect(g).connect(c.destination)
-  o.start(t0)
-  o.stop(t0 + 0.1)
-}
-
-/** 사진 찍을 때: 카메라 셔터 "찰-칵" (항상 재생)
- *  열릴 때 또렷한 딸깍 + 몸체 울림, 닫힐 때 조금 부드러운 딸깍 */
+/**
+ * 사진 찍을 때: 휴대폰 카메라에서 흔히 듣는 "찰칵" (항상 재생, 소리 끄기와 상관없음 — 공공장소 촬영 사실 알림).
+ * Web Audio는 아이폰 무음 스위치를 따라 꺼지므로, 소리를 WAV로 만들어 <audio>로 재생한다 (미디어 재생으로 취급돼 들림).
+ */
 export function playShutter() {
-  // 촬영음은 빼고 짧은 진동만 남긴다 (사용자 요청). 소리를 되살리려면 SHUTTER_SOUND를 true로.
   vibrate(30)
-  if (!SHUTTER_SOUND) return
-  const c = audio()
-  if (!c) return
-  click(c, 0, 0.018, 3200, 1.4, 0.55)
-  thump(c, 0)
-  click(c, 0.075, 0.03, 2200, 1.1, 0.4)
-  thump(c, 0.075)
+  try {
+    const a = shutterAudio()
+    a.currentTime = 0
+    void a.play().catch(() => {})
+  } catch {
+    /* 소리 없이 진행 */
+  }
 }
 
-/** 촬영음 사용 여부. 팀 문서(frontend/senior/README.md)는 촬영음 재생을 요구하므로 팀 확인 필요 */
-const SHUTTER_SOUND = false
+let shutterEl: HTMLAudioElement | null = null
+function shutterAudio() {
+  if (!shutterEl) {
+    shutterEl = new Audio(URL.createObjectURL(shutterWav()))
+    shutterEl.preload = 'auto'
+  }
+  return shutterEl
+}
+/** 첫 터치 때 촬영음을 미리 불러 둔다 (셔터를 누른 순간 바로 나도록) */
+function primeShutter() {
+  try {
+    shutterAudio().load()
+  } catch {
+    /* 지원 안 함 */
+  }
+}
+
+/**
+ * 카메라 셔터 "찰칵"을 코드로 만든다 (파일을 따로 두지 않음, 매번 같은 소리).
+ *   찰: 셔터막이 열리는 날카롭고 짧은 금속 딸깍
+ *   칵: 약 55ms 뒤 닫히는, 조금 낮고 단단한 딸깍
+ * 딸깍 하나 = 높은 대역 잡음(금속 마찰, 4ms) + 짧은 금속 울림 + 아주 짧은 몸체 울림
+ */
+function shutterWav() {
+  const rate = 44100
+  const n = Math.floor(rate * 0.16)
+  const s = new Float32Array(n)
+  let seed = 11
+  const rand = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x3fffffff) - 1
+  function snap(at: number, amp: number, hi: number, ring: number, body: number) {
+    // 높은 대역만 남긴 잡음 (1차 고역 통과 두 번)
+    const k = Math.exp((-2 * Math.PI * hi) / rate)
+    let x1 = 0,
+      y1 = 0,
+      y2p = 0,
+      z1 = 0
+    const start = Math.floor(at * rate)
+    for (let i = start; i < n; i++) {
+      const t = (i - start) / rate
+      if (t > 0.05) break
+      const x = rand()
+      const y = k * (y1 + x - x1)
+      x1 = x
+      y1 = y
+      const z = k * (z1 + y - y2p)
+      y2p = y
+      z1 = z
+      const attack = Math.min(1, t / 0.0002)
+      s[i] +=
+        amp *
+        attack *
+        (1.6 * z * Math.exp(-t / 0.004) + // 금속 마찰 (아주 짧게)
+          0.45 * Math.sin(2 * Math.PI * ring * t) * Math.exp(-t / 0.009) + // 금속 울림
+          0.35 * Math.sin(2 * Math.PI * body * t) * Math.exp(-t / 0.006)) // 몸체
+    }
+  }
+  snap(0, 1, 5200, 3400, 520) // 찰
+  snap(0.055, 0.8, 3800, 2600, 380) // 칵
+  let peak = 0
+  for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(s[i]))
+  const view = new DataView(new ArrayBuffer(44 + n * 2))
+  const str = (o: number, t: string) => {
+    for (let i = 0; i < t.length; i++) view.setUint8(o + i, t.charCodeAt(i))
+  }
+  str(0, 'RIFF')
+  view.setUint32(4, 36 + n * 2, true)
+  str(8, 'WAVE')
+  str(12, 'fmt ')
+  view.setUint32(16, 16, true)
+  view.setUint16(20, 1, true)
+  view.setUint16(22, 1, true)
+  view.setUint32(24, rate, true)
+  view.setUint32(28, rate * 2, true)
+  view.setUint16(32, 2, true)
+  view.setUint16(34, 16, true)
+  str(36, 'data')
+  view.setUint32(40, n * 2, true)
+  for (let i = 0; i < n; i++) view.setInt16(44 + i * 2, (s[i] / peak) * 0.9 * 0x7fff, true)
+  return new Blob([view], { type: 'audio/wav' })
+}
 
 /** 사진 전송 완료·다음으로: 짧고 밝은 "띵" */
 export function playSuccess() {

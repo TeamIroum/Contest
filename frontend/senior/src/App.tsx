@@ -1,9 +1,23 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { Photo, KIND_NAME } from './Photo'
 import { Scenery } from './Scenery'
 import { SKY_PRESETS, lookAt, nowHour, type SkyLook } from './sky'
+import { LiveCamera, type CameraHandle } from './camera/LiveCamera'
+import * as quality from './camera/quality.js'
+import * as masking from './masking/masking.js'
+import * as outbox from './offline/outbox.js'
+import type { OutboxItem, SubmitBody } from './offline/outbox.js'
+import { fetchPatrol, fetchTodayPatrol, sendOpts } from './api/client'
 import { playNotify, playRetake, playShutter, playSuccess, setSoundEnabled, unlockAudio } from './sounds'
-import { ABORT_REASONS, MAX_ATTEMPTS, ME, PARTNER, SKIP_REASONS, STAFF, STOPS, TEAM, type Stop } from './data'
+import { ABORT_REASONS, MAX_ATTEMPTS, ME, PARTNER, SKIP_REASONS, STAFF, STOPS, TEAM, applyPatrol, slotDone, stopDone, type Stop } from './data'
+
+/** 서버 기록에 남는 앱 버전 (deviceMaskReport.appVersion) */
+const APP_VERSION = 'senior-app-0.1.0'
+/** 셔터를 누른 뒤 약 0.3초 동안 몇 장면을 떼어 가장 선명한 것을 쓴다 (시험용 PWA와 같음) */
+const BURST_FRAMES = 5
+const BURST_GAP_MS = 70
+/** 그림 다음에 화면이 실제로 그려질 때까지 기다림 (가리기 계산이 화면을 1~3초 멈추게 하므로 먼저 그려 둔다) */
+const afterPaint = (ms: number) => new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(res, ms))))
 
 // 시니어 동네 점검단 · 어르신 현장 앱 (PWA)
 // 흐름: 오늘 순회 → 출석 요청 → 담당자 출석·출발 확인 → 장소·구도 안내 → 촬영·가림·제출
@@ -30,7 +44,7 @@ export default function App() {
   const [slot, setSlot] = useState(0)
   const [attempt, setAttempt] = useState(0)
   const [blurNext, setBlurNext] = useState(false)
-  const [outcome, setOutcome] = useState<'ok' | 'review'>('ok')
+  const [outcome, setOutcome] = useState<SentOutcome>('ok')
   const [results, setResults] = useState<Record<string, StopResult>>({})
   const [paused, setPaused] = useState(false)
   const [aborted, setAborted] = useState(false)
@@ -46,6 +60,93 @@ export default function App() {
   useEffect(() => {
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', look.bar)
   }, [look.bar])
+
+  // ---------------- 실제 촬영 준비 (docs/시니어앱_촬영기능_적용요청.md)
+  // https(또는 localhost)이면 실제 촬영: 가림 모델을 받아 두고, 셋 다 준비되기 전에는 찍기 버튼을 끈다.
+  // http 주소에서만 지금까지의 그림 시연으로 동작한다 (카메라가 https에서만 열리므로).
+  const live = typeof window !== 'undefined' && window.isSecureContext && !!navigator.mediaDevices?.getUserMedia
+  const [models, setModels] = useState<'loading' | 'ready' | 'failed'>('loading')
+  const [modelText, setModelText] = useState('')
+  const [camError, setCamError] = useState('')
+  const [camKey, setCamKey] = useState(0) // 카메라를 다시 켤 때 바꿈
+  const cam = useRef<CameraHandle | null>(null)
+  const [stage, setStage] = useState<'mask' | 'send' | 'check' | undefined>(undefined)
+  const [flash, setFlash] = useState(0) // 셔터를 누른 순간 화면 번쩍임
+  const [shot, setShotRaw] = useState<string | undefined>(undefined)
+  const setShot = (u: string | undefined) =>
+    setShotRaw((old) => {
+      if (old) URL.revokeObjectURL(old) // 앞 사진의 임시 주소는 바로 지운다
+      return u
+    })
+  const [retakeNote, setRetakeNote] = useState<{ title: string; sub: string } | null>(null)
+  const [serverMsg, setServerMsg] = useState<string | undefined>(undefined)
+  /** 서버가 정한 다음 행동 (Sent 화면에서 "다음"을 누르면 따름) */
+  const [next, setNext] = useState<Pick<SubmitBody, 'nextAction' | 'nextStopId'>>({})
+  /** 업무 API에서 순회를 받았는지 (못 받으면 예시 데이터로 시연) */
+  const [server, setServer] = useState(false)
+  const [, setStopsVersion] = useState(0) // STOPS가 서버 순회로 바뀌면 다시 그림
+  const [pending, setPending] = useState(0) // 전송 대기 사진 수
+
+  const loggedIn0 = !['start', 'phone', 'code'].includes(screen)
+  function prepareModels() {
+    setModels('loading')
+    const show = () => {
+      const s = masking.status
+      const part = (['face', 'plate', 'vehicle'] as const).map((k) => [k, s[k]] as const).find(([, v]) => v !== '준비')
+      setModelText(part ? `${{ face: '얼굴', plate: '번호판', vehicle: '차량' }[part[0]]} ${part[1]}` : '')
+    }
+    masking.loadModels(show).then(
+      () => setModels('ready'),
+      () => setModels('failed'),
+    )
+  }
+  useEffect(() => {
+    if (!loggedIn0 || !live) return
+    prepareModels()
+    navigator.storage?.persist?.().catch(() => {}) // 대기 사진이 지워지지 않게
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loggedIn0])
+  // 오늘 순회: 업무 API가 있으면 서버 순회로 바꾼다
+  useEffect(() => {
+    if (!loggedIn0) return
+    fetchTodayPatrol().then(
+      (p) => {
+        applyPatrol(p)
+        setServer(true)
+        setStopsVersion((v) => v + 1)
+      },
+      () => setServer(false),
+    )
+  }, [loggedIn0])
+  const refreshPatrol = () =>
+    server &&
+    fetchPatrol(TEAM.patrolId).then(
+      (p) => {
+        applyPatrol(p)
+        setStopsVersion((v) => v + 1)
+      },
+      () => {},
+    )
+  const updatePending = () => outbox.count().then(setPending, () => {})
+  // 대기 사진은 앱을 다시 볼 때, 연결이 돌아올 때 다시 보낸다
+  useEffect(() => {
+    const retry = () => {
+      if (!navigator.onLine) return
+      outbox
+        .flush(sendOpts())
+        .catch(() => {})
+        .finally(updatePending)
+    }
+    retry()
+    const vis = () => document.visibilityState === 'visible' && retry()
+    window.addEventListener('online', retry)
+    document.addEventListener('visibilitychange', vis)
+    return () => {
+      window.removeEventListener('online', retry)
+      document.removeEventListener('visibilitychange', vis)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => unlockAudio(), [])
   useEffect(() => setSoundEnabled(sound), [sound])
@@ -97,8 +198,138 @@ export default function App() {
   }
 
   function shoot() {
+    if (live) return void liveShoot()
     playShutter()
     setScreen('upload')
+  }
+
+  function toRetake(title: string, sub: string) {
+    setRetakeNote({ title, sub })
+    playRetake()
+    setScreen('retake')
+  }
+
+  // ---------------- 실제 촬영: 연속 5장면 중 가장 선명한 것 → 흐림·어두움 확인 → 기기에서 가리기 → 대기함 저장 → 전송 → 서버 답으로 다음 화면
+  async function liveShoot() {
+    const c = cam.current
+    if (!c || !masking.ready()) return
+    playShutter()
+    setFlash((f) => f + 1)
+    const capturedAt = new Date().toISOString()
+    let raw: HTMLCanvasElement | null = null
+    let spare: HTMLCanvasElement | null = null
+    let best: (quality.Quality & { frame: number }) | null = null
+    for (let i = 0; i < BURST_FRAMES; i++) {
+      if (i) await new Promise((r) => setTimeout(r, BURST_GAP_MS))
+      const f = c.frame(spare)
+      if (!f) break
+      const q = quality.measure(f)
+      if (!best || q.sharpness > best.sharpness) {
+        spare = raw
+        raw = f
+        best = { ...q, frame: i }
+      } else spare = f
+    }
+    if (spare) spare.width = spare.height = 0 // 고르지 않은 장면은 바로 버린다 (원본을 남기지 않음)
+    c.stop()
+    if (!raw || !best) return
+    // 확실히 흐리거나 어두우면 올리지 않고 바로 다시 찍게 한다 (서버도 같은 기준으로 거절하므로 기다림·데이터를 아낌)
+    const bad = quality.problem(best)
+    if (bad) {
+      raw.width = raw.height = 0
+      setShot(undefined)
+      return bad === 'dark' ? toRetake('사진이 어두워요', '밝은 쪽에서 다시 찍어 주세요.') : toRetake('사진이 흐려요', '휴대폰을 잠깐 멈추고 한 번 더 찍어 주세요.')
+    }
+    setStage('mask')
+    setScreen('upload')
+    await afterPaint(250)
+    let masked
+    try {
+      masked = await masking.maskCapture(raw, APP_VERSION) // 원본(raw)은 이 안에서 버려진다
+    } catch {
+      setShot(undefined)
+      return toRetake('한 번 더 찍어 주세요', '사진을 정리하지 못했어요. 계속 안 되면 선생님께 연락해 주세요.')
+    }
+    // 서버는 가리고 압축한 JPEG로 선명도를 잰다. 압축하면 값이 내려가므로 보낼 사진으로 한 번 더 잰다
+    try {
+      const bmp = await createImageBitmap(masked.blob)
+      const sent = quality.measure(bmp, { exact: true })
+      bmp.close()
+      const bad2 = quality.problem(sent)
+      if (bad2) {
+        setShot(undefined)
+        return bad2 === 'dark' ? toRetake('사진이 어두워요', '밝은 쪽에서 다시 찍어 주세요.') : toRetake('사진이 흐려요', '휴대폰을 잠깐 멈추고 한 번 더 찍어 주세요.')
+      }
+    } catch {
+      /* 잴 수 없으면 서버 판정에 맡김 */
+    }
+    setShot(URL.createObjectURL(masked.blob))
+    const item: OutboxItem = {
+      clientSubmissionId: crypto.randomUUID(),
+      attemptId: crypto.randomUUID(),
+      patrolId: TEAM.patrolId,
+      stopId: stop.id,
+      stopName: stop.place,
+      captureSlotId: stop.slotIds?.[slot] ?? `${stop.id}-${slot + 1}`,
+      capturedAt,
+      maskingVersion: masking.maskingVersion(),
+      deviceMaskReport: masked.report,
+      blob: masked.blob,
+    }
+    try {
+      await outbox.put(item) // 먼저 휴대폰에 저장한 뒤 보낸다
+    } catch {
+      return toRetake('저장하지 못했어요', '휴대폰 저장 공간을 확인하고 한 번 더 찍어 주세요.')
+    }
+    setStage('send')
+    const r = await outbox.send(item, sendOpts(() => setStage('check')))
+    updatePending()
+    handleResponse(r)
+  }
+
+  /** 서버 답에 따른 화면 (요청서 2장 표) */
+  function handleResponse(r: outbox.SendResult) {
+    const b = r.body ?? {}
+    setServerMsg(b.message)
+    setNext({ nextAction: b.nextAction, nextStopId: b.nextStopId })
+    if (!r.done) {
+      // 연결 끊김·5xx·처리 중은 접수가 아니다 → 전송 대기 (성공으로 안내하지 않음). 그 밖의 4xx는 보내지 못함
+      const later = r.offline || (r.http ?? 0) >= 500 || b.code === 'SUBMISSION_PROCESSING'
+      setOutcome(later ? 'queued' : 'error')
+      playNotify()
+      return setScreen('sent')
+    }
+    const markSlot = (status: string) => {
+      if (!stop.slotStatus) stop.slotStatus = stop.slots.map(() => undefined)
+      stop.slotStatus[slot] = status
+    }
+    if (b.code === 'SLOT_RESOLVED') {
+      markSlot('ACCEPTED')
+      setOutcome('resolved')
+      playNotify()
+      return setScreen('sent')
+    }
+    void refreshPatrol()
+    if (b.nextAction === 'RETAKE') {
+      setAttempt(attempt + 1)
+      if (typeof b.retakesRemaining === 'number') {
+        if (!stop.slotRetakes) stop.slotRetakes = stop.slots.map(() => undefined)
+        stop.slotRetakes[slot] = b.retakesRemaining
+      }
+      return toRetake('한 번 더 찍어 주세요', b.message || '다시 한 번 찍어 주세요.')
+    }
+    if (b.captureStatus === 'REVIEW_REQUESTED') {
+      markSlot('REVIEW_REQUESTED')
+      setOutcome('review')
+      setResults((x) => ({ ...x, [stop.id]: 'review' }))
+      playNotify()
+    } else {
+      markSlot('ACCEPTED')
+      setOutcome('ok')
+      playSuccess()
+    }
+    setAttempt(0)
+    setScreen('sent')
   }
 
   // 기기에서 가린 사진을 보낸 뒤 서버가 돌려준 품질 결과만 반영한다
@@ -125,11 +356,33 @@ export default function App() {
   }
 
   function afterSent() {
-    if (slot < stop.slots.length - 1) {
-      setSlot(slot + 1)
+    const result: StopResult = results[stop.id] === 'review' || outcome === 'review' ? 'review' : 'captured'
+    // 실제 촬영: 서버가 정한 다음 행동을 따른다 (전송 대기·보내지 못함이면 다음 구도/장소로)
+    if (live && (outcome === 'ok' || outcome === 'review' || outcome === 'resolved')) {
+      if (next.nextAction === 'RETURN_TO_CENTER') {
+        setResults((r) => ({ ...r, [stop.id]: result }))
+        setSlot(0)
+        setIdx(STOPS.length)
+        return setScreen('return')
+      }
+      if (next.nextAction === 'NEXT_STOP' && next.nextStopId) {
+        const i = STOPS.findIndex((s) => s.id === next.nextStopId)
+        if (i >= 0) {
+          setResults((r) => ({ ...r, [stop.id]: result }))
+          setSlot(0)
+          setAttempt(0)
+          setIdx(i)
+          return setScreen('route')
+        }
+      }
+    }
+    // 다음 구도: 아직 안 끝난 구도로
+    const nextSlot = stop.slots.findIndex((_, i) => i > slot && !slotDone(stop, i))
+    if (nextSlot >= 0) {
+      setSlot(nextSlot)
       setScreen('camera')
     } else {
-      goNextStop(results[stop.id] === 'review' || outcome === 'review' ? 'review' : 'captured')
+      goNextStop(result)
     }
   }
 
@@ -214,6 +467,7 @@ export default function App() {
                   onGo={() => setScreen('ready')}
                   skyLabel={SKY_PRESETS[skyPick][1]}
                   onSky={() => setSkyPick((skyPick + 1) % SKY_PRESETS.length)}
+                  pending={pending}
                 />
               )}
               {screen === 'ready' && (
@@ -222,14 +476,57 @@ export default function App() {
                   partnerAtt={partnerAtt}
                   departed={departed}
                   onRequest={() => setMyAtt('requested')}
-                  onStart={() => setScreen('route')}
+                  onStart={() => {
+                    // 이미 끝난 장소는 건너뛰고 아직 안 끝난 첫 장소부터 (모두 끝났으면 순회 화면이 "모두 마쳤어요"를 보여 줌)
+                    const first = STOPS.findIndex((s) => !stopDone(s))
+                    setIdx(first < 0 ? 0 : first)
+                    const st = STOPS[first < 0 ? 0 : first]
+                    setSlot(Math.max(0, st.slots.findIndex((_, i) => !slotDone(st, i))))
+                    setScreen('route')
+                  }}
                 />
               )}
-              {screen === 'route' && <Route idx={idx} results={results} onArrive={() => setScreen('camera')} onSkip={() => setSheet('skip')} />}
-              {screen === 'camera' && <Camera stop={stop} slot={slot} attempt={attempt} onShoot={shoot} onBlurDemo={() => setBlurNext(true)} blurNext={blurNext} />}
-              {screen === 'upload' && <Upload onDone={afterUpload} />}
-              {screen === 'retake' && <Retake stop={stop} attempt={attempt} onRetry={() => setScreen('camera')} />}
-              {screen === 'sent' && <Sent stop={stop} slot={slot} outcome={outcome} last={idx === STOPS.length - 1} onNext={afterSent} />}
+              {screen === 'route' && (
+                <Route
+                  idx={idx}
+                  results={results}
+                  onArrive={() => {
+                    setCamError('')
+                    setScreen('camera')
+                  }}
+                  onSkip={() => setSheet('skip')}
+                  onNextStop={() => goNextStop(results[stop.id] ?? 'captured')}
+                  onFinish={() => {
+                    setIdx(STOPS.length)
+                    setScreen('return')
+                  }}
+                />
+              )}
+              {screen === 'camera' && (
+                <Camera
+                  key={camKey}
+                  stop={stop}
+                  slot={slot}
+                  attempt={attempt}
+                  onShoot={shoot}
+                  onBlurDemo={() => setBlurNext(true)}
+                  blurNext={blurNext}
+                  live={live}
+                  cam={cam}
+                  models={models}
+                  modelText={modelText}
+                  camError={camError}
+                  onLiveError={setCamError}
+                  onRetry={() => {
+                    if (models === 'failed') prepareModels()
+                    setCamError('')
+                    setCamKey((k) => k + 1)
+                  }}
+                />
+              )}
+              {screen === 'upload' && <Upload onDone={afterUpload} stage={live ? stage : undefined} />}
+              {screen === 'retake' && <Retake stop={stop} attempt={attempt} onRetry={() => setScreen('camera')} note={live ? retakeNote : null} shot={live ? shot : undefined} />}
+              {screen === 'sent' && <Sent stop={stop} slot={slot} outcome={outcome} last={idx === STOPS.length - 1} onNext={afterSent} message={live ? serverMsg : undefined} shot={live ? shot : undefined} />}
               {screen === 'return' && <Return aborted={aborted} results={results} onBack={() => setScreen('returnWait')} />}
               {screen === 'returnWait' && <ReturnWait results={results} />}
               {screen === 'done' && <Done results={results} aborted={aborted} onHome={resetDay} />}
@@ -237,6 +534,8 @@ export default function App() {
           )}
         </main>
         {inActivity && !paused && <ActivityBar onPause={() => setPaused(true)} onAbort={() => setSheet('abort')} />}
+        {/* 셔터를 누른 순간 화면이 하얗게 한 번 번쩍인다 (소리와 함께 찍혔다는 것을 눈으로도 알림) */}
+        {flash > 0 && <div key={flash} className="shutter-flash pointer-events-none fixed inset-0 z-50 bg-white" aria-hidden />}
       </div>
       {sheet === 'help' && <HelpSheet onClose={() => setSheet(null)} />}
       {sheet === 'skip' && (
@@ -641,10 +940,16 @@ function CodeInput({ phone, onBack, onDone }: { phone: string; onBack: () => voi
 
 /* ---------------- 오늘 순회 ---------------- */
 
-function Home({ onGo, skyLabel, onSky }: { onGo: () => void; skyLabel: string; onSky: () => void }) {
+function Home({ onGo, skyLabel, onSky, pending }: { onGo: () => void; skyLabel: string; onSky: () => void; pending: number }) {
   return (
     <>
       <div className="pt-2">
+        {pending > 0 && (
+          <p className="m-0 mb-2 inline-flex items-center gap-2 rounded-full bg-g2-soft px-3.5 py-1.5 text-[0.95rem] font-bold text-g2-ink shadow-card" role="status">
+            <i className="pulse-dot size-2 rounded-full bg-g2" aria-hidden />
+            전송 대기 {pending}장 · 연결되면 자동으로 보내요
+          </p>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-surface/80 px-3 py-1 text-[0.85rem] font-bold text-g0-ink shadow-card">
             <i className="size-2 rounded-full bg-g0" /> 점검원
@@ -878,9 +1183,37 @@ function Progress({ idx }: { idx: number }) {
     </div>
   )
 }
-function Route({ idx, results, onArrive, onSkip }: { idx: number; results: Record<string, StopResult>; onArrive: () => void; onSkip: () => void }) {
+function Route({
+  idx,
+  results,
+  onArrive,
+  onSkip,
+  onNextStop,
+  onFinish,
+}: {
+  idx: number
+  results: Record<string, StopResult>
+  onArrive: () => void
+  onSkip: () => void
+  onNextStop: () => void
+  onFinish: () => void
+}) {
   const s = STOPS[idx]
   const prev = idx > 0 ? results[STOPS[idx - 1].id] : undefined
+  // 오늘 순회가 모두 끝났으면 첫 장소를 다시 열지 않는다 (찍어 올려도 '이미 끝난 곳'으로 거절되기만 함)
+  if (STOPS.every(stopDone)) {
+    return (
+      <>
+        <H1 chip sub="더 찍을 곳이 없어요. 센터로 돌아가 주세요.">오늘 순회를 모두 마쳤어요</H1>
+        <RouteMap idx={STOPS.length} toCenter />
+        <Bottom>
+          <Primary onClick={onFinish}>센터로 돌아가기</Primary>
+        </Bottom>
+      </>
+    )
+  }
+  // 이미 끝난 장소는 찍기 버튼을 끈다 (찍어도 사진을 다 올린 뒤에야 '이미 끝난 곳'이라는 답이 옴)
+  const done = stopDone(s)
   return (
     <>
       <Progress idx={idx} />
@@ -894,7 +1227,13 @@ function Route({ idx, results, onArrive, onSkip }: { idx: number; results: Recor
               {idx + 1}. {KIND_NAME[s.kind]}
             </p>
             <p className="m-0 mt-0.5 text-[1.02rem] font-semibold text-sub">
-              {s.place} · <span className="whitespace-nowrap">약 {s.dist}</span>
+              {s.place}
+              {s.dist && (
+                <>
+                  {' · '}
+                  <span className="whitespace-nowrap">약 {s.dist}</span>
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -904,12 +1243,21 @@ function Route({ idx, results, onArrive, onSkip }: { idx: number; results: Recor
       {prev === 'skipped' && <p className="m-0 text-[0.9rem] text-mute">앞 장소는 건너뛴 것으로 기록했어요.</p>}
       <p className="m-0 text-[0.9rem] text-mute">{PARTNER.name} 어르신 휴대폰에도 같은 진행이 보여요.</p>
       <Bottom>
-        <Primary onClick={onArrive}>
-          <CameraIcon size={24} /> 도착했어요 · 사진 찍기
-        </Primary>
-        <button type="button" onClick={onSkip} className="min-h-11 text-[0.95rem] font-semibold text-sub underline underline-offset-4">
-          이곳은 찍을 수 없어요
-        </button>
+        {done ? (
+          <>
+            <p className="m-0 rounded-2xl bg-g0-soft px-4 py-3 text-center text-[1.02rem] font-bold text-g0-ink">이미 끝난 곳이에요</p>
+            <Primary onClick={onNextStop}>다음 장소로</Primary>
+          </>
+        ) : (
+          <>
+            <Primary onClick={onArrive}>
+              <CameraIcon size={24} /> 도착했어요 · 사진 찍기
+            </Primary>
+            <button type="button" onClick={onSkip} className="min-h-11 text-[0.95rem] font-semibold text-sub underline underline-offset-4">
+              이곳은 찍을 수 없어요
+            </button>
+          </>
+        )}
       </Bottom>
     </>
   )
@@ -929,6 +1277,13 @@ function Camera({
   blurNext,
   onShoot,
   onBlurDemo,
+  live,
+  cam,
+  models,
+  modelText,
+  camError,
+  onLiveError,
+  onRetry,
 }: {
   stop: Stop
   slot: number
@@ -936,10 +1291,38 @@ function Camera({
   blurNext: boolean
   onShoot: () => void
   onBlurDemo: () => void
+  /** 실제 촬영(https)인지. http 주소에서만 그림 시연 */
+  live: boolean
+  cam: RefObject<CameraHandle | null>
+  /** 가림 모델 준비 상태. 준비되기 전에는 찍지 않는다 (가리지 못한 사진이 생기지 않게) */
+  models: 'loading' | 'ready' | 'failed'
+  modelText: string
+  camError: string
+  onLiveError: (why: string) => void
+  /** 모델·카메라 다시 준비하기 */
+  onRetry: () => void
 }) {
   const recheck = stop.purpose === 'REINSPECTION'
   const [overlay, setOverlay] = useState(true)
+  // 실제 카메라는 화면이 나오기 시작해야 찍을 수 있다 (그 전에 누르면 아무 일도 안 일어나는 것을 막음)
+  const [camReady, setCamReady] = useState(false)
+  const canShoot = !live || (camReady && models === 'ready' && !camError)
   const many = stop.slots.length > 1
+  // 남은 다시 찍기 횟수: 서버가 알려 준 값(retakesRemaining)을 쓰고, 없으면 앱에서 센 값
+  const left = stop.slotRetakes?.[slot] ?? MAX_ATTEMPTS - attempt
+  const retrying = attempt > 0 || stop.slotStatus?.[slot] === 'RETAKE_REQUIRED'
+  // 셔터 아래 안내: 찍을 수 없는 이유를 쉬운 말로
+  const wait = !live
+    ? null
+    : camError
+      ? camError
+      : models === 'failed'
+        ? '준비가 안 됐어요. 담당자에게 연락해 주세요.'
+        : models === 'loading'
+          ? `사진 가리기를 준비하고 있어요${modelText ? ` · ${modelText}` : ''}`
+          : !camReady
+            ? '카메라를 켜는 중이에요'
+            : null
   return (
     <>
       <div>
@@ -948,13 +1331,17 @@ function Camera({
             {stop.slots.length}장 중 {slot + 1}번째 · {stop.slots[slot]}
           </p>
         )}
-        <H1 sub={recheck ? `${stop.prevDate}에 찍은 사진이 겹쳐 보여요.` : stop.instruction}>
+        <H1 sub={recheck ? (stop.prevDate ? `${stop.prevDate}에 찍은 사진이 겹쳐 보여요.` : '지난번 사진이 겹쳐 보여요.') : stop.instruction}>
           {recheck ? '지난번 사진에 맞춰 찍어 주세요' : `${withObj(KIND_NAME[stop.kind])} 네모 안에 맞춰 주세요`}
         </H1>
       </div>
       <div className="relative grid flex-1 place-items-center overflow-hidden rounded-[1.8rem] bg-[#141a23] p-5 shadow-pop">
         <div className="relative w-full">
-          <Photo kind={stop.kind} bad={!!stop.bad} {...stop.shotPhoto} className="w-full opacity-90" />
+          {live ? (
+            <LiveCamera handle={cam} onError={onLiveError} onReady={setCamReady} />
+          ) : (
+            <Photo kind={stop.kind} bad={!!stop.bad} {...stop.shotPhoto} className="w-full opacity-90" />
+          )}
           {/* 재점검: 이전 가린 사진을 반투명하게 겹쳐 보기 (SEN-11) */}
           {recheck && overlay && <Photo kind={stop.kind} bad {...stop.refPhoto} className="pointer-events-none absolute inset-0 w-full opacity-35 mix-blend-screen" />}
           <div className="pointer-events-none absolute inset-[8%] rounded-2xl border-[3px] border-white/90" />
@@ -974,26 +1361,70 @@ function Camera({
         <button
           type="button"
           onClick={onShoot}
+          disabled={!canShoot}
           aria-label="눌러서 사진 찍기"
-          className="size-[5.5rem] rounded-full border-[7px] border-surface bg-brand shadow-[0_0_0_3px_rgba(47,107,235,0.35),0_10px_24px_rgba(47,107,235,0.35)] active:scale-95"
+          className="size-[5.5rem] rounded-full border-[7px] border-surface bg-brand shadow-[0_0_0_3px_rgba(47,107,235,0.35),0_10px_24px_rgba(47,107,235,0.35)] active:scale-95 disabled:bg-line-strong disabled:shadow-none"
         />
-        <p className="m-0 text-[1rem] font-bold text-ink">눌러서 찍기</p>
-        {attempt > 0 && <p className="m-0 text-[0.9rem] text-sub">다시 찍는 중 · {MAX_ATTEMPTS - attempt}번 남았어요</p>}
-        <button type="button" onClick={onBlurDemo} disabled={blurNext} className="mt-1 text-[0.8rem] text-mute underline underline-offset-2 disabled:no-underline">
-          {blurNext ? '시연용: 다음 사진은 흔들리게 찍혀요' : '시연용: 흔들린 사진으로 찍기'}
-        </button>
+        <p className="m-0 text-center text-[1rem] font-bold text-ink" role={wait ? 'status' : undefined}>
+          {wait ?? '눌러서 찍기'}
+        </p>
+        {(camError || models === 'failed') && (
+          <button type="button" onClick={onRetry} className="min-h-11 text-[0.95rem] font-semibold text-brand underline underline-offset-4">
+            다시 준비하기
+          </button>
+        )}
+        {retrying && !wait && <p className="m-0 text-[0.9rem] text-sub">다시 찍는 중 · {left}번 남았어요</p>}
+        {!live && (
+          <>
+            <button type="button" onClick={onBlurDemo} disabled={blurNext} className="mt-1 text-[0.8rem] text-mute underline underline-offset-2 disabled:no-underline">
+              {blurNext ? '시연용: 다음 사진은 흔들리게 찍혀요' : '시연용: 흔들린 사진으로 찍기'}
+            </button>
+            <p className="m-0 text-[0.75rem] text-mute">시연 화면 · 카메라는 https 주소에서만 켜져요</p>
+          </>
+        )}
       </div>
     </>
   )
 }
 
-function Upload({ onDone }: { onDone: () => void }) {
+/** 실제 촬영 진행 문구: 가리는 중 → 보내는 중(사진 올리기) → 결과 확인 중(서버·AI 처리) */
+const UPLOAD_TEXT = {
+  mask: ['얼굴과 번호판을 가리고 있어요', '가린 사진만 보내요'],
+  send: ['사진을 보내고 있어요', '통신이 끊기면 "전송 대기"로 보관했다가 다시 보내요'],
+  check: ['잘 찍혔는지 보고 있어요', '조금만 기다려 주세요'],
+} as const
+
+/**
+ * 가리기·보내기 진행 화면.
+ * stage가 있으면 실제 촬영: 진행 단계를 그대로 보여 주고 끝은 부른 쪽이 정한다.
+ * stage가 없으면 시연: 막대가 차오른 뒤 onDone을 부른다.
+ */
+function Upload({ onDone, stage }: { onDone: () => void; stage?: 'mask' | 'send' | 'check' }) {
   const [p, setP] = useState(0)
   const done = useRef(false)
   useEffect(() => {
+    if (stage) return
     const t = setInterval(() => setP((v) => Math.min(100, v + 6)), 80)
     return () => clearInterval(t)
-  }, [])
+  }, [stage])
+  if (stage) {
+    return (
+      <div className="grid flex-1 place-items-center text-center" role="status">
+        <div className="w-full">
+          <span className="pop-in mx-auto mb-5 grid size-20 place-items-center rounded-full bg-surface text-brand shadow-card"><CameraIcon size={38} /></span>
+          <p className="m-0 text-[1.5rem] font-extrabold tracking-[-0.03em]">{UPLOAD_TEXT[stage][0]}</p>
+          <p className="m-0 mt-1 text-[1rem] text-sub">{UPLOAD_TEXT[stage][1]}</p>
+          <div className="mt-6">
+            <Dots />
+          </div>
+        </div>
+      </div>
+    )
+  }
+  return <UploadDemo p={p} done={done} onDone={onDone} />
+}
+
+function UploadDemo({ p, done, onDone }: { p: number; done: { current: boolean }; onDone: () => void }) {
   useEffect(() => {
     if (p >= 100 && !done.current) {
       const t = setTimeout(() => {
@@ -1002,7 +1433,7 @@ function Upload({ onDone }: { onDone: () => void }) {
       }, 700)
       return () => clearTimeout(t)
     }
-  }, [p, onDone])
+  }, [p, onDone, done])
   const step = p < 40 ? 0 : p < 100 ? 1 : 2
   const titles = ['얼굴과 번호판을 가리고 있어요', '사진을 보내고 있어요', '잘 찍혔는지 보고 있어요']
   return (
@@ -1028,16 +1459,17 @@ function Upload({ onDone }: { onDone: () => void }) {
 
 // 품질 재촬영: 처음 + 2번까지 (체크리스트 3-1)
 // 남은 횟수는 어르신께 부담이 될 수 있어 이 화면에서는 보여 주지 않는다
-function Retake({ stop, onRetry }: { stop: Stop; attempt: number; onRetry: () => void }) {
+// note: 실제 촬영에서 서버 안내 문구(message)나 가리기·저장 실패 안내가 있으면 그 문구를 쓴다. shot: 방금 찍은(가린) 사진
+function Retake({ stop, onRetry, note, shot }: { stop: Stop; attempt: number; onRetry: () => void; note?: { title: string; sub: string } | null; shot?: string }) {
   return (
     <>
       <div className="rounded-[1.6rem] bg-g2-soft p-5" role="status">
-        <p className="m-0 text-[1.65rem] font-extrabold text-g2-ink">사진이 흐려요</p>
-        <p className="m-0 mt-1 text-[1.05rem] text-ink">다시 한 번 찍어 주세요.</p>
+        <p className="m-0 text-[1.65rem] font-extrabold text-g2-ink">{note?.title ?? '사진이 흐려요'}</p>
+        <p className="m-0 mt-1 text-[1.05rem] text-ink">{note?.sub ?? '다시 한 번 찍어 주세요.'}</p>
       </div>
       {/* 사진과 안내를 위아래로 두어 안내 문장이 좁은 칸에서 끊기지 않게 */}
       <Card className="grid gap-4">
-        <Photo kind={stop.kind} bad={!!stop.bad} {...stop.shotPhoto} className="mx-auto w-full max-w-[16rem] blur-[2.5px]" />
+        <Photo kind={stop.kind} bad={!!stop.bad} {...(shot ? { src: shot } : stop.shotPhoto)} className={`mx-auto w-full max-w-[16rem] ${shot ? '' : 'blur-[2.5px]'}`} />
         <ol className="m-0 grid list-none gap-2 p-0 text-[1.1rem] font-semibold">
           {['휴대폰을 잠깐 멈추고', '한 걸음 가까이 가서', '버튼을 꾹 눌러 주세요'].map((t, i) => (
             <li key={t} className="flex items-center gap-3">
@@ -1059,24 +1491,31 @@ function Retake({ stop, onRetry }: { stop: Stop; attempt: number; onRetry: () =>
 }
 
 // 제출 완료: 판정 결과 없이 접수와 다음 행동만 안내한다 (체크리스트 1-1)
-function Sent({ stop, slot, outcome, last, onNext }: { stop: Stop; slot: number; outcome: 'ok' | 'review'; last: boolean; onNext: () => void }) {
+// outcome: ok 접수 / review 선생님 확인 요청 / queued 전송 대기(연결되면 자동 재전송) / error 보내지 못함
+// message: 서버 안내 문구가 있으면 그대로 보여 준다 (명세: 서버 message를 그대로 표시)
+// shot: 방금 찍은(가린) 사진. 시연에서는 없음
+export type SentOutcome = 'ok' | 'review' | 'queued' | 'error' | 'resolved'
+const SENT_TEXT: Record<SentOutcome, [string, string]> = {
+  ok: ['사진을 보냈어요', '고마워요! 확인은 담당 공무원이 해요.'],
+  review: ['선생님께 확인을 부탁했어요', '세 번 찍어도 흐려서 담당 선생님이 확인할게요. 다음으로 가요.'],
+  queued: ['전송 대기 중이에요', '연결되면 자동으로 보낼게요. 다음 장소로 가셔도 돼요.'],
+  error: ['보내지 못했어요', '사진은 휴대폰에 보관했어요. 담당 선생님께 알려 주세요.'],
+  resolved: ['이미 끝난 곳이에요', '다음 장소로 가 주세요.'],
+}
+function Sent({ stop, slot, outcome, last, onNext, message, shot }: { stop: Stop; slot: number; outcome: SentOutcome; last: boolean; onNext: () => void; message?: string; shot?: string }) {
   const moreSlots = slot < stop.slots.length - 1
-  const review = outcome === 'review'
+  const warn = outcome !== 'ok'
   return (
     <>
-      <div className={`flex flex-col items-center rounded-[1.6rem] p-6 text-center ${review ? 'bg-g2-soft' : 'bg-g0-soft'}`} role="status">
-        <span className={`pop-in mb-3 grid size-16 place-items-center rounded-full bg-surface text-[1.8rem] font-extrabold shadow-card ${review ? 'text-g2-ink' : 'text-g0'}`} aria-hidden>
-          {review ? '!' : <CheckMark size={32} />}
+      <div className={`flex flex-col items-center rounded-[1.6rem] p-6 text-center ${warn ? 'bg-g2-soft' : 'bg-g0-soft'}`} role="status">
+        <span className={`pop-in mb-3 grid size-16 place-items-center rounded-full bg-surface text-[1.8rem] font-extrabold shadow-card ${warn ? 'text-g2-ink' : 'text-g0'}`} aria-hidden>
+          {outcome === 'queued' ? <Dots /> : warn ? '!' : <CheckMark size={32} />}
         </span>
-        <p className={`m-0 text-[1.65rem] leading-tight font-extrabold ${review ? 'text-g2-ink' : 'text-g0-ink'}`}>
-          {review ? '선생님께 확인을 부탁했어요' : '사진을 보냈어요'}
-        </p>
-        <p className="m-0 mt-1 text-[1.05rem] text-ink">
-          {review ? '세 번 찍어도 흐려서 담당 선생님이 확인할게요. 다음으로 가요.' : '고마워요! 확인은 담당 공무원이 해요.'}
-        </p>
+        <p className={`m-0 text-[1.65rem] leading-tight font-extrabold ${warn ? 'text-g2-ink' : 'text-g0-ink'}`}>{SENT_TEXT[outcome][0]}</p>
+        <p className="m-0 mt-1 text-[1.05rem] text-ink">{message || SENT_TEXT[outcome][1]}</p>
       </div>
       <Card className="flex items-center gap-4 big:flex-col big:items-start">
-        <Photo kind={stop.kind} bad={!!stop.bad} {...stop.shotPhoto} className={`w-28 flex-none big:w-40 ${review ? 'blur-[2.5px]' : ''}`} />
+        <Photo kind={stop.kind} bad={!!stop.bad} {...(shot ? { src: shot } : stop.shotPhoto)} className={`w-28 flex-none big:w-40 ${outcome === 'review' && !shot ? 'blur-[2.5px]' : ''}`} />
         <div>
           <p className="m-0 text-[1.1rem] font-bold">{KIND_NAME[stop.kind]}</p>
           <p className="m-0 text-[0.95rem] text-sub">{stop.place}</p>

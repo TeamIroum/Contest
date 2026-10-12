@@ -141,6 +141,19 @@ button:disabled {
 [data-bar='dark'] .sky-bar :is(.text-ink, .text-sub):not(button, button *) {
   color: #f4f7ff;
 }
+/* 셔터 번쩍임 (한 번 그리고 사라짐) */
+@keyframes shutter-flash {
+  0%,
+  25% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.shutter-flash {
+  animation: shutter-flash 0.6s linear forwards;
+}
 /* 밤하늘 별 반짝임 */
 @keyframes twinkle {
   0%,

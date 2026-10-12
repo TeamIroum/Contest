@@ -1,0 +1,24 @@
+# 시니어 동네 점검단 시연용 HTTPS 앞단 (Caddy). 인증서는 Let's Encrypt에서 자동으로 받는다.
+# 한글 도메인은 퓨니코드로 적는다.
+#   동네-점검단.메인.한국   = xn----f55ey6jz3bl8ah95e.xn--h32bi4v.xn--3e0b707e   → 어르신 앱 (vite preview :4173)
+#   관리자-점검단.메인.한국 = xn----f55e8mf9qmnjvvvwza.xn--h32bi4v.xn--3e0b707e  → 관리자 웹 (vite preview :4174)
+# 실행:  caddy run --config Caddyfile   (이 폴더에서)
+
+{
+	# 인증서 발급 알림을 받을 메일을 넣으려면: email 주소@example.com
+}
+
+xn----f55ey6jz3bl8ah95e.xn--h32bi4v.xn--3e0b707e, www.xn----f55ey6jz3bl8ah95e.xn--h32bi4v.xn--3e0b707e {
+	encode gzip
+	# 미리보기 서버는 이 PC 안(127.0.0.1)에서만 받는다. 밖에서는 이 https 주소로만 들어온다
+	reverse_proxy 127.0.0.1:4173 {
+		header_up Host 127.0.0.1:4173
+	}
+}
+
+xn----f55e8mf9qmnjvvvwza.xn--h32bi4v.xn--3e0b707e, www.xn----f55e8mf9qmnjvvvwza.xn--h32bi4v.xn--3e0b707e {
+	encode gzip
+	reverse_proxy 127.0.0.1:4174 {
+		header_up Host 127.0.0.1:4174
+	}
+}

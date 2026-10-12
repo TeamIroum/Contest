@@ -39,3 +39,6 @@ tools/ai-verify/data/
 
 # 시험용 PWA 마스킹 모델 (fetch_models.py로 받음)
 tools/ai-verify/pwa/models/
+
+# 시연용 HTTPS 앞단 실행 파일 (infra/demo-https, 공식 배포본을 받아 씀)
+infra/demo-https/caddy.exe
