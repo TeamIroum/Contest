@@ -17,6 +17,9 @@ const APP_VERSION = 'senior-app-0.1.0'
 const BURST_FRAMES = 5
 const BURST_GAP_MS = 70
 /** 그림 다음에 화면이 실제로 그려질 때까지 기다림 (가리기 계산이 화면을 1~3초 멈추게 하므로 먼저 그려 둔다) */
+// 대기함 이름 (처음 쓰기 전에 한 번). 시험용 PWA와 저장소가 섞이지 않게
+outbox.configure({ dbName: 'senior-outbox' })
+
 const afterPaint = (ms: number) => new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(res, ms))))
 
 // 시니어 동네 점검단 · 어르신 현장 앱 (PWA)
@@ -95,7 +98,7 @@ export default function App() {
       const part = (['face', 'plate', 'vehicle'] as const).map((k) => [k, s[k]] as const).find(([, v]) => v !== '준비')
       setModelText(part ? `${{ face: '얼굴', plate: '번호판', vehicle: '차량' }[part[0]]} ${part[1]}` : '')
     }
-    masking.loadModels(show).then(
+    masking.loadModels(show, { manifestUrl: `${import.meta.env.BASE_URL}models/model-manifest.json` }).then(
       () => setModels('ready'),
       () => setModels('failed'),
     )
@@ -290,7 +293,7 @@ export default function App() {
   /** 서버 답에 따른 화면 (요청서 2장 표) */
   function handleResponse(r: outbox.SendResult) {
     const b = r.body ?? {}
-    setServerMsg(b.message)
+    setServerMsg(b.message ?? undefined) // 서버는 message: null을 보낼 수 있음
     setNext({ nextAction: b.nextAction, nextStopId: b.nextStopId })
     if (!r.done) {
       // 연결 끊김·5xx·처리 중은 접수가 아니다 → 전송 대기 (성공으로 안내하지 않음). 그 밖의 4xx는 보내지 못함
@@ -303,7 +306,8 @@ export default function App() {
       if (!stop.slotStatus) stop.slotStatus = stop.slots.map(() => undefined)
       stop.slotStatus[slot] = status
     }
-    if (b.code === 'SLOT_RESOLVED') {
+    // 이미 끝난 구도: 검토로 넘긴 구도는 409 SLOT_RESOLVED, 채택된 구도에 새 사진은 200 + duplicate=true (명세서 6장)
+    if (b.code === 'SLOT_RESOLVED' || b.duplicate === true) {
       markSlot('ACCEPTED')
       setOutcome('resolved')
       playNotify()

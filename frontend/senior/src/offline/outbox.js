@@ -1,19 +1,24 @@
 // 전송 대기함 (IndexedDB). 가린 사진만 넣는다. 원본은 어떤 경로로도 여기에 오지 않는다.
-// 시험용 PWA(tools/ai-verify/pwa/outbox.js)를 옮긴 것. 바꾼 곳: 저장소 이름, 로그인 헤더, 올리기가 끝난 때를 알리는 onUploaded(XHR)
 //
 // 업무 API 명세 6·7절
 //   - 먼저 대기함에 영속 저장한 뒤 보낸다. 서버가 RECEIVED 또는 NO_MEDIA로 답하기 전에는 "전송 대기"로 둔다.
 //   - 503·연결 끊김은 접수가 아니다. 같은 clientSubmissionId/attemptId·같은 파일로 다시 보낸다.
 //   - 앱을 다시 열 때, 연결이 돌아올 때 대기 사진을 보낸다 (백그라운드 전송에 기대지 않음).
-const DB_NAME = "senior-outbox";
+let dbName = "pwa-test-outbox";
 const STORE = "outbox";
 const LOG = "results";
+
+// 저장소 이름을 정한다 (시니어 앱은 자기 이름을 씀). 대기함을 처음 쓰기 전에 한 번 부른다
+export function configure({ dbName: name } = {}) {
+  if (dbp) throw new Error("대기함을 이미 열었습니다. configure는 처음 쓰기 전에 부르세요");
+  if (name) dbName = name;
+}
 
 let dbp;
 function db() {
   if (!dbp) {
     dbp = new Promise((res, rej) => {
-      const req = indexedDB.open(DB_NAME, 1);
+      const req = indexedDB.open(dbName, 1);
       req.onupgradeneeded = () => {
         req.result.createObjectStore(STORE, { keyPath: "clientSubmissionId" });
         req.result.createObjectStore(LOG, { keyPath: "clientSubmissionId" });
@@ -59,6 +64,7 @@ export function send(item, opts) {
   return inflight.get(id);
 }
 
+// opts: apiBase(업무 API 주소), headers(로그인 헤더 등), onUploaded(사진을 다 올린 순간. "보내는 중 → 결과 확인 중" 표시용)
 async function sendOnce(item, { apiBase, headers = {}, onUploaded }) {
   const fd = new FormData();
   fd.append("file", photo(item), `${item.clientSubmissionId}.jpg`);
@@ -93,11 +99,11 @@ async function sendOnce(item, { apiBase, headers = {}, onUploaded }) {
   }
   // 그 밖(503, 409 처리 중, 4xx 형식 오류)은 남겨 두고 이유를 적는다. 4xx 형식 오류는 자동으로 다시 보내지 않음(지우기 가능)
   const permanent = resp.status >= 400 && resp.status < 500 && body.code !== "SUBMISSION_PROCESSING";
-  await keep(item, { lastError: `${resp.status} ${body.code || ""} ${body.detail || ""}`.trim(), permanent });
+  await keep(item, { lastError: `${resp.status} ${body.code || ""} ${body.message || body.detail || ""}`.trim(), permanent });
   return { done: false, http: resp.status, body };
 }
 
-// fetch 대신 XHR: 사진을 다 올린 순간(upload.onload)을 알 수 있어 "보내는 중 → 결과 확인 중"을 바르게 보여 준다
+// fetch 대신 XHR: 사진을 다 올린 순간(upload.onload)을 알 수 있다. 로그인 쿠키도 함께 보낸다(withCredentials)
 // 연결이 끊기면 예외를 던진다 (fetch와 같음). 돌려주는 것: { status, ok, body }
 function post(url, body, headers, onUploaded) {
   return new Promise((res, rej) => {

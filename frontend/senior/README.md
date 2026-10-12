@@ -62,14 +62,14 @@
 | `src/api/` | 업무 API 주소·토큰, 오늘 순회 조회(`client.ts`) |
 | `public/` | 앱 아이콘, 웹 앱 매니페스트(홈 화면 이름 "동네 점검단"), 가림 모델(`public/models/`) |
 
-`camera/`, `masking/`, `offline/`의 `.js` 파일은 [시험용 PWA](../../tools/ai-verify/pwa/README.md) 코드를 거의 그대로 옮겼습니다 ([촬영 기능 적용 요청](../../docs/시니어앱_촬영기능_적용요청.md) 3장). 바꾼 곳만 적습니다.
+`camera/`, `masking/`, `offline/`의 `.js`·`.d.ts` 파일은 [시험용 PWA](../../tools/ai-verify/pwa/README.md) 원본을 **고치지 않고 그대로** 복사했습니다 ([촬영 기능 적용 요청](../../docs/시니어앱_촬영기능_적용요청.md) 0·3장). AI 쪽이 기준을 고치면 파일만 다시 복사하면 됩니다. 원본과 다른 곳은 `offline/outbox.d.ts`의 import 경로(`../masking/masking.js`) 한 줄뿐이고, 시니어 앱에 맞출 설정은 `App.tsx`에서 옵션으로 넘깁니다.
 
-| 파일 | 바꾼 곳 |
-|---|---|
-| `masking/masking.js` | 모델 목록을 `public/models/model-manifest.json` 고정 경로에서 받음, `MASKING_VERSION = "senior-app-1"` (검출·가림 규칙은 `pwa-test-3`과 같음, 번호판 0.6점) |
-| `offline/outbox.js` | 저장소 이름 `senior-outbox`, 로그인 헤더, 사진 올리기가 끝난 때를 알리려고 `fetch` 대신 XHR |
-| `*.d.ts` | TypeScript 화면에서 부르기 위한 타입만 추가 |
+```ts
+outbox.configure({ dbName: 'senior-outbox' })
+masking.loadModels(show, { manifestUrl: `${import.meta.env.BASE_URL}models/model-manifest.json` })
+```
 
+`public/models/model-manifest.json`은 `npm run models`가 모델을 받은 뒤 내용 해시(`?v=`)와 함께 만듭니다 (`tools/ai-verify/pwa/make_model_manifest.py`와 같은 결과). 모델 파일을 바꾸면 다시 실행합니다.
 ## 실제 촬영
 
 | 주소 | 동작 |
@@ -93,7 +93,7 @@
 | `NEXT_STOP` / `NEXT_CAPTURE` | 보냈어요 → `nextStopId` 장소 또는 다음 구도 |
 | `RETURN_TO_CENTER` | 보냈어요 → 센터 복귀 |
 | `captureStatus: REVIEW_REQUESTED` | 선생님께 확인을 부탁했어요 |
-| `code: SLOT_RESOLVED` | 이미 끝난 곳이에요 |
+| `code: SLOT_RESOLVED` (409) 또는 `duplicate: true` (200) | 이미 끝난 곳이에요 |
 | 연결 안 됨 · 5xx · `SUBMISSION_PROCESSING` | 전송 대기 중이에요 (대기함에 남김, 앱을 다시 볼 때·연결이 돌아올 때 자동으로 다시 보냄). 홈에 "전송 대기 N장" |
 | 그 밖의 4xx | 보내지 못했어요 (대기함에 남기되 자동 재전송 안 함) |
 
