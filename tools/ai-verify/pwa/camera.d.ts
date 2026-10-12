@@ -58,7 +58,7 @@ export interface CaptureInfo {
 export type CaptureResult =
   | {
       ok: true;
-      /** 가린 JPEG (긴 변 1,568px, 위치·기기 정보 없음) */
+      /** 가린 JPEG (긴 변 1,280px, 위치·기기 정보 없음) */
       blob: Blob;
       /** 업무 API deviceMaskReport */
       report: DeviceMaskReport;

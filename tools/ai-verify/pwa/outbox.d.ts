@@ -58,6 +58,10 @@ export interface SendResult {
 export interface SendOptions {
   /** 업무 API 주소. 예: https://<서버>/api/v1 */
   apiBase: string;
+  /** 함께 보낼 헤더. 예: { Authorization: "Bearer <토큰>" } */
+  headers?: Record<string, string>;
+  /** 사진을 다 올린 순간 (서버 판정을 기다리기 전). "보내는 중 → 결과 확인 중" 표시용 */
+  onUploaded?: () => void;
 }
 
 /** 저장소(IndexedDB) 이름을 정한다. 기본 "pwa-test-outbox". 대기함을 처음 쓰기 전에 한 번 부른다 */
@@ -87,3 +91,7 @@ export interface SentRecord {
 }
 export declare function results(): Promise<SentRecord[]>;
 export declare function clearResults(): Promise<undefined>;
+
+// 시니어 앱(frontend/senior)이 먼저 쓰던 이름
+export type SubmitBody = SubmissionResponse;
+export type SendOpts = SendOptions;

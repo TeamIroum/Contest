@@ -50,8 +50,7 @@ def default_api() -> str | None:
 def build(out: Path, api: str) -> str:
     for name in SHELL:
         shutil.copyfile(HERE / name, out / name)
-    (out / "lib").mkdir()
-    shutil.copyfile(YUNET_WEB / "yunet.mjs", out / "lib" / "yunet.mjs")
+    shutil.copyfile(YUNET_WEB / "yunet.mjs", out / "yunet.mjs")
     (out / "selftest").mkdir()
     shutil.copyfile(YUNET_WEB / "expected.json", out / "selftest" / "expected.json")
     for img in (YUNET_WEB / "images").iterdir():

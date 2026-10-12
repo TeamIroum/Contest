@@ -25,3 +25,6 @@ export declare function measure(
 
 /** 문제가 있으면 "dark" | "blur", 괜찮으면 null (서버와 같은 순서) */
 export declare function problem(q: QualityMeasure): "dark" | "blur" | null;
+
+// 시니어 앱(frontend/senior)이 먼저 쓰던 이름
+export type Quality = QualityMeasure;

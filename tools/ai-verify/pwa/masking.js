@@ -4,14 +4,16 @@
 //   - 원본 캔버스는 이 모듈 밖으로 내보내지 않고, 끝나면 크기를 0으로 만든다. 어디에도 저장하지 않는다.
 //   - 실패하면 예외를 던진다. 부른 쪽은 사진을 버리고 다시 찍게 한다 (가리지 못한 사진은 전송·저장 경로가 없음).
 //   - 사진·캔버스 내용은 콘솔에 찍지 않는다.
-import { detectFaces } from "./lib/yunet.mjs";
+import { detectFaces } from "./yunet.mjs";
 import { download, importRetry } from "./download.js";
 
 // 검출 라이브러리 기본 주소. loadModels의 ortUrl·mediapipeUrl로 바꿀 수 있다 (같은 버전을 직접 올려 둘 때)
 const ORT_BASE = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/";
 const MP_BASE = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/";
 
-export const MASKING_VERSION = "pwa-test-3";          // 입력 크기·가리는 방법을 바꾸면 올림 (모델이 바뀌면 아래 해시가 자동으로 바뀜)
+// 가리는 규칙 버전. 입력 크기·가리는 방법·보내는 크기를 바꾸면 올림 (모델이 바뀌면 아래 해시가 자동으로 바뀜).
+// 시험용 PWA와 시니어 앱이 이 파일을 그대로 함께 쓰므로 앱 이름은 넣지 않는다 (앱은 deviceMaskReport.appVersion으로 구분)
+export const MASKING_VERSION = "mask-4";
 let modelVersion = null;                                // 모델 목록의 해시
 // 업무 API에 보내는 maskingVersion: 규칙 버전 + 모델 해시. 모델 파일이 바뀌면 저절로 달라진다
 export const maskingVersion = () => (modelVersion ? `${MASKING_VERSION}+${modelVersion}` : MASKING_VERSION);
@@ -22,7 +24,9 @@ export const DETECTOR = "yunet+plate-t384+effdet0";
 export const MODEL_FILES = {};
 
 const DETECT_MAX_SIDE = 2400;   // 이보다 크면 줄여서 찾고 좌표를 되돌림
-const OUTPUT_MAX_SIDE = 1568;   // AI가 판독·저장하는 긴 변
+// 보내는 사진의 긴 변. 1568 → 1280: 같은 시험 사진 48장의 판독 결과가 같고(768부터 긴급을 놓침) 용량은 약 39% 줄어
+// LTE 전송이 빨라진다. 서버(ai/images.py AI_MAX_SIDE 1568)는 이보다 작으면 그대로 쓴다
+const OUTPUT_MAX_SIDE = 1280;
 const JPEG_QUALITY = 0.88;      // 서버 images.JPEG_QUALITY
 const PLATE_SIZE = 384;
 // 작은 모델(t-384)은 창틀·책상·배수구 무늬를 0.18~0.53점으로 번호판이라 잡았다(번호판 없는 사진 86장).
@@ -290,7 +294,7 @@ export async function maskCapture(source, appVersion) {
     report.boxes = boxes.map(({ kind, box: bx }) => ({ kind, box: bx.map((v) => +v.toFixed(4)) }));
     t = lap("mask", t);
 
-    // 긴 변 1,568px JPEG. 캔버스에서 만든 JPEG에는 위치·기기 정보(EXIF)가 없다
+    // 긴 변 1,280px JPEG. 캔버스에서 만든 JPEG에는 위치·기기 정보(EXIF)가 없다
     const ko = Math.min(1, OUTPUT_MAX_SIDE / Math.max(W, H));
     out = canvas(Math.round(W * ko), Math.round(H * ko));
     const octx = out.getContext("2d");
@@ -312,7 +316,7 @@ export async function maskCapture(source, appVersion) {
 // ---------------------------------------------------------------- 얼굴 검출 자체 점검 (yunet_web/verify.mjs와 같은 기준)
 export async function selfTestFaces(base = "./selftest/") {
   await loadModels();
-  const { iou, SCORE_THRESHOLD } = await import("./lib/yunet.mjs");
+  const { iou, SCORE_THRESHOLD } = await import("./yunet.mjs");
   const expected = await (await fetch(`${base}expected.json`)).json();
   const lines = [];
   let failed = 0;

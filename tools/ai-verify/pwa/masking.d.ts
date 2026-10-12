@@ -88,3 +88,7 @@ export declare function maskCapture(source: HTMLCanvasElement, appVersion?: stri
 
 /** 얼굴 검출 자체 점검 (시험용) */
 export declare function selfTestFaces(base?: string): Promise<{ ok: boolean; lines: string[] }>;
+
+// 시니어 앱(frontend/senior)이 먼저 쓰던 이름. 그대로 바꿔 끼워도 코드를 고치지 않게
+export type MaskReport = DeviceMaskReport;
+export type Masked = MaskResult;
