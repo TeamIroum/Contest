@@ -25,7 +25,7 @@ YUNET_WEB = ROOT / "ai" / "contract" / "yunet_web"
 REPO = "https://github.com/TeamIroum/pwa-test.git"
 PAGES_URL = "https://teamiroum.github.io/pwa-test/"
 
-SHELL = ["index.html", "app.js", "masking.js", "download.js", "quality.js", "outbox.js", "style.css", "manifest.webmanifest", "icon.svg",
+SHELL = ["index.html", "app.js", "masking.js", "download.js", "quality.js", "camera.js", "outbox.js", "style.css", "manifest.webmanifest", "icon.svg",
          "sw.js", "mask-host.html", "mask-host.js"]
 # backend/app.py의 PWA_MODELS·PWA_MODEL_ORIGINS와 같은 목록·규칙 (버전이 검증 콘솔 배포본과 같아야 함)
 MODELS = {
