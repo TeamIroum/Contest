@@ -356,15 +356,16 @@ def _refresh(run: dict, source: str) -> bool | None:
     r = ai.result(run["photo_id"])
     if r.status != 200:
         return None
+    # 계약 검사는 결과가 그대로여도 지금 규칙으로 다시 한다 (검사 규칙을 고친 뒤 예전 기록을 다시 볼 수 있게)
+    req = run.get("request") or {}
+    items = checks.check_analyze(r.body, req, ai.taxonomy()) if run["kind"] == "analyze" else \
+        checks.check_verify(r.body, req)
+    store.update_run(run["id"], checks=items)
     if _strip_volatile(r.body) == _strip_volatile(run.get("response")):
         return False
     store.add_snapshot(run["id"], source, r.body)
     if run.get("http_status") != 200:   # 콘솔이 먼저 기다리기를 포기했던 건이 나중에 결과를 받은 경우
         store.update_run(run["id"], http_status=200)
-    req = run.get("request") or {}
-    items = checks.check_analyze(r.body, req, ai.taxonomy()) if run["kind"] == "analyze" else \
-        checks.check_verify(r.body, req)
-    store.update_run(run["id"], checks=items)
     if (r.body.get("image_revision") or 0) > (run.get("image_revision") or 0):
         _copy_image(run["id"], r.body)
     return True

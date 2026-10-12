@@ -155,7 +155,8 @@ def check_analyze(resp: dict, sent: dict, taxonomy: dict | None, http_status: in
                   fac.get("match_ambiguous") in (False, None), f"{fac.get('match_ambiguous')!r}")
             c.add("no_latlon_facility_id", "lat/lon을 안 보냈으면 AI 쪽 facility_id 비어 있음",
                   not fac.get("facility_id"), f"{fac.get('facility_id')!r}", level_if_bad="warn")
-        if sent.get("location_tags") is not None:
+        # 목록 외 시설(unknown)은 위치 태그를 붙일 시설이 없어 facility에 태그가 없다 (계약 예시 07과 같음). 등급도 계산하지 않음
+        if sent.get("location_tags") is not None and ftype != "unknown":
             got = set(fac.get("location_tags") or [])
             want = set(sent["location_tags"])
             c.add("location_tags", "보낸 location_tags가 반영됨", want <= got, f"보냄 {sorted(want)} / 받음 {sorted(got)}")

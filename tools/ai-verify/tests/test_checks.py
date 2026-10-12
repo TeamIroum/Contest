@@ -79,3 +79,14 @@ def test_narrative_number_check():
 
 def test_device_report_snake_case():
     assert to_snake({"faces": 1, "appVersion": "1.0.0"}) == {"faces": 1, "app_version": "1.0.0"}
+
+
+def test_location_tags_only_checked_for_known_facility():
+    # 목록 외 시설(unknown)은 facility에 위치 태그가 없다 (계약 예시 07). 보낸 태그가 있어도 위반이 아님
+    sent = {"location_tags": ["school_route"], "has_latlon": False}
+    unknown = _load("analyze_07_needs_review_unknown.json")
+    assert "location_tags" not in {c["id"] for c in _fails(checks.check_analyze(unknown, sent, TAXONOMY))}
+    # 아는 시설인데 태그가 빠지면 위반
+    known = _load("analyze_01_normal.json")
+    known["facility"]["location_tags"] = []
+    assert "location_tags" in {c["id"] for c in _fails(checks.check_analyze(known, sent, TAXONOMY))}
