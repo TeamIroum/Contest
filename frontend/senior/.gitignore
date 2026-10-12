@@ -1,0 +1,4 @@
+# 가림 모델 중 용량이 큰 번호판·차량 모델은 npm run models 로 받는다 (얼굴 모델은 저장소에 포함)
+public/models/plate-*.onnx
+public/models/efficientdet_*.tflite
+*.tsbuildinfo

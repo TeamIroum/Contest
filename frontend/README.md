@@ -24,6 +24,8 @@ npm run preview         # 만든 결과물 미리보기
 
 API 서버 주소는 `.env.example`을 `.env`로 복사해 `VITE_API_ORIGIN`에 적습니다. 화면과 같은 주소에서 서비스하면 비워 둡니다.
 
+휴대폰에서 실제 카메라로 시험하려면 `https` 주소가 필요합니다. 도메인으로 여는 방법은 [infra/demo-https](../infra/demo-https/README.md)에 있습니다.
+
 ## 지금 상태: 시연용 프로토타입 (모의)
 
 두 앱은 아직 업무 API에 연결하지 않았습니다. 화면과 흐름은 프론트엔드 전달 자료(OpenAPI v0.2, 프론트엔드 API 명세서 v1.4, 응답 JSON 명세 v0.3)에 맞춰 만들었고, 데이터는 각 앱의 `src/data.ts`에 있는 시연용 예시입니다. 실제 인물·시설 정보가 아닙니다.

@@ -1,0 +1,8 @@
+{
+  "version": "local-1",
+  "files": {
+    "face": "face_yunet_s_dynamic@1.onnx",
+    "plate": "plate-t384@1.onnx",
+    "vehicle": "efficientdet_lite0@1.tflite"
+  }
+}

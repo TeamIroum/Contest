@@ -55,8 +55,66 @@
 | `src/data.ts` | 시연용 예시 데이터 (조, 장소 6곳, 건너뛰기·그만하기 사유) |
 | `src/Scenery.tsx`, `src/sky.ts` | 화면 위쪽 풍경. 휴대폰 시계에 맞춰 새벽·오전·한낮·오후·해 질 녘·밤 6단계로 하늘이 바뀜 |
 | `src/Photo.tsx`, `src/media.ts` | 사진 자리. 사진이 없으면 시설 그림을 그림 |
-| `src/sounds.ts` | 효과음 (전송 완료, 다시 찍기, 알림). 위쪽 막대에서 끌 수 있음 |
-| `public/` | 앱 아이콘, 웹 앱 매니페스트(홈 화면 이름 "동네 점검단") |
+| `src/sounds.ts` | 효과음. 촬영음("찰칵")은 늘 재생, 나머지(전송 완료·다시 찍기·알림)는 위쪽 막대에서 끌 수 있음 |
+| `src/camera/` | 앱 안 후면 카메라(`LiveCamera.tsx`), 흐림·어두움 계산(`quality.js`) |
+| `src/masking/` | 얼굴·번호판·차량 가리기(`masking.js`, `yunet.mjs`), 모델 받기(`download.js`) |
+| `src/offline/` | 전송 대기함(`outbox.js`, IndexedDB) |
+| `src/api/` | 업무 API 주소·토큰, 오늘 순회 조회(`client.ts`) |
+| `public/` | 앱 아이콘, 웹 앱 매니페스트(홈 화면 이름 "동네 점검단"), 가림 모델(`public/models/`) |
+
+`camera/`, `masking/`, `offline/`의 `.js` 파일은 [시험용 PWA](../../tools/ai-verify/pwa/README.md) 코드를 거의 그대로 옮겼습니다 ([촬영 기능 적용 요청](../../docs/시니어앱_촬영기능_적용요청.md) 3장). 바꾼 곳만 적습니다.
+
+| 파일 | 바꾼 곳 |
+|---|---|
+| `masking/masking.js` | 모델 목록을 `public/models/model-manifest.json` 고정 경로에서 받음, `MASKING_VERSION = "senior-app-1"` (검출·가림 규칙은 `pwa-test-3`과 같음, 번호판 0.6점) |
+| `offline/outbox.js` | 저장소 이름 `senior-outbox`, 로그인 헤더, 사진 올리기가 끝난 때를 알리려고 `fetch` 대신 XHR |
+| `*.d.ts` | TypeScript 화면에서 부르기 위한 타입만 추가 |
+
+## 실제 촬영
+
+| 주소 | 동작 |
+|---|---|
+| `https` (개발 중에는 `localhost`) | **실제 촬영.** 가림 모델 셋(얼굴·번호판·차량)이 준비되고 카메라 화면이 나오기 전에는 찍기 버튼이 꺼지고 준비 상태를 보여 줍니다. 모델을 못 받았거나 카메라를 못 열면 "다시 준비하기" |
+| `http` | **그림 시연.** 카메라가 `https`에서만 열리므로 지금까지의 시연 화면으로 동작 |
+
+찍기 순서 (요청서 1장)
+
+1. 셔터를 누르면 촬영음과 함께 화면이 한 번 번쩍입니다.
+2. 약 0.3초 동안 5장면을 떼어 가장 선명한 것을 고릅니다.
+3. 흐리거나 어두우면(선명도 60, 밝기 45 미만, 서버와 같은 계산) 보내지 않고 바로 다시 찍기 화면으로 갑니다.
+4. 얼굴·번호판·차량을 기기에서 가리고, 압축한 사진으로 흐림을 한 번 더 확인합니다. 가리지 못하면 원본을 버리고 "한 번 더 찍어 주세요".
+5. 가린 사진을 대기함에 먼저 저장한 뒤 `POST /patrols/{patrolId}/stops/{stopId}/inspections`로 보냅니다. 진행 문구: 가리는 중 → 보내는 중 → 결과 확인 중.
+
+서버 답에 따른 화면 (요청서 2장)
+
+| 서버 답 | 화면 |
+|---|---|
+| `nextAction: RETAKE` | 다시 찍기 (서버 `message`), 남은 횟수는 `retakesRemaining` |
+| `NEXT_STOP` / `NEXT_CAPTURE` | 보냈어요 → `nextStopId` 장소 또는 다음 구도 |
+| `RETURN_TO_CENTER` | 보냈어요 → 센터 복귀 |
+| `captureStatus: REVIEW_REQUESTED` | 선생님께 확인을 부탁했어요 |
+| `code: SLOT_RESOLVED` | 이미 끝난 곳이에요 |
+| 연결 안 됨 · 5xx · `SUBMISSION_PROCESSING` | 전송 대기 중이에요 (대기함에 남김, 앱을 다시 볼 때·연결이 돌아올 때 자동으로 다시 보냄). 홈에 "전송 대기 N장" |
+| 그 밖의 4xx | 보내지 못했어요 (대기함에 남기되 자동 재전송 안 함) |
+
+오늘 순회: 로그인 뒤 `GET /me/patrols` → `GET /patrols/{id}`로 받아 장소·구도 목록을 서버 순회로 바꿉니다. 이미 끝난 구도(`ACCEPTED`, `REVIEW_REQUESTED`)는 찍기 버튼을 끄고 "이미 끝난 곳이에요", 모두 끝났으면 "오늘 순회를 모두 마쳤어요". API에 연결하지 못하면 `src/data.ts` 예시 데이터로 시연합니다. 연결은 `.env`의 `VITE_API_ORIGIN`(예: 시험용 업무 API `http://127.0.0.1:8100`).
+
+**모델 받기** (처음 한 번)
+
+```bash
+npm run models   # 번호판(7.8MB)·차량(7.3MB) 모델을 public/models/에 받음. Git에는 넣지 않음(.gitignore)
+```
+
+얼굴 모델(`face_yunet_s_dynamic@1.onnx`, 230KB)은 `ai/contract/yunet_web/` 복사본으로 저장소에 들어 있습니다. 검출 라이브러리(ONNX Runtime Web 1.20.1, MediaPipe Tasks Vision 0.10.14)는 jsDelivr에서 받습니다.
+
+**확인한 것** (PC 엣지, 가짜 카메라에 `ai/contract/yunet_web/images/t02_street_1920x1080.jpg`, 서버 답은 시험 스크립트가 흉내 냄)
+
+- 서버 순회를 받아 이미 끝난 첫 장소를 건너뛰고 둘째 장소부터 시작, 서버 구도 번호로 전송
+- 얼굴 6개를 가린 사진과 `deviceMaskReport`가 전송됨
+- 접수 → `nextStopId` 장소로, RETAKE → 서버 문구, REVIEW_REQUESTED → 선생님 확인, SLOT_RESOLVED → 이미 끝난 곳, 연결 끊김 → 전송 대기 + 대기함 1건
+- 어두운 사진 → 보내지 않고 "사진이 어두워요"
+- 카메라가 없는 PC(localhost) → 찍기 버튼 꺼짐 + "카메라를 열지 못했어요" + 다시 준비하기
+- 휴대폰 실기기는 아직 확인하지 않았습니다
 
 화면 원칙
 
@@ -66,10 +124,11 @@
 
 아직 없는 것 (다음 단계)
 
-- 실제 카메라(`getUserMedia`), 기기 마스킹, 오프라인 대기함(IndexedDB), 서비스 워커. 지금 촬영 화면은 그림으로 흉내만 냅니다. 위 "참고 구현"의 시험용 PWA 코드를 옮겨 올 계획입니다.
-- 업무 API 연결
+- 서비스 워커(오프라인에서 앱 열기, 모델 캐시는 `download.js`가 Cache Storage에 함)
+- 업무 API 연결: 로그인, 출석·시작·복귀·건너뛰기. 지금은 순회 조회와 사진 전송만 연결
+- 휴대폰 실기기 확인
 
 이 문서와 다르게 만든 것 (결정 필요 이슈로 확인 중)
 
-- 촬영음: 위 "꼭 지킬 것"은 촬영할 때마다 촬영음을 재생하도록 되어 있지만, 지금은 진동만 냅니다.
 - 화면 흐름: 출석을 요청하면 담당자 출발 확인을 기다리지 않고 바로 시작할 수 있습니다 (프론트엔드 전달 자료의 "출발 확인과 개인 시작은 별개" 기준).
+- 시연용 "흔들린 사진으로 찍기" 버튼: 요청서는 삭제이지만 시연용으로 남겼습니다. `http` 그림 시연에서만 보이고 실제 촬영(`https`)에서는 나오지 않습니다.
