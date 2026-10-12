@@ -40,6 +40,11 @@ PC 브라우저에서 http://localhost:8100/pwa/ 를 엽니다. 카메라가 없
 | 안드로이드 + USB (가장 간단) | `adb reverse tcp:8100 tcp:8100` 후 휴대폰 크롬에서 `http://localhost:8100/pwa/` |
 | 같은 와이파이 + HTTPS | [mkcert](https://github.com/FiloSottile/mkcert)로 PC IP 인증서를 만들고 `python -m uvicorn app:app --host 0.0.0.0 --port 8100 --ssl-keyfile key.pem --ssl-certfile cert.pem`. 휴대폰에 mkcert 루트 인증서를 설치해야 함 |
 | 아이폰 | 위 HTTPS 방식. 홈 화면에 추가해 실행할 때 카메라 권한이 반복해서 뜨는지 함께 확인 |
+| 밖에서 (권장) | GitHub Pages 배포본 https://teamiroum.github.io/pwa-test/ (`deploy_pages.py`). 화면·모델은 CDN에서, 사진·업무 API만 터널로 PC에 |
+
+**처음 한 번은 Wi-Fi에서 여세요.** 처음 열 때 가림 모델과 실행기를 약 20MB(실제 전송량) 받습니다. 1Mbps로 제한된 데이터에서는 3분 안팎 걸립니다. 다 받은 파일은 휴대폰에 남아 다음부터는 거의 받지 않습니다. 운영에서는 복지관 교육 때 Wi-Fi로 한 번 열어 두게 안내합니다.
+
+받는 방식 (`download.js`): 얼굴 → 번호판 → 차량 순서로 하나씩 받고(동시에 받으면 셋 다 느려져 끊기기 쉬움), 끊기면 2·5·10·20·30초… 뒤 최대 8번 다시 받습니다. 모델은 받은 곳부터 이어 받고(Range) 다 받은 뒤 주소의 내용 해시(`?v=`)로 확인합니다. 받은 파일은 바로 캐시에 두므로 앱을 닫았다 열어도 남은 것만 받습니다. 셋이 모두 준비되기 전에는 촬영 버튼이 꺼져 있습니다(차량을 못 가린 사진이 생기지 않게, 원본은 붙잡아 두지 않음).
 
 ## 화면 흐름
 
@@ -64,14 +69,14 @@ PC 브라우저에서 http://localhost:8100/pwa/ 를 엽니다. 카메라가 없
 | 단계 | 내용 |
 |---|---|
 | 얼굴 | `ai/contract/yunet_web/yunet.mjs`와 가변 YuNet 모델을 그대로 씀(콘솔이 계약 폴더 파일을 내려줌). 찍은 해상도 그대로, 긴 변 2,400px 초과면 줄여서 찾음 |
-| 번호판 | `yolo-v9-t-384-license-plate-end2end`. open-image-models와 같은 전처리(비율 유지 + 회색 114 여백, RGB, 0~1), 점수 기준 0.15 |
+| 번호판 | `yolo-v9-t-384-license-plate-end2end`. open-image-models와 같은 전처리(비율 유지 + 회색 114 여백, RGB, 0~1), 점수 기준 0.6 (서버는 큰 모델로 0.15). 거짓 검출은 0.53점 이하, 한국 차 사진 속 진짜 번호판은 0.72점 이상이었음 (`ai/eval/privacy/device_plate_threshold.py`) |
 | 차량 | MediaPipe EfficientDet-Lite0, 자동차·버스·트럭·오토바이, 점수 0.4. 안에 번호판 중심이 없으면 차량 전체를 뭉갬 |
 | 가림 | 얼굴·차량: 가로 6칸 모자이크 + 가우시안 흐림(커널은 서버와 같은 식). 흐림 미지원 브라우저는 4칸 모자이크. 번호판: `#3C3C3C`로 덮음. 상자 확장 25% / 20% / 5% |
 | 출력 | 긴 변 1,568px, JPEG 품질 0.88 (`toBlob`, EXIF 없음) |
 | 원본 | 촬영 캔버스는 가린 뒤 크기를 0으로 만듦. IndexedDB·캐시·localStorage에 넣지 않음. 실패하면 사진을 버리고 "한 번 더 찍어 주세요" |
 | 버전 | `maskingVersion = pwa-test-2+<모델 해시>`, `detector = yunet+plate-t384+effdet0`. 규칙 버전(`pwa-test-2`)은 입력 크기·가리는 방법을 바꿀 때 올리고, 모델 파일이 바뀌면 뒤의 해시가 저절로 바뀜 |
 
-검출 라이브러리(ONNX Runtime Web 1.20.1, MediaPipe Tasks Vision 0.10.14)는 jsDelivr에서 받고, 모델 파일은 같은 도메인에서 받습니다. 모델 주소는 `/pwa/model-manifest.json`이 내려주며 내용 해시(`?v=`)가 붙어 있어, `ai/contract/yunet_web/`의 얼굴 모델이나 받은 번호판·차량 모델이 바뀌면 설치된 앱도 새 모델을 받습니다. 둘 다 서비스 워커가 캐시하고, 같은 모델의 예전 해시 캐시는 지웁니다. 사진과 업무 API 응답은 캐시하지 않습니다.
+검출 라이브러리(ONNX Runtime Web 1.20.1, MediaPipe Tasks Vision 0.10.14)는 jsDelivr에서 받고, 모델 파일은 같은 도메인에서 받습니다. 모델 주소는 `/pwa/model-manifest.json`이 내려주며 내용 해시(`?v=`)가 붙어 있어, `ai/contract/yunet_web/`의 얼굴 모델이나 받은 번호판·차량 모델이 바뀌면 설치된 앱도 새 모델을 받습니다. 라이브러리 코드는 서비스 워커가, 모델과 실행기(`.wasm`)는 `download.js`가 캐시하고 같은 모델의 예전 해시 캐시는 지웁니다. 차량 모델은 원본(Google)에서 바로 받습니다. 사진과 업무 API 응답은 캐시하지 않습니다.
 
 ## 확인한 것 (2026-10-12, PC 크롬 헤드리스)
 

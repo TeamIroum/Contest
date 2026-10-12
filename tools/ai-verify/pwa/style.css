@@ -95,6 +95,7 @@ button:disabled { opacity: .45; cursor: default; }
 .photo .bx { position: absolute; border: 2px dashed; }
 .bx.face { border-color: #ffd400; }
 .bx.plate { border-color: #00e0ff; }
+.bx.plate span { position: absolute; left: 0; top: 0; padding: 0 4px; background: #00e0ff; color: #000; font-size: 13px; font-weight: 700; }
 .bx.vehicle { border-color: #ff6ad5; }
 
 .spinner {

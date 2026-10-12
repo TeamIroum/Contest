@@ -6,7 +6,7 @@
   - 가린 사진은 받아서 복사본으로 보여 준다 (AI 서버의 사진 주소를 화면에서 직접 쓰지 않음).
 
 실행:  python -m uvicorn app:app --port 8100     (backend 폴더에서)
-설정:  AI_BASE_URL(기본 http://localhost:8000), AI_API_KEY, VERIFY_DATA_DIR
+설정:  AI_BASE_URL(기본 http://127.0.0.1:8000. localhost는 윈도우에서 IPv6를 먼저 시도해 요청마다 2초 늦어짐), AI_API_KEY, VERIFY_DATA_DIR
 """
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
@@ -35,7 +36,7 @@ HERE = Path(__file__).resolve().parent
 FRONTEND = HERE.parent / "frontend"
 PWA = HERE.parent / "pwa"
 YUNET_WEB = HERE.parents[2] / "ai" / "contract" / "yunet_web"
-AI_BASE_URL = os.environ.get("AI_BASE_URL", "http://localhost:8000")
+AI_BASE_URL = os.environ.get("AI_BASE_URL", "http://127.0.0.1:8000")
 AI_API_KEY = os.environ.get("AI_API_KEY", "")
 DATA_DIR = Path(os.environ.get("VERIFY_DATA_DIR", HERE.parent / "data"))
 
@@ -46,6 +47,9 @@ AI_WAIT_S = float(os.environ.get("VERIFY_AI_TIMEOUT_S", "300"))
 ai = AIClient(AI_BASE_URL, AI_API_KEY, timeout_s=AI_WAIT_S)
 store = Store(DATA_DIR)
 app = FastAPI(title="AI 판독 모듈 검증 콘솔", version="1.0")
+# GitHub Pages에 올린 PWA(pwa/deploy_pages.py)가 이 서버의 /api/v1을 부를 수 있게 그 주소만 허용한다
+app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in os.environ.get(
+    "PWA_ORIGINS", "https://teamiroum.github.io").split(",") if o.strip()], allow_methods=["*"], allow_headers=["*"])
 
 
 def new_id(prefix: str) -> str:
@@ -156,12 +160,14 @@ def analyze(
 
 
 def run_analyze(data: bytes, filename: str, *, scenario, photo_id, participant_id, captured_at, tags,
-                device_masked, device_report, context, latlon=None, expected=None, label=None) -> dict:
+                device_masked, device_report, context, latlon=None, expected=None, label=None, client=None) -> dict:
     sent = {"photo_id": photo_id, "participant_id": participant_id, "captured_at": captured_at,
             "location_tags": tags, "device_masked": device_masked,
             "device_report": _snake(device_report), "has_latlon": latlon is not None,
             "open_case_ids": [c.get("case_id") for c in (context or {}).get("open_cases") or []],
             "context": context, "latlon": latlon, "filename": filename, "size": len(data)}
+    if client:
+        sent["test_client"] = client   # 시험 앱 정보 (휴대폰 가림 처리 시간 등). AI에는 보내지 않음
     r = ai.analyze(data, filename, photo_id=photo_id, participant_id=participant_id, captured_at=captured_at,
                    location_tags=tags, device_masked=device_masked, device_report=device_report,
                    context=context, latlon=latlon, scenario=scenario)
@@ -593,6 +599,12 @@ PWA_MODELS = {
     "plate": ("models/plate-t384@1.onnx", PWA / "models" / "plate-t384@1.onnx"),
     "vehicle": ("models/efficientdet_lite0@1.tflite", PWA / "models" / "efficientdet_lite0@1.tflite"),
 }
+# 휴대폰이 원본 서버에서 바로 받는 모델. 터널(Tailscale Funnel)은 느려 15MB를 다 받으면 처음 여는 데 오래 걸린다.
+# 원본이 브라우저 직접 다운로드(CORS)를 허용해야 한다: Google은 허용, 번호판 모델의 GitHub 릴리스는 막혀 있어 서버에서 준다.
+# 내용 해시는 같은 파일(fetch_models.py가 받은 것)로 계산한다.
+PWA_MODEL_ORIGINS = {
+    "vehicle": "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite",
+}
 _hash_cache: dict[Path, tuple[float, str]] = {}
 
 
@@ -607,15 +619,18 @@ def _file_hash(path: Path) -> str:
 
 @app.get("/pwa/model-manifest.json")
 def pwa_model_manifest():
-    files, missing = {}, []
+    files, local, missing = {}, {}, []
     for key, (url, path) in PWA_MODELS.items():
         if not path.is_file():
             missing.append(key)
             continue
-        files[key] = f"./{url}?v={_file_hash(path)}"
+        h = _file_hash(path)
+        local[key] = f"./{url}?v={h}"
+        files[key] = f"{PWA_MODEL_ORIGINS[key]}?v={h}" if key in PWA_MODEL_ORIGINS else local[key]
     if missing:
         raise HTTPException(503, f"모델 파일 없음: {', '.join(missing)} (pwa/fetch_models.py 실행)")
-    version = hashlib.sha256("|".join(files[k] for k in sorted(files)).encode()).hexdigest()[:8]
+    # 받는 곳이 바뀌어도 내용이 같으면 버전(앱이 보고하는 maskingVersion)은 그대로
+    version = hashlib.sha256("|".join(local[k] for k in sorted(local)).encode()).hexdigest()[:8]
     return Response(json.dumps({"version": version, "files": files}), media_type="application/json",
                     headers={"Cache-Control": "no-cache"})
 
