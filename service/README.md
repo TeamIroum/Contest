@@ -7,7 +7,7 @@
 | `senior/` | `frontend/senior` | 시니어 앱. `VITE_BACKEND=real`이면 실제 업무 백엔드에 연결 |
 | `admin/` | `frontend/admin` | 관리자 웹. `VITE_BACKEND=real`이면 로그인·오늘 활동 현황·검토 목록·사건·보수를 실제 API로 |
 | `web/` | `infra/demo-https` | 앞단 Caddy. 정적 화면 + `/api` → 업무 백엔드(:8080) |
-| `backend/` | `backend` | 업무 백엔드. 원본 그대로에 CSRF 쿠키 버그 수정만 더함(아래) |
+| `backend/` | `backend` | 업무 백엔드. 원본에 고친 점 두 가지(아래) |
 | `docker/` | `infra/aws` | 업무 백엔드 + Redis 컨테이너 실행 파일(Dockerfile, compose). 서버에 올릴 때 쓴다 |
 | `ui-test/` | — | 두 앱을 실제 브라우저(Playwright Chromium)로 눌러 보고 화면을 캡처하는 시험 |
 | `start.ps1`, `stop.ps1` | — | 이 PC 한 대로 서비스 켜기·끄기 |
@@ -15,6 +15,7 @@
 업무 백엔드는 `service/backend`를 local 프로필(시연 데이터 + 시연 로그인)로 실행한다. 원본과 다른 점:
 
 - CSRF 쿠키 버그 수정(`common/security/SecurityConfig.java`): Bearer 인증이 될 때마다 Spring Security가 `__Host-itda-csrf` 쿠키를 지워, 로그인 뒤 조회 한 번이면 다음 변경 요청(출석 요청·판정 등)이 403이 되던 문제. 회귀 시험 `auth/CsrfCookieKeptRegressionTest.java`
+- 검토 응답의 사진(`review/ReviewViews.Media`)에 기록 `version` 추가: 개인정보 검토 API(`/admin/media/{id}/privacy-reviews`)가 요구하는 값인데 응답에 없어 화면이 판정을 보낼 수 없었다. 계약 명세(`src/test/resources/contract/openapi.yaml`)에 선택 칸으로 추가
 
 ## 이 PC로 서비스하기
 
