@@ -16,7 +16,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
@@ -57,8 +56,6 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfRepository)
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
-                        // Bearer 인증이 될 때마다 CSRF 쿠키를 지우지 않게 한다. 지우면 로그인 뒤 GET 한 번에 쿠키가 비어 다음 변경 요청이 403이 된다.
-                        .sessionAuthenticationStrategy(new NullAuthenticatedSessionStrategy())
                         .requireCsrfProtectionMatcher(csrfProtected()))
                 .httpBasic(basic -> basic.disable())
                 .formLogin(form -> form.disable())
