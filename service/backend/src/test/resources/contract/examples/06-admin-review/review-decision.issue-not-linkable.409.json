@@ -1,0 +1,10 @@
+{
+  "code": "ISSUE_NOT_LINKABLE",
+  "message": "선택한 문제는 이미 종결되어 연결할 수 없습니다.",
+  "requestId": "req-issue-not-linkable",
+  "fieldErrors": [],
+  "details": {
+    "issueId": "b1000000-0000-4000-8000-000000000002",
+    "currentStatus": "CLOSED"
+  }
+}

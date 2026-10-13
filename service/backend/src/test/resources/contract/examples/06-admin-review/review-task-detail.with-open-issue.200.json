@@ -1,0 +1,126 @@
+{
+  "id": "80000000-0000-4000-8000-000000000001",
+  "type": "INSPECTION",
+  "status": "OPEN",
+  "version": 1,
+  "triggerReason": "ISSUE_SUSPECTED",
+  "allowedDecisions": [
+    "ISSUE_CONFIRMED",
+    "NO_ISSUE",
+    "FOLLOW_UP_REQUIRED"
+  ],
+  "facility": {
+    "id": "f0000000-0000-4000-8000-000000000001",
+    "code": "SW-0001",
+    "type": "SIDEWALK",
+    "name": "마을회관 앞 보도블록",
+    "areaLabel": "○○동 1구역",
+    "managingDepartment": {
+      "id": "a0000000-0000-4000-8000-000000000021",
+      "name": "○○구 도로관리과"
+    }
+  },
+  "patrol": {
+    "id": "30000000-0000-4000-8000-000000000001",
+    "date": "2026-10-15",
+    "teamName": "1조",
+    "routeName": "마을회관 코스"
+  },
+  "stop": {
+    "id": "40000000-0000-4000-8000-000000000001",
+    "order": 1,
+    "name": "마을회관 앞 보도블록"
+  },
+  "captureSlot": {
+    "id": "50000000-0000-4000-8000-000000000001",
+    "label": "전체 모습",
+    "purpose": "REGULAR"
+  },
+  "inspections": [
+    {
+      "id": "60000000-0000-4000-8000-000000000001",
+      "attemptNo": 1,
+      "capturedBy": {
+        "teamName": "1조",
+        "members": [
+          {
+            "participantId": "20000000-0000-4000-8000-000000000001",
+            "name": "김○○"
+          },
+          {
+            "participantId": "20000000-0000-4000-8000-000000000002",
+            "name": "박○○"
+          }
+        ]
+      },
+      "capturedAt": "2026-10-15T01:09:40Z",
+      "receivedAt": "2026-10-15T01:10:12Z",
+      "receiptStatus": "RECEIVED",
+      "captureStatus": "ACCEPTED",
+      "retakeReason": null,
+      "media": {
+        "id": "70000000-0000-4000-8000-000000000001",
+        "mediaVersion": 1,
+        "privacyStatus": "APPROVED",
+        "contentPath": "/api/v1/media/70000000-0000-4000-8000-000000000001/content",
+        "privacyRelease": null
+      },
+      "analysis": {
+        "analysisResultId": "90000000-0000-4000-8000-000000000001",
+        "snapshotNo": 1,
+        "status": "OK",
+        "reviewCategory": "REVIEW_REQUIRED",
+        "findings": [
+          {
+            "facilityType": "SIDEWALK",
+            "code": "lifted",
+            "label": "들뜸",
+            "bbox": [
+              0.1,
+              0.2,
+              0.7,
+              0.8
+            ],
+            "evidence": "블록 일부가 주변보다 돌출돼 보임"
+          }
+        ],
+        "facilityMatch": {
+          "aiFacilityType": "SIDEWALK",
+          "ledgerFacilityType": "SIDEWALK",
+          "matched": true
+        },
+        "retry": null,
+        "modelVersion": "provider-model-id",
+        "promptVersion": "provider-prompt-id",
+        "analyzedAt": "2026-10-15T01:10:12Z"
+      },
+      "classification": {
+        "source": "AI",
+        "facilityType": "SIDEWALK",
+        "issueTypes": [
+          "lifted"
+        ],
+        "classificationVersion": 0,
+        "correctionId": null
+      }
+    }
+  ],
+  "openIssues": [
+    {
+      "id": "b1000000-0000-4000-8000-000000000001",
+      "status": "OPEN",
+      "defectCode": "sunken",
+      "openedAt": "2026-10-14T03:00:00Z",
+      "summary": "보도 중앙 블록 꺼짐"
+    },
+    {
+      "id": "b1000000-0000-4000-8000-000000000002",
+      "status": "OPEN",
+      "defectCode": "sunken",
+      "summary": "보도 남쪽 블록 꺼짐",
+      "openedAt": "2026-10-14T03:20:00Z"
+    }
+  ],
+  "decisions": [],
+  "createdAt": "2026-10-15T01:10:13Z"
+}

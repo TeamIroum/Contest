@@ -1,0 +1,11 @@
+{
+  "code": "ACTIVITY_STATE_CONFLICT",
+  "message": "이미 복귀한 뒤의 기록이에요. 새 점검은 보낼 수 없어요.",
+  "requestId": "req-skip-after-return",
+  "fieldErrors": [],
+  "details": {
+    "reason": "MEMBER_RETURNED",
+    "activityStatus": "IN_PROGRESS",
+    "transferredToPatrolId": null
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "patrolId": "30000000-0000-4000-8000-000000000001",
+  "participantId": "20000000-0000-4000-8000-000000000001",
+  "startedAt": "2026-10-15T01:02:00Z",
+  "startReceivedAt": "2026-10-15T01:02:01Z",
+  "startSource": "SELF",
+  "activityStatus": "IN_PROGRESS",
+  "departedAt": "2026-10-15T01:02:00Z",
+  "duplicate": false,
+  "patrolRevision": 3
+}

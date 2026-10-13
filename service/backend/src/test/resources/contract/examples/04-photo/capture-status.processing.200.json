@@ -1,0 +1,17 @@
+{
+  "inspectionId": "60000000-0000-4000-8000-000000000020",
+  "clientSubmissionId": "e0000000-0000-4000-8000-000000000108",
+  "attemptNo": 1,
+  "receiptStatus": "RECEIVED",
+  "captureStatus": "PROCESSING",
+  "nextAction": "WAIT",
+  "retakeReason": null,
+  "retakesRemaining": 2,
+  "message": "사진을 확인하고 있어요. 잠시만 기다려 주세요.",
+  "stopId": "40000000-0000-4000-8000-000000000002",
+  "captureSlotId": "50000000-0000-4000-8000-000000000002",
+  "nextStopId": null,
+  "nextCaptureSlotId": null,
+  "patrolRevision": 8,
+  "qualityFailureCount": 0
+}

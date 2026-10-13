@@ -1,0 +1,62 @@
+# 이 PC 한 대로 서비스하는 앞단 (Caddy). HTTPS와 공개 주소는 Tailscale Funnel이 맡고, Caddy는 이 PC 안(127.0.0.1)에서만 받는다.
+#   https://<PC>.ts.net        (Funnel 443)   → :8180 시니어 앱
+#   https://<PC>.ts.net:10000  (Funnel 10000) → :8181 관리자 웹
+# 두 앱 모두 화면과 같은 주소의 /api를 업무 백엔드(:8080)로 넘긴다. 같은 출처라 __Host- 쿠키·CSRF가 그대로 동작한다.
+# 실행: service\start.ps1 (이 폴더에서 bin\caddy.exe run --config Caddyfile)
+
+{
+	admin off
+	auto_https off
+	servers {
+		# Funnel(같은 PC)이 붙인 X-Forwarded-For를 믿고 그대로 백엔드에 넘긴다 (인증번호 주소당 제한)
+		trusted_proxies static 127.0.0.1/32 ::1/128
+	}
+}
+
+(api) {
+	# 사진 접수는 AI 판독(업무 서버 요청 기한 30초)을 기다린다. 그보다 길게 둔다
+	handle /api/* {
+		request_body {
+			max_size 12MB
+		}
+		reverse_proxy 127.0.0.1:8080 {
+			flush_interval -1
+			transport http {
+				response_header_timeout 90s
+			}
+		}
+	}
+	handle /actuator/* {
+		respond 404
+	}
+}
+
+(spa) {
+	encode gzip
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy same-origin
+		-Server
+	}
+	# 이름이 바뀌지 않는 파일은 매번 확인하고, 해시가 붙은 파일은 오래 캐시한다
+	@nocache path / /index.html /sw.js /manifest.webmanifest /models/model-manifest.json
+	header @nocache Cache-Control "no-cache"
+	@immutable path /assets/* /models/*.onnx
+	header @immutable Cache-Control "public, max-age=31536000, immutable"
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+http://127.0.0.1:8180 {
+	import api
+	root * ../senior/dist
+	import spa
+}
+
+http://127.0.0.1:8181 {
+	import api
+	root * ../admin/dist
+	import spa
+}

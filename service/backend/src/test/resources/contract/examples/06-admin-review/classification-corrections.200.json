@@ -1,0 +1,32 @@
+{
+  "items": [
+    {
+      "correctionId": "d0000000-0000-4000-8000-000000000011",
+      "analysisResultId": "90000000-0000-4000-8000-000000000001",
+      "previous": {
+        "source": "AI",
+        "facilityType": "SIDEWALK",
+        "issueTypes": [
+          "lifted"
+        ]
+      },
+      "current": {
+        "source": "HUMAN",
+        "facilityType": "SIDEWALK",
+        "issueTypes": [
+          "sunken"
+        ]
+      },
+      "reason": "들뜸이 아니라 꺼짐으로 보임",
+      "classificationVersion": 1,
+      "correctedBy": {
+        "id": "10000000-0000-4000-8000-000000000011",
+        "name": "이○○"
+      },
+      "correctedAt": "2026-10-15T04:50:00Z"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1
+}

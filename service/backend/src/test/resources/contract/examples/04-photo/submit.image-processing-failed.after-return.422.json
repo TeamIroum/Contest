@@ -1,0 +1,15 @@
+{
+  "code": "IMAGE_PROCESSING_FAILED",
+  "message": "사진을 처리하지 못했어요. 다시 찍으러 가지 않으셔도 되고, 담당자가 확인할게요.",
+  "requestId": "req-0108",
+  "fieldErrors": [],
+  "details": {
+    "inspectionId": "60000000-0000-4000-8000-000000000023",
+    "receiptStatus": "NO_MEDIA",
+    "captureStatus": "REVIEW_REQUESTED",
+    "nextAction": "RETURN_TO_CENTER",
+    "retakesRemaining": 2,
+    "patrolRevision": 22,
+    "qualityFailureCount": 0
+  }
+}

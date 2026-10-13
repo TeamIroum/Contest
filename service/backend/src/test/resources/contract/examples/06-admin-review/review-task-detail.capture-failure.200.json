@@ -1,0 +1,124 @@
+{
+  "id": "80000000-0000-4000-8000-000000000002",
+  "type": "CAPTURE_FAILURE",
+  "status": "OPEN",
+  "version": 1,
+  "triggerReason": "QUALITY_RETRY_EXHAUSTED",
+  "allowedDecisions": [
+    "FOLLOW_UP_REQUIRED",
+    "RESOLVE_CAPTURE_PROBLEM"
+  ],
+  "facility": {
+    "id": "f0000000-0000-4000-8000-000000000002",
+    "code": "DR-0001",
+    "type": "DRAIN",
+    "name": "마을회관 옆 빗물받이",
+    "areaLabel": "○○동 1구역",
+    "managingDepartment": {
+      "id": "a0000000-0000-4000-8000-000000000022",
+      "name": "○○구 하수관리과"
+    }
+  },
+  "patrol": {
+    "id": "30000000-0000-4000-8000-000000000001",
+    "date": "2026-10-15",
+    "teamName": "1조",
+    "routeName": "마을회관 코스"
+  },
+  "stop": {
+    "id": "40000000-0000-4000-8000-000000000002",
+    "order": 2,
+    "name": "마을회관 옆 빗물받이"
+  },
+  "captureSlot": {
+    "id": "50000000-0000-4000-8000-000000000002",
+    "label": "덮개 전체",
+    "purpose": "REGULAR"
+  },
+  "inspections": [
+    {
+      "id": "60000000-0000-4000-8000-000000000014",
+      "attemptNo": 1,
+      "capturedBy": {
+        "teamName": "1조",
+        "members": [
+          {
+            "participantId": "20000000-0000-4000-8000-000000000001",
+            "name": "김○○"
+          },
+          {
+            "participantId": "20000000-0000-4000-8000-000000000002",
+            "name": "박○○"
+          }
+        ]
+      },
+      "capturedAt": "2026-10-15T01:30:00Z",
+      "receivedAt": null,
+      "receiptStatus": "NO_MEDIA",
+      "captureStatus": "RETAKE_REQUIRED",
+      "retakeReason": "BLUR",
+      "media": null,
+      "analysis": null,
+      "classification": null
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000015",
+      "attemptNo": 2,
+      "capturedBy": {
+        "teamName": "1조",
+        "members": [
+          {
+            "participantId": "20000000-0000-4000-8000-000000000001",
+            "name": "김○○"
+          },
+          {
+            "participantId": "20000000-0000-4000-8000-000000000002",
+            "name": "박○○"
+          }
+        ]
+      },
+      "capturedAt": "2026-10-15T01:32:00Z",
+      "receivedAt": "2026-10-15T01:32:03Z",
+      "receiptStatus": "RECEIVED",
+      "captureStatus": "RETAKE_REQUIRED",
+      "retakeReason": "OUT_OF_FRAME",
+      "media": {
+        "id": "70000000-0000-4000-8000-000000000015",
+        "mediaVersion": 1,
+        "privacyStatus": "APPROVED",
+        "contentPath": "/api/v1/media/70000000-0000-4000-8000-000000000015/content",
+        "privacyRelease": null
+      },
+      "analysis": null,
+      "classification": null
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000016",
+      "attemptNo": 3,
+      "capturedBy": {
+        "teamName": "1조",
+        "members": [
+          {
+            "participantId": "20000000-0000-4000-8000-000000000001",
+            "name": "김○○"
+          },
+          {
+            "participantId": "20000000-0000-4000-8000-000000000002",
+            "name": "박○○"
+          }
+        ]
+      },
+      "capturedAt": "2026-10-15T01:35:00Z",
+      "receivedAt": null,
+      "receiptStatus": "NO_MEDIA",
+      "captureStatus": "REVIEW_REQUESTED",
+      "retakeReason": "DARK",
+      "media": null,
+      "analysis": null,
+      "classification": null
+    }
+  ],
+  "openIssues": [],
+  "decisions": [],
+  "createdAt": "2026-10-15T01:36:00Z"
+}
