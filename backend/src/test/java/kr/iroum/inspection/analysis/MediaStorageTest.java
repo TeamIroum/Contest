@@ -13,6 +13,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import kr.iroum.inspection.media.FileSystemMediaStorage;
 import kr.iroum.inspection.media.MediaStorage;
 
 /** 서버 검사 완료 사진 저장소(04단계 공백 G1의 파일 시스템 구현): 원자적 쓰기, 덮어쓰기, 저장소 밖 경로 차단. */
@@ -23,7 +24,7 @@ class MediaStorageTest {
 
     @Test
     void writesAtomicallyAndLeavesNoTemporaryFiles() throws IOException {
-        MediaStorage storage = new MediaStorage(root.toString());
+        MediaStorage storage = new FileSystemMediaStorage(root.toString());
         storage.put(MediaStorage.BUCKET, "p1/a.jpg", new byte[] {1, 2, 3});
         storage.put(MediaStorage.BUCKET, "p1/a.jpg", new byte[] {4, 5});
         assertThat(storage.read(MediaStorage.BUCKET, "p1/a.jpg")).containsExactly(4, 5);
@@ -37,7 +38,7 @@ class MediaStorageTest {
 
     @Test
     void rejectsKeysOutsideTheBucket() {
-        MediaStorage storage = new MediaStorage(root.toString());
+        MediaStorage storage = new FileSystemMediaStorage(root.toString());
         for (String key : new String[] {"../x.jpg", "p1/../../x.jpg", "/etc/passwd"}) {
             assertThatThrownBy(() -> storage.put(MediaStorage.BUCKET, key, new byte[] {1})).as(key)
                     .isInstanceOf(IllegalArgumentException.class);

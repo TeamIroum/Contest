@@ -28,6 +28,11 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-database-postgresql")
     runtimeOnly("org.postgresql:postgresql")
+    // 사진 저장소 S3 구현(inspection.media.store=s3). 2026-09-28 배포 버전으로 고정. 동기 클라이언트만 쓰므로 Netty 비동기 클라이언트는 뺀다.
+    implementation(platform("software.amazon.awssdk:bom:2.55.7"))
+    implementation("software.amazon.awssdk:s3") {
+        exclude(group = "software.amazon.awssdk", module = "netty-nio-client")
+    }
 
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-starter-security-test")
@@ -39,6 +44,8 @@ dependencies {
     testImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.19.2")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.testcontainers:testcontainers-postgresql")
+    // 테스트 전용: S3 호환 컨테이너(LocalStack)로 S3 저장소 검증. 실제 AWS 호출 없음.
+    testImplementation("org.testcontainers:testcontainers-localstack")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

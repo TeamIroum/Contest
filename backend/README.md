@@ -33,3 +33,19 @@ DB는 PostgreSQL, 인증은 Spring Security + Access JWT + 회전하는 Refresh 
 | `audit` | 감사 이력 | audit_events |
 
 AI 판독 모듈을 부르는 코드는 `analysis.client` 한 곳에만 둡니다. AI 계약이 바뀌면 이 패키지만 고치게 하기 위해서입니다. 연동 시 꼭 맞출 점은 AI 계약서 마지막 절 "백엔드 연동 시 꼭 맞출 것"에 있습니다.
+
+## 사진 저장소 (MEDIA-S3-01)
+
+승인 사진은 `MediaStorage` 인터페이스로 저장합니다. 설정 `inspection.media.store`(환경 변수 `MEDIA_STORE`)로 파일 시스템과 S3 중 하나를 고르며, 기본값은 파일 시스템입니다. 저장 키 규칙과 DB 값은 두 방식이 같습니다.
+
+| 환경 변수 | 기본값 | 설명 |
+|---|---|---|
+| `MEDIA_STORE` | `filesystem` | `filesystem` 또는 `s3` |
+| `MEDIA_STORAGE_ROOT` | 임시 디렉터리 | 파일 시스템 저장소 루트. 운영에서는 저장소 밖 별도 볼륨 |
+| `MEDIA_S3_BUCKET` / `MEDIA_S3_PREFIX` / `MEDIA_S3_REGION` | 없음 / 없음 / ap-northeast-2 | S3 버킷·키 접두사·리전. 자격 증명은 AWS SDK 기본 체인(인스턴스 역할)만 쓰고 접근 키는 설정하지 않음 |
+| `MEDIA_S3_SSE` / `MEDIA_S3_KMS_KEY_ID` | AES256 / 없음 | 서버 측 암호화(AES256 또는 aws:kms)와 KMS 키 |
+| `MEDIA_S3_ENDPOINT` | 없음 | 로컬 S3 호환 시험 컨테이너 전용. 운영에서는 비움 |
+
+- 라이브러리: AWS SDK for Java v2 BOM 2.55.7(`s3`, 동기 Apache 클라이언트). 서명 URL과 ACL은 쓰지 않습니다.
+- 테스트: 두 구현에 같은 계약 테스트를 돌리고, S3 모드의 사진 접수·조회·보류·재가림·저장 실패·정리를 S3 호환 컨테이너(LocalStack 4.4.0)로 확인합니다. Docker가 필요합니다.
+- 실제 AWS S3·IAM 연결은 확인하지 않았습니다. 배포 설계는 [AWS 배포 준비](../docs/AWS_배포_준비.md)에 있습니다.
