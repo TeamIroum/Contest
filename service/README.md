@@ -23,6 +23,7 @@
 - 평소 조 편성 API 추가(기능정의서 ACT-02, `team/`): `GET·POST /admin/teams`, `PATCH /admin/teams/{id}`. 한 조 2~3명(자리 1~3), 조원은 적용 시작일(`effectiveFrom`, 오늘 이후)부터 바뀌고 이전 구성은 이력(`team_memberships`)으로 남는다. 이미 배정된 순회는 조원을 따로 복사해 두므로 바뀌지 않는다. 다른 조에서 데려오면 그 조에서 빠지며, 그 조가 1명이 되면 거절, 0명이면 그 조를 닫는다
 - 코스·버전 API 추가(기능정의서 ACT-03, `route/`): `GET·POST /admin/routes`, `GET /admin/routes/options`(거점·시설), `PATCH /admin/routes/{id}`(이름·닫기), `POST /admin/routes/{id}/versions`. 출발·복귀 거점, 순서 있는 장소(같은 시설 재방문 허용), 장소별 구도 1~5개. 공개 버전은 고치지 않고 새 버전으로 바로 공개한다
 - 날짜별 순회 배정 API 추가(기능정의서 ACT-04, `schedule/`): `POST /admin/patrols`(activityDate, teamId, routeVersionId, scheduledStartAt, expectedReturnAt), `GET /admin/patrol-schedule?from=&to=`(기본 오늘부터 2주). 그날의 실제 조원(평소 조·활동 중)과 코스 버전의 장소·구도를 순회에 복사하고, 같은 참여자의 시간 겹침·지난 날짜·닫은 코스·조원 2명 미만은 거절한다
+- 재점검 구도·배정 후보 API 추가(기능정의서 ACT-10, `schedule/ReinspectionSlotService`): `POST /admin/patrols/{id}/stops/{stopId}/capture-slots`(출발 전 순회 장소에 재점검 구도 추가, 순회 version·revision 올림), `GET /admin/reinspection-requests/{id}/candidates`(같은 시설이 든 출발 전 담당 순회 장소, 다시 쓸 빈 재점검 구도). 원본에는 구도 추가 API가 없어 재점검 요청을 배정할 구도를 만들 수 없었다. 배정·취소는 원본 API(업무 API 10절)를 그대로 쓴다
 - 시연 관리자 계정 3개 추가(시드 `R__dev_seed_demo_scenario.sql`, `application-local.yml`): `demo-park`(공원녹지과 시설 담당자, 벤치 검토), `demo-program`(사업 총괄, 통계·보고), `demo-admin`(시스템 관리자, 공무원 계정). 원본 시드에는 벤치를 관리하는 공원녹지과 담당자가 없어 벤치 사진을 볼 사람이 없었다. 초기화 때 6개 모두 비밀번호를 준비한다
 - 시연(local 프로필): 관리자 웹에서 새로 등록한 어르신도 고정 시연 인증번호로 로그인한다(`inspection.demo.registered-seniors: true`, 기본값 false). 문자 발송 공급자가 없어서
 
@@ -67,7 +68,7 @@
 ```bash
 cd service/ui-test
 npm install && npm run install-browser          # 처음 한 번
-powershell -ExecutionPolicy Bypass -File run-all.ps1   # 전체: 초기화 → 순회를 오늘로 → 시험 11개 → 다시 초기화 (약 3분, 실제 데이터를 바꿈)
+powershell -ExecutionPolicy Bypass -File run-all.ps1   # 전체: 초기화 → 순회를 오늘로 → 시험 12개 → 다시 초기화 (약 3분, 실제 데이터를 바꿈)
 node admin.mjs https://<PC>.ts.net:10000         # 관리자 웹: 로그인·검토 목록·사건·오늘 활동 현황
 node admin-accounts.mjs <관리자 주소>              # 시연 관리자 6개 계정 로그인·역할별 메뉴 (데이터 안 바꿈)
 node admin-decide.mjs https://<PC>.ts.net:10000  # 관리자 웹에서 판정 저장 → 사건 생성 (LOGIN=demo-road 등으로 계정 선택)
@@ -77,6 +78,7 @@ node pause-check.mjs <시니어 주소> <관리자 주소>   # 잠깐 쉬기 ↔
 node admin-participants.mjs <관리자 주소> <시니어 주소>  # 참여자 등록 → 같은 번호 거절 → 일시 중지 → 그 번호로 로그인 안 됨
 node admin-teams.mjs <관리자 주소>                 # 조 만들기 → 1명 남는 편성 거절 → 배정된 순회 조원은 그대로
 node admin-assign.mjs <관리자 주소>                # 코스 만들기 → 순회 배정 → 시간 겹침 거절 → 코스 v2 공개, 배정된 순회는 v1
+node admin-reinspect.mjs <관리자 주소>             # 보수 완료 → 재점검 요청을 내일 순회에 배정 → 취소 → 다시 배정 (admin-decide 뒤)
 node gh-entry.mjs                                # 깃페이지 입구(teamiroum.github.io/service) → 두 앱 로그인
 ```
 

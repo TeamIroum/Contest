@@ -674,3 +674,51 @@ export const assignPatrol = (p: { date: string; teamId: string; routeVersionId: 
     { idempotent: true },
   )
 export const participantName = (id: string) => PARTICIPANTS.find((p) => p.id === id)?.name ?? '-'
+
+/* ---------------- 재점검 요청 배정 (ACT-10, 원본 AdminReinspectionController + service/backend 구도 추가·후보) ---------------- */
+
+export type ReinspectionItem = {
+  id: string
+  requestType: string
+  status: 'OPEN' | 'CLOSED'
+  version: number
+  source: 'REPAIR_COMPLETION' | 'REVIEW_FOLLOW_UP'
+  issueId: string | null
+  facility: { id: string; facilityCode: string; type: string; name: string; areaLabel: string }
+  createdAt: string
+  assignments: { id: string; captureSlotId: string; patrolId: string; patrolDate: string; assignedAt: string; cancelledAt: string | null; completedAt: string | null }[]
+}
+export type ReinspectionCandidate = {
+  patrolId: string
+  activityDate: string
+  teamName: string
+  routeName: string
+  scheduledStartAt: string
+  stopId: string
+  stopSequence: number
+  stopName: string
+  patrolVersion: number
+  freeSlotId: string | null
+}
+/** 처리 중(OPEN)인 재점검 요청 */
+export const loadReinspections = async () => (await api<{ items: ReinspectionItem[] }>('GET', '/admin/reinspection-requests?status=OPEN&size=100')).items
+export const activeAssignment = (r: ReinspectionItem) => r.assignments.find((a) => !a.cancelledAt && !a.completedAt)
+export const loadReinspectionCandidates = (r: ReinspectionItem) => api<ReinspectionCandidate[]>('GET', `/admin/reinspection-requests/${r.id}/candidates`)
+/** 출발 전 순회 장소에 재점검 구도를 만들고(빈 구도가 있으면 그대로 쓴다) 요청을 배정한다 */
+export async function assignReinspection(r: ReinspectionItem, c: ReinspectionCandidate, label: string, instruction: string) {
+  let slotId = c.freeSlotId
+  let patrolVersion = c.patrolVersion
+  if (!slotId) {
+    const s = await api<{ captureSlotId: string; patrolVersion: number }>(
+      'POST',
+      `/admin/patrols/${c.patrolId}/stops/${c.stopId}/capture-slots`,
+      { purpose: 'REINSPECTION', label, instruction: instruction || undefined, required: true, version: c.patrolVersion },
+      { idempotent: true },
+    )
+    slotId = s.captureSlotId
+    patrolVersion = s.patrolVersion
+  }
+  return api('POST', `/admin/reinspection-requests/${r.id}/assignments`, { captureSlotId: slotId, version: r.version, patrolVersion }, { idempotent: true })
+}
+export const cancelReinspection = (r: ReinspectionItem, assignmentId: string, patrolVersion: number, reason: string) =>
+  api('POST', `/admin/reinspection-assignments/${assignmentId}/cancellations`, { reason, version: r.version, patrolVersion }, { idempotent: true })
