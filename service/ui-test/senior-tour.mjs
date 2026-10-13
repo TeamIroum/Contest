@@ -1,7 +1,7 @@
 // 시니어 앱 화면 둘러보기: 데이터를 바꾸지 않는 범위에서 화면마다 전체 캡처를 남기고 한 장짜리 보기 페이지(shots/tour/index.html)를 만든다.
 // 출석 요청·활동 시작은 이미 됐으면 그대로 두고, 건너뛰기·그만하기는 열어 보기만 한다(확정하지 않음).
 //   node senior-tour.mjs [시니어 앱 주소]    VIDEO=<.mjpeg>: 카메라에 비출 사진
-import { open, report, serviceEnv, SHOTS } from './common.mjs'
+import { open, report, serviceEnv, SHOTS, adminUrlFor, confirmAttendanceAndDeparture } from './common.mjs'
 import { mkdirSync, writeFileSync, readdirSync, rmSync } from 'node:fs'
 import path from 'node:path'
 
@@ -56,11 +56,11 @@ try {
   await closeSheet()
   await tap('센터에 도착했어요')
   await cap('출석', '출석 요청 → 선생님 확인 → 활동 시작. 출발 확인은 기다리지 않아도 됨')
-  if (await page.getByRole('button', { name: '출석 요청하기' }).count()) {
-    await tap('출석 요청하기')
-    await page.getByRole('button', { name: '활동 시작하기' }).waitFor({ timeout: 15000 })
-  }
-  await tap('활동 시작하기')
+  if (await page.getByRole('button', { name: '출석 요청하기' }).count()) await tap('출석 요청하기')
+  // 활동 시작은 담당자 출석·출발 확인 뒤에만 된다 → 관리자 웹에서 확인해 두고, 시니어 화면이 받을 때까지 기다린다
+  await confirmAttendanceAndDeparture(browser, adminUrlFor(URL_))
+  await page.getByRole('button', { name: /활동 시작하기|이어서 하기/ }).waitFor({ timeout: 20000 })
+  await page.getByRole('button', { name: /활동 시작하기|이어서 하기/ }).first().click()
   for (let i = 0; i < 5 && (await page.getByRole('button', { name: '다음 장소로' }).count()); i++) await tap('다음 장소로')
   await cap('찍을 장소', '진행 점·장소 안내·찍기 버튼. 아래는 잠깐 쉬기·그만하기')
   await page.getByRole('button', { name: /^글씨 크기/ }).click()

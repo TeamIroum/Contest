@@ -61,6 +61,7 @@
 ```bash
 cd service/ui-test
 npm install && npm run install-browser          # 처음 한 번
+powershell -ExecutionPolicy Bypass -File run-all.ps1   # 전체: 초기화 → 순회를 오늘로 → 시험 7개 → 다시 초기화 (약 2~3분, 실제 데이터를 바꿈)
 node admin.mjs https://<PC>.ts.net:10000         # 관리자 웹: 로그인·검토 목록·사건·오늘 활동 현황
 node admin-decide.mjs https://<PC>.ts.net:10000  # 관리자 웹에서 판정 저장 → 사건 생성 (LOGIN=demo-road 등으로 계정 선택)
 node senior.mjs https://<PC>.ts.net --shoot      # 시니어 앱: 로그인 → 출석 → 전체 화면 촬영 → 보내기

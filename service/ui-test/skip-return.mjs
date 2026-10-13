@@ -16,8 +16,9 @@ const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream',
 const watch = (page, who) => {
   page.on('pageerror', (e) => problems.push(`${who} 화면 오류: ${e.message.slice(0, 160)}`))
   page.on('response', async (r) => {
-    if (r.url().includes('/api/') && r.status() >= 400 && !r.url().endsWith('/auth/admin/sessions'))
-      problems.push(`${who} API ${r.request().method()} ${new URL(r.url()).pathname} → ${r.status()} ${(await r.text().catch(() => '')).slice(0, 140)}`)
+    if (!r.url().includes('/api/') || r.status() < 400 || r.url().endsWith('/auth/admin/sessions')) return
+    if (r.url().endsWith('/departure-confirmations') && r.status() === 409) return // 출석 1명일 때 출발 확인 거절: 시험이 일부러 만든 경우
+    problems.push(`${who} API ${r.request().method()} ${new URL(r.url()).pathname} → ${r.status()} ${(await r.text().catch(() => '')).slice(0, 140)}`)
   })
 }
 const snap = async (page, name) => {

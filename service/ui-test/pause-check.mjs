@@ -2,7 +2,7 @@
 //   node pause-check.mjs [시니어 앱 주소] [관리자 웹 주소]
 import { chromium } from 'playwright'
 import path from 'node:path'
-import { report, serviceEnv, SHOTS } from './common.mjs'
+import { report, serviceEnv, SHOTS, confirmAttendanceAndDeparture } from './common.mjs'
 
 const SENIOR = process.argv[2] || 'http://127.0.0.1:8180'
 const ADMIN = process.argv[3] || 'http://127.0.0.1:8181'
@@ -39,7 +39,11 @@ try {
   await snap(s, '1-도움')
   await s.mouse.click(195, 40)
   await tap('센터에 도착했어요')
-  await tap('활동 시작하기')
+  if (await s.getByRole('button', { name: '출석 요청하기' }).count()) await tap('출석 요청하기')
+  // 활동 시작은 담당자 출석·출발 확인 뒤에만 된다
+  await confirmAttendanceAndDeparture(browser, ADMIN)
+  await s.getByRole('button', { name: /활동 시작하기|이어서 하기/ }).waitFor({ timeout: 20000 })
+  await s.getByRole('button', { name: /활동 시작하기|이어서 하기/ }).first().click()
   await tap('잠깐 쉬기')
   await s.getByText('잠깐 쉬고 있어요').waitFor()
   await s.waitForLoadState('networkidle')
