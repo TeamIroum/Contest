@@ -1,0 +1,49 @@
+package kr.iroum.inspection.common.error;
+
+import org.springframework.http.HttpStatus;
+
+/**
+ * 업무 API 2.2절 오류 코드. 코드 이름과 HTTP 상태는 계약이므로 구현 편의로 바꾸지 않는다.
+ * INTERNAL_ERROR만 명세에 없는 서버 내부 오류용이며 README의 계약 확인 사항에 기록했다.
+ */
+public enum ErrorCode {
+    VALIDATION_FAILED(HttpStatus.BAD_REQUEST),
+    AUTH_REQUIRED(HttpStatus.UNAUTHORIZED),
+    FORBIDDEN(HttpStatus.FORBIDDEN),
+    NOT_FOUND(HttpStatus.NOT_FOUND),
+    VERSION_CONFLICT(HttpStatus.CONFLICT),
+    IDEMPOTENCY_CONFLICT(HttpStatus.CONFLICT),
+    SUBMISSION_CONFLICT(HttpStatus.CONFLICT),
+    SUBMISSION_PROCESSING(HttpStatus.CONFLICT),
+    SLOT_PROCESSING(HttpStatus.CONFLICT),
+    SLOT_RESOLVED(HttpStatus.CONFLICT),
+    PHOTO_RESUBMISSION_REQUIRED(HttpStatus.CONFLICT),
+    SYNC_DEADLINE_EXCEEDED(HttpStatus.CONFLICT),
+    PATROL_CANCELLED(HttpStatus.CONFLICT),
+    ACTIVITY_ALREADY_RECORDED(HttpStatus.CONFLICT),
+    ISSUE_NOT_LINKABLE(HttpStatus.CONFLICT),
+    ISSUE_STATE_CONFLICT(HttpStatus.CONFLICT),
+    STALE_VERIFICATION(HttpStatus.CONFLICT),
+    PRIVACY_RELEASE_CONFLICT(HttpStatus.CONFLICT),
+    ACTIVITY_STATE_CONFLICT(HttpStatus.CONFLICT),
+    PAYLOAD_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE),
+    UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE),
+    IMAGE_PROCESSING_FAILED(HttpStatus.UNPROCESSABLE_CONTENT),
+    PHOTO_AFTER_RETURN(HttpStatus.UNPROCESSABLE_CONTENT),
+    INVALID_ACTIVITY_TIME(HttpStatus.UNPROCESSABLE_CONTENT),
+    RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS),
+    ANALYSIS_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE),
+    SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE),
+    PRIVACY_SERVICE_NOT_READY(HttpStatus.SERVICE_UNAVAILABLE),
+    INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);
+
+    private final HttpStatus status;
+
+    ErrorCode(HttpStatus status) {
+        this.status = status;
+    }
+
+    public HttpStatus status() {
+        return status;
+    }
+}

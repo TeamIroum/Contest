@@ -1,0 +1,14 @@
+{
+  "requestId": "b3000000-0000-4000-8000-000000000001",
+  "repairEventId": "b2000000-0000-4000-8000-000000000003",
+  "verificationMethod": "PHOTO",
+  "beforeInspectionIds": [
+    "60000000-0000-4000-8000-000000000001"
+  ],
+  "afterInspectionIds": [
+    "60000000-0000-4000-8000-000000000031"
+  ],
+  "fieldNote": null,
+  "version": 3,
+  "requestVersion": 1
+}

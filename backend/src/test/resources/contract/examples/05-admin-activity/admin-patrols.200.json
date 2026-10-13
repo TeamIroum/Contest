@@ -1,0 +1,42 @@
+{
+  "items": [
+    {
+      "id": "30000000-0000-4000-8000-000000000001",
+      "version": 3,
+      "date": "2026-10-15",
+      "organizationId": "a0000000-0000-4000-8000-000000000001",
+      "organizationName": "○○동 노인복지관",
+      "teamName": "1조",
+      "routeName": "마을회관 코스",
+      "activityStatus": "IN_PROGRESS",
+      "scheduledStartAt": "2026-10-15T01:00:00Z",
+      "expectedReturnAt": "2026-10-15T03:00:00Z",
+      "departedAt": "2026-10-15T01:02:00Z",
+      "departureConfirmedAt": null,
+      "attendanceSummary": {
+        "total": 2,
+        "present": 2,
+        "absent": 0,
+        "unchecked": 0,
+        "requested": 1
+      },
+      "startMissingCount": 1,
+      "returnedCount": 0,
+      "returnOverdue": false,
+      "progress": {
+        "total": 3,
+        "pending": 2,
+        "captured": 1,
+        "skipped": 0,
+        "reviewRequested": 0,
+        "notVisited": 0
+      },
+      "lastActivityAt": "2026-10-15T01:31:00Z",
+      "pendingReturnConfirmations": 0,
+      "soloWaiting": null
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1
+}

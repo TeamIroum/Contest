@@ -1,0 +1,7 @@
+{
+  "code": "ACTIVITY_ALREADY_RECORDED",
+  "message": "이미 활동 기록이 있어 취소할 수 없습니다. 중도 복귀 절차를 사용해 주세요.",
+  "requestId": "req-0201",
+  "fieldErrors": [],
+  "details": null
+}

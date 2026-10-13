@@ -1,0 +1,10 @@
+{
+  "code": "ACTIVITY_STATE_CONFLICT",
+  "message": "함께 출발할 조원이 없어요. 활동 담당자에게 조 편성을 확인해 주세요.",
+  "requestId": "req-0201",
+  "fieldErrors": [],
+  "details": {
+    "reason": "SOLO_DEPARTURE",
+    "activityStatus": "ASSIGNED"
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "id": "b1000000-0000-4000-8000-000000000003",
+  "status": "OPEN",
+  "version": 0,
+  "defectCode": "sunken",
+  "summary": "보도블록 가운데 꺼짐",
+  "facility": {
+    "id": "f0000000-0000-4000-8000-000000000001",
+    "code": "SW-0001",
+    "type": "SIDEWALK",
+    "name": "마을회관 앞 보도블록",
+    "areaLabel": "○○동 1구역",
+    "managingDepartment": {
+      "id": "a0000000-0000-4000-8000-000000000021",
+      "name": "○○구 도로관리과"
+    }
+  },
+  "assignedDepartment": {
+    "id": "a0000000-0000-4000-8000-000000000021",
+    "name": "○○구 도로관리과"
+  },
+  "sourceReviewId": "b0000000-0000-4000-8000-000000000001",
+  "previousIssueId": null,
+  "currentReinspectionRequestId": null,
+  "openedAt": "2026-10-15T05:00:00Z",
+  "closedAt": null,
+  "inspections": [
+    {
+      "inspectionId": "60000000-0000-4000-8000-000000000001",
+      "patrolId": "30000000-0000-4000-8000-000000000001",
+      "patrolDate": "2026-10-15",
+      "captureSlotId": "50000000-0000-4000-8000-000000000001",
+      "capturedAt": "2026-10-15T01:09:40Z",
+      "media": {
+        "id": "70000000-0000-4000-8000-000000000001",
+        "mediaVersion": 1,
+        "privacyStatus": "APPROVED",
+        "contentPath": "/api/v1/media/70000000-0000-4000-8000-000000000001/content",
+        "privacyRelease": null
+      },
+      "linkedBy": {
+        "id": "10000000-0000-4000-8000-000000000011",
+        "name": "이○○"
+      },
+      "linkedAt": "2026-10-15T05:00:00Z",
+      "linkReason": "현장 사진 확인",
+      "unlinkedBy": null,
+      "unlinkedAt": null
+    }
+  ],
+  "reviews": [
+    {
+      "reviewId": "b0000000-0000-4000-8000-000000000001",
+      "reviewTaskId": "80000000-0000-4000-8000-000000000001",
+      "mode": "CREATE",
+      "inspectionId": "60000000-0000-4000-8000-000000000001",
+      "decision": "ISSUE_CONFIRMED",
+      "analysisResultId": "90000000-0000-4000-8000-000000000001",
+      "correctionId": "d0000000-0000-4000-8000-000000000011",
+      "classificationVersion": 1,
+      "decidedBy": {
+        "id": "10000000-0000-4000-8000-000000000011",
+        "name": "이○○"
+      },
+      "decidedAt": "2026-10-15T05:00:00Z"
+    }
+  ],
+  "repairEvents": [],
+  "reinspectionRequests": []
+}

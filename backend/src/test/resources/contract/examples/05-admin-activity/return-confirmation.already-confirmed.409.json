@@ -1,0 +1,10 @@
+{
+  "code": "ACTIVITY_STATE_CONFLICT",
+  "message": "이미 다른 구분으로 복귀를 확인한 조원이에요.",
+  "requestId": "req-return-already-confirmed",
+  "fieldErrors": [],
+  "details": {
+    "reason": "RETURN_ALREADY_CONFIRMED",
+    "activityStatus": "RETURNING"
+  }
+}

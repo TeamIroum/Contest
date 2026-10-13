@@ -1,0 +1,104 @@
+{
+  "id": "60000000-0000-4000-8000-000000000001",
+  "patrolId": "30000000-0000-4000-8000-000000000001",
+  "stopId": "40000000-0000-4000-8000-000000000001",
+  "captureSlotId": "50000000-0000-4000-8000-000000000001",
+  "attemptNo": 1,
+  "facility": {
+    "id": "f0000000-0000-4000-8000-000000000001",
+    "code": "SW-0001",
+    "type": "SIDEWALK",
+    "name": "마을회관 앞 보도블록",
+    "areaLabel": "○○동 1구역"
+  },
+  "capturedBy": {
+    "teamName": "1조",
+    "members": [
+      {
+        "participantId": "20000000-0000-4000-8000-000000000001",
+        "name": "김○○"
+      },
+      {
+        "participantId": "20000000-0000-4000-8000-000000000002",
+        "name": "박○○"
+      }
+    ]
+  },
+  "capturedAt": "2026-10-15T01:09:40Z",
+  "receivedAt": "2026-10-15T01:10:12Z",
+  "receiptStatus": "RECEIVED",
+  "captureStatus": "REVIEW_REQUESTED",
+  "retakeReason": null,
+  "deviceMasked": true,
+  "media": {
+    "id": "70000000-0000-4000-8000-000000000001",
+    "mediaVersion": 1,
+    "privacyStatus": "QUARANTINED",
+    "contentPath": "/api/v1/media/70000000-0000-4000-8000-000000000001/content",
+    "privacyRelease": {
+      "releaseId": "9a000000-0000-4000-8000-000000000001",
+      "status": "FAILED",
+      "decidedAt": "2026-10-15T05:00:00Z",
+      "decidedMediaVersion": 1,
+      "attempts": 5,
+      "nextRetryAt": null,
+      "completedAt": null,
+      "failureReason": "RETRY_EXHAUSTED",
+      "invalidReason": null,
+      "retryable": true
+    }
+  },
+  "analyses": [
+    {
+      "analysisResultId": "90000000-0000-4000-8000-000000000001",
+      "snapshotNo": 1,
+      "status": "OK",
+      "reviewCategory": "REVIEW_REQUIRED",
+      "findings": [
+        {
+          "facilityType": "SIDEWALK",
+          "code": "lifted",
+          "label": "들뜸",
+          "bbox": [
+            0.1,
+            0.2,
+            0.7,
+            0.8
+          ],
+          "evidence": "블록 일부가 주변보다 돌출돼 보임"
+        }
+      ],
+      "facilityMatch": {
+        "aiFacilityType": "SIDEWALK",
+        "ledgerFacilityType": "SIDEWALK",
+        "matched": true
+      },
+      "retry": null,
+      "modelVersion": "provider-model-id",
+      "promptVersion": "provider-prompt-id",
+      "analyzedAt": "2026-10-15T01:10:12Z"
+    }
+  ],
+  "classification": {
+    "ai": {
+      "analysisResultId": "90000000-0000-4000-8000-000000000001",
+      "facilityType": "SIDEWALK",
+      "issueTypes": [
+        "lifted"
+      ]
+    },
+    "current": {
+      "source": "AI",
+      "facilityType": "SIDEWALK",
+      "issueTypes": [
+        "lifted"
+      ],
+      "correctionId": null
+    },
+    "classificationVersion": 0
+  },
+  "reviewTaskIds": [
+    "80000000-0000-4000-8000-000000000001"
+  ],
+  "linkedIssueIds": []
+}

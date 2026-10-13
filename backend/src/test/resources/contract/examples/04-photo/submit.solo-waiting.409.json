@@ -1,0 +1,10 @@
+{
+  "code": "ACTIVITY_STATE_CONFLICT",
+  "message": "혼자 남아 담당자 안내를 기다리는 중이에요. 새 점검은 멈춰 주세요.",
+  "requestId": "req-photo-solo-waiting",
+  "fieldErrors": [],
+  "details": {
+    "reason": "SOLO_WAITING",
+    "activityStatus": "IN_PROGRESS"
+  }
+}

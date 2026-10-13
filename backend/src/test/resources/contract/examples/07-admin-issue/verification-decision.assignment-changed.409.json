@@ -1,0 +1,12 @@
+{
+  "code": "STALE_VERIFICATION",
+  "message": "준비한 뒤 재점검 배정이나 확인 방법이 바뀌어 이 준비로는 판단할 수 없습니다. 새로 준비해 주세요.",
+  "requestId": "req-assignment-changed",
+  "fieldErrors": [],
+  "details": {
+    "issueId": "b1000000-0000-4000-8000-000000000003",
+    "currentStatus": "AWAITING_VERIFICATION",
+    "currentRequestId": "b3000000-0000-4000-8000-000000000001",
+    "currentVerificationId": null
+  }
+}
