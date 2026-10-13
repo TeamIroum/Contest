@@ -102,41 +102,36 @@ export const fac = (id: string): Facility => FACILITIES.find((f) => f.id === id)
 export const KIND_OF_TYPE = Object.fromEntries(Object.entries(FACILITY_TYPE).map(([k, t]) => [t, k])) as Record<string, Kind>
 
 /** 시설별 문제 유형 (분류 정정에서 고를 수 있는 값, 예시) */
+// 업무 백엔드 문제 코드(service/backend taxonomy/defect-codes.json = AI taxonomy)와 같다. 없는 코드를 고르면 판정이 거절된다.
+// 놀이기구·제설함·그늘막은 백엔드에 코드가 아직 없어 비워 둔다 (새 문제 만들기 불가, 기존 문제 연결·다른 판정은 가능)
 export const ISSUE_TYPES: Record<Kind, { code: string; label: string }[]> = {
   sidewalk: [
     { code: 'lifted', label: '들뜸' },
-    { code: 'broken', label: '깨짐' },
-    { code: 'missing', label: '빠짐' },
+    { code: 'broken', label: '파손' },
+    { code: 'sunken', label: '꺼짐' },
   ],
   drain: [
-    { code: 'covered', label: '막힘' },
-    { code: 'cover_broken', label: '덮개 파손' },
+    { code: 'covered', label: '낙엽·쓰레기로 덮임' },
+    { code: 'cover_damaged', label: '덮개 파손' },
+    { code: 'cover_missing', label: '덮개 이탈' },
   ],
   bench: [
-    { code: 'broken', label: '파손' },
-    { code: 'loose', label: '흔들림' },
+    { code: 'board_broken', label: '좌판·등받이 파손' },
+    { code: 'part_detached', label: '부품 이탈' },
   ],
   fence: [
     { code: 'tilted', label: '기울어짐' },
-    { code: 'broken', label: '끊어짐' },
+    { code: 'broken', label: '파손' },
+    { code: 'joint_detached', label: '연결부 이탈' },
   ],
   exercise: [
-    { code: 'bent', label: '휨' },
-    { code: 'part_missing', label: '부품 빠짐' },
-    { code: 'loose', label: '흔들림' },
+    { code: 'broken', label: '부품 파손' },
+    { code: 'part_detached', label: '부품 이탈' },
+    { code: 'deformed', label: '변형' },
   ],
-  playground: [
-    { code: 'broken', label: '파손' },
-    { code: 'rope_cut', label: '줄 끊어짐' },
-  ],
-  snowbox: [
-    { code: 'lid_open', label: '뚜껑 열림' },
-    { code: 'broken', label: '파손' },
-  ],
-  shade: [
-    { code: 'torn', label: '찢어짐' },
-    { code: 'tilted', label: '기울어짐' },
-  ],
+  playground: [],
+  snowbox: [],
+  shade: [],
 }
 export const issueLabel = (kind: Kind, code: string) => ISSUE_TYPES[kind].find((t) => t.code === code)?.label ?? code
 

@@ -725,16 +725,19 @@ function ChangePassword({ creds, onDone }: { creds: { loginId: string; password:
         <Button type="submit" variant="primary" disabled={!strong || !same || busy}>
           {busy ? '바꾸는 중…' : '변경하고 시작하기'}
         </Button>
-        <button
-          type="button"
-          onClick={() => {
-            setA('demo2026!')
-            setB('demo2026!')
-          }}
-          className="text-xs text-mute underline underline-offset-2"
-        >
-          시연용: 예시 비밀번호 넣기
-        </button>
+        {/* 실제 업무 백엔드에서는 모두가 같은 예시 비밀번호를 쓰게 되므로 보여 주지 않는다 */}
+        {!REAL_BACKEND && (
+          <button
+            type="button"
+            onClick={() => {
+              setA('demo2026!')
+              setB('demo2026!')
+            }}
+            className="text-xs text-mute underline underline-offset-2"
+          >
+            시연용: 예시 비밀번호 넣기
+          </button>
+        )}
       </form>
     </Shell>
   )
