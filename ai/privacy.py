@@ -56,6 +56,10 @@ VEHICLE_LABELS = {"car", "bus", "truck", "motorcycle"}
 DETECT_MAX_SIDE = int(os.environ.get("DETECT_MAX_SIDE", "2400"))    # 검출에 쓰는 최대 해상도
 FACE_SCORE = float(os.environ.get("FACE_SCORE", "0.55"))            # 낮을수록 더 많이 가림
 PLATE_SCORE = float(os.environ.get("PLATE_SCORE", "0.45"))
+# 번호판으로 볼 수 없는 상자는 버린다 (키보드·간판을 번호판으로 잘못 봐 사진 절반을 덮는 일 방지).
+# 한국 번호판은 가로:세로가 약 2:1(구형)~4.7:1(신형)이라 기울여 찍어도 1.2보다는 길쭉하다
+PLATE_MAX_AREA = float(os.environ.get("PLATE_MAX_AREA", "0.1"))     # 사진 넓이 대비 최대 비율
+PLATE_MIN_ASPECT = float(os.environ.get("PLATE_MIN_ASPECT", "1.2"))  # 가로/세로 최소값
 FACE_PAD = 0.25
 PLATE_PAD = 0.2
 PLATE_FILL = (60, 60, 60)
@@ -402,6 +406,11 @@ def _pixelate(roi: np.ndarray) -> np.ndarray:
     return cv2.GaussianBlur(out, (k, k), 0)
 
 
+def plate_shaped(b: Box, H: int, W: int) -> bool:
+    """번호판 크기·모양이면 True. 너무 크거나 길쭉하지 않은 상자는 오검출로 본다."""
+    return b.h > 0 and b.w * b.h <= PLATE_MAX_AREA * W * H and b.w / b.h >= PLATE_MIN_ASPECT
+
+
 def detect(img: np.ndarray) -> tuple[list[Box], dict]:
     """얼굴·번호판 상자를 원본 좌표로 돌려준다."""
     H, W = img.shape[:2]
@@ -412,7 +421,7 @@ def detect(img: np.ndarray) -> tuple[list[Box], dict]:
     pds = plate_detectors()
     plates = []
     for pd in pds:
-        plates += [b.scaled(1 / k) if k < 1 else b for b in pd.detect(work)]
+        plates += [b.scaled(1 / k) if k < 1 else b for b in pd.detect(work) if plate_shaped(b, *work.shape[:2])]
     boxes += plates
     vd = vehicle_detector()
     if vd is not None:
