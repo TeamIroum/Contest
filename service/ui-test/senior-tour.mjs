@@ -8,18 +8,30 @@ import path from 'node:path'
 const URL_ = process.argv[2] || 'http://127.0.0.1:8180'
 const code = serviceEnv().DEMO_OTP_CODE
 const OUT = path.join(SHOTS, 'tour')
-rmSync(OUT, { recursive: true, force: true })
+for (const f of (() => { try { return readdirSync(OUT) } catch { return [] } })()) rmSync(path.join(OUT, f), { force: true })
 mkdirSync(OUT, { recursive: true })
 
 const { browser, page, problems } = await open({ mobile: true, video: process.env.VIDEO })
 const list = []
 let n = 0
-async function cap(title, note = '', { full = true } = {}) {
+// 모든 캡처는 휴대폰 한 화면 크기(390×844)로 같게 찍는다. 내용이 한 화면보다 길면 맨 아래로 내린 화면을 한 장 더 찍는다
+async function cap(title, note = '', { scroll = true } = {}) {
   await page.waitForTimeout(700)
-  const file = `${String(++n).padStart(2, '0')}.png`
-  await page.screenshot({ path: path.join(OUT, file), fullPage: full })
-  list.push({ file, title, note })
-  console.log(`  ${file} ${title}`)
+  const one = async (t, nt) => {
+    const file = `${String(++n).padStart(2, '0')}.png`
+    await page.screenshot({ path: path.join(OUT, file) })
+    list.push({ file, title: t, note: nt })
+    console.log(`  ${file} ${t}`)
+  }
+  await page.evaluate(() => window.scrollTo(0, 0))
+  await one(title, note)
+  const long = await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight + 8)
+  if (scroll && long) {
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+    await page.waitForTimeout(500)
+    await one(`${title} (아래로 내린 화면)`, '같은 화면을 끝까지 내린 모습')
+    await page.evaluate(() => window.scrollTo(0, 0))
+  }
 }
 const tap = (name, exact = false) => page.getByRole('button', { name, exact }).first().click()
 const closeSheet = () => page.mouse.click(195, 40)
@@ -40,7 +52,7 @@ try {
   await cap('오늘 순회 (홈)', '서버 순회: 조·코스·모이는 곳·시각·짝 어르신·찍을 장소')
   await page.getByRole('button', { name: /^효과음/ }).waitFor()
   await page.getByRole('button', { name: /^도움/ }).first().click().catch(() => tap('도움'))
-  await cap('도움 (전화 걸기)', '담당 선생님·긴급 전화', { full: false })
+  await cap('도움 (전화 걸기)', '담당 선생님·긴급 전화', { scroll: false })
   await closeSheet()
   await tap('센터에 도착했어요')
   await cap('출석', '출석 요청 → 선생님 확인 → 활동 시작. 출발 확인은 기다리지 않아도 됨')
@@ -56,17 +68,17 @@ try {
   await page.getByRole('button', { name: /^글씨 크기/ }).click()
   await page.getByRole('button', { name: /^글씨 크기/ }).click()
   await tap('이곳은 찍을 수 없어요')
-  await cap('찍을 수 없어요 (이유 고르기)', '고르면 건너뜀으로 기록. 여기서는 열어 보기만', { full: false })
+  await cap('찍을 수 없어요 (이유 고르기)', '고르면 건너뜀으로 기록. 여기서는 열어 보기만', { scroll: false })
   await closeSheet()
   await tap('오늘 활동 그만하기')
-  await cap('오늘 활동 그만하기', '이유를 고르면 끝남. 여기서는 열어 보기만', { full: false })
+  await cap('오늘 활동 그만하기', '이유를 고르면 끝남. 여기서는 열어 보기만', { scroll: false })
   await closeSheet()
   await tap('잠깐 쉬기')
   await cap('잠깐 쉬기', '휴대폰 안에서만 멈춤')
   await tap('다시 시작하기')
   await tap('도착했어요 · 사진 찍기')
   await page.waitForFunction(() => !document.querySelector('[aria-label="눌러서 사진 찍기"]')?.hasAttribute('disabled'), null, { timeout: 60000 }).catch(() => problems.push('셔터가 60초 안에 켜지지 않음'))
-  await cap('사진 찍기 (전체 화면)', '위 안내, 아래 취소·셔터. 얼굴·번호판은 휴대폰에서 먼저 가림', { full: false })
+  await cap('사진 찍기 (전체 화면)', '위 안내, 아래 취소·셔터. 얼굴·번호판은 휴대폰에서 먼저 가림', { scroll: false })
   await tap('취소')
 } catch (e) {
   problems.push(`둘러보기 중단: ${e.message.split('\n')[0]}`)
