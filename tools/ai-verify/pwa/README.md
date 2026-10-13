@@ -40,7 +40,7 @@ PC 브라우저에서 http://localhost:8100/pwa/ 를 엽니다. 카메라가 없
 | 안드로이드 + USB (가장 간단) | `adb reverse tcp:8100 tcp:8100` 후 휴대폰 크롬에서 `http://localhost:8100/pwa/` |
 | 같은 와이파이 + HTTPS | [mkcert](https://github.com/FiloSottile/mkcert)로 PC IP 인증서를 만들고 `python -m uvicorn app:app --host 0.0.0.0 --port 8100 --ssl-keyfile key.pem --ssl-certfile cert.pem`. 휴대폰에 mkcert 루트 인증서를 설치해야 함 |
 | 아이폰 | 위 HTTPS 방식. 홈 화면에 추가해 실행할 때 카메라 권한이 반복해서 뜨는지 함께 확인 |
-| 밖에서 (권장) | GitHub Pages 배포본 https://teamiroum.github.io/pwa-test/ (`deploy_pages.py`). 화면·모델은 CDN에서, 사진·업무 API만 터널로 PC에 |
+| 밖에서 (권장) | GitHub Pages 배포본 https://teamiroum.github.io/service/test/ (`deploy_pages.py`). 화면·모델은 CDN에서, 사진·업무 API만 터널로 PC에 |
 
 **처음 한 번은 Wi-Fi에서 여세요.** 처음 열 때 가림 모델과 실행기를 약 20MB(실제 전송량) 받습니다. 1Mbps로 제한된 데이터에서는 3분 안팎 걸립니다. 다 받은 파일은 휴대폰에 남아 다음부터는 거의 받지 않습니다. 운영에서는 복지관 교육 때 Wi-Fi로 한 번 열어 두게 안내합니다.
 

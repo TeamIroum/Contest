@@ -1,4 +1,4 @@
-"""시니어 앱(frontend/senior) 시험판을 GitHub Pages(TeamIroum/pwa-test의 senior/)에 올린다.
+"""시니어 앱(frontend/senior) 시험판을 GitHub Pages(TeamIroum/service의 test/senior/)에 올린다. (저장소 예전 이름 pwa-test)
 
 휴대폰 카메라는 https에서만 열리므로, 시니어 앱을 휴대폰에서 시험하려면 공개 https 주소가 필요하다.
 시니어 앱 코드는 고치지 않고, 빌드할 때 사진 보낼 곳(VITE_API_ORIGIN)과 하위 경로(--base)만 정한다.
@@ -7,7 +7,7 @@
 실행:  python tools/ai-verify/pwa/deploy_senior_pages.py                       # 빌드해서 올림
        python tools/ai-verify/pwa/deploy_senior_pages.py --out <폴더>          # 빌드만 (올리지 않음, 이 PC에서 먼저 시험)
        --api https://<서버>  사진 보낼 곳 (기본: deploy_pages.py와 같은 터널 주소, /api/v1 앞까지)
-주소: https://teamiroum.github.io/pwa-test/senior/
+주소: https://teamiroum.github.io/service/test/senior/
 """
 from __future__ import annotations
 
@@ -23,9 +23,9 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 SENIOR = ROOT / "frontend" / "senior"
-REPO = "https://github.com/TeamIroum/pwa-test.git"
-SUBDIR = "senior"
-BASE = f"/pwa-test/{SUBDIR}/"
+REPO = "https://github.com/TeamIroum/service.git"
+SUBDIR = "test/senior"
+BASE = f"/service/{SUBDIR}/"
 PAGES_URL = f"https://teamiroum.github.io{BASE}"
 NEEDED_MODELS = ["face_yunet_s_dynamic@1.onnx", "plate-t384@1.onnx", "efficientdet_lite0@1.tflite", "model-manifest.json"]
 
@@ -89,7 +89,7 @@ def main() -> int:
         work = Path(tmp) / "site"
         git("clone", "--depth", "1", REPO, str(work), cwd=Path(tmp))
         target = work / SUBDIR
-        build(target, origin)          # senior/만 바꾸고 시험용 PWA 파일은 그대로 둔다
+        build(target, origin)          # test/senior/만 바꾸고 나머지(입구 페이지·시험용 PWA)는 그대로 둔다
         git("add", "-A", SUBDIR, cwd=work)
         if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=work).returncode == 0:
             print("바뀐 것이 없습니다.")

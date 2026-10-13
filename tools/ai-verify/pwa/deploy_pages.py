@@ -1,4 +1,4 @@
-"""시험용 PWA를 GitHub Pages(TeamIroum/pwa-test)에 올린다.
+"""시험용 PWA를 GitHub Pages(TeamIroum/service 저장소의 test/)에 올린다. (저장소 예전 이름 pwa-test)
 
 PC 터널(Tailscale Funnel)로 화면·모델을 받으면 느려서, 화면·모델은 GitHub Pages(CDN)에서 받고
 사진 전송·업무 API만 터널로 PC의 검증 콘솔에 보낸다. 검증 콘솔은 이 주소의 요청을 허용한다(CORS, PWA_ORIGINS).
@@ -6,7 +6,7 @@ PC 터널(Tailscale Funnel)로 화면·모델을 받으면 느려서, 화면·�
 실행:  python tools/ai-verify/pwa/deploy_pages.py
        python tools/ai-verify/pwa/deploy_pages.py --api https://<서버 주소>/api/v1
 --api를 빼면 tools/ai-test-app/.env.local의 EXPO_PUBLIC_SERVER_URL(start-test가 채움)에 /api/v1을 붙인다.
-주소: https://teamiroum.github.io/pwa-test/
+주소: https://teamiroum.github.io/service/test/  (맨 위 /service/ 는 서비스 입구 페이지: service/web/pages/deploy_pages.py)
 """
 from __future__ import annotations
 
@@ -22,8 +22,9 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 YUNET_WEB = ROOT / "ai" / "contract" / "yunet_web"
-REPO = "https://github.com/TeamIroum/pwa-test.git"
-PAGES_URL = "https://teamiroum.github.io/pwa-test/"
+REPO = "https://github.com/TeamIroum/service.git"
+SUBDIR = "test"
+PAGES_URL = "https://teamiroum.github.io/service/test/"
 
 SHELL = ["index.html", "app.js", "masking.js", "download.js", "quality.js", "camera.js", "outbox.js", "style.css", "manifest.webmanifest", "icon.svg",
          "sw.js", "mask-host.html", "mask-host.js"]
@@ -76,7 +77,7 @@ def build(out: Path, api: str) -> str:
         f"self.PWA_CONFIG = {json.dumps({'api': api})};\n", encoding="utf-8")
     (out / ".nojekyll").write_text("", encoding="utf-8")   # Jekyll 처리 없이 파일 그대로
     (out / "README.md").write_text(
-        "# pwa-test\n\n시니어 동네 점검단 시험용 PWA 배포본입니다. 직접 고치지 말고 "
+        "# 시험용 PWA\n\n시니어 동네 점검단 시험용 PWA 배포본입니다. 직접 고치지 말고 "
         "[TeamIroum/Contest](https://github.com/TeamIroum/Contest)의 `tools/ai-verify/pwa/deploy_pages.py`로 올립니다.\n\n"
         f"- 주소: {PAGES_URL}\n- 업무 API: `{api}`\n", encoding="utf-8")
     return version
@@ -96,11 +97,13 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp) / "site"
         git("clone", "--depth", "1", REPO, str(work), cwd=Path(tmp))
-        for p in work.iterdir():
-            if p.name not in (".git", "senior"):   # senior/: 시니어 앱 시험판 (deploy_senior_pages.py가 따로 올림)
+        site = work / SUBDIR   # 맨 위(입구 페이지)·senior/·admin/은 건드리지 않는다
+        site.mkdir(exist_ok=True)
+        for p in site.iterdir():
+            if p.name != "senior":   # test/senior/: 시니어 앱 시험판 (deploy_senior_pages.py가 따로 올림)
                 shutil.rmtree(p) if p.is_dir() else p.unlink()
-        version = build(work, args.api)
-        git("add", "-A", cwd=work)
+        version = build(site, args.api)
+        git("add", "-A", SUBDIR, cwd=work)
         if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=work).returncode == 0:
             print("바뀐 것이 없습니다.")
             return 0

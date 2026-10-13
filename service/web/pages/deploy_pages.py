@@ -1,13 +1,14 @@
-"""시니어 동네 점검단 입구 페이지를 GitHub Pages(TeamIroum/pwa-test의 service/)에 올린다.
+"""시니어 동네 점검단 입구 페이지를 GitHub Pages(TeamIroum/service 저장소 맨 위)에 올린다.
 
 앱 자체는 이 PC(Caddy + Tailscale Funnel)에서 서비스한다. 깃페이지에는 앱으로 넘겨 주는 정적 페이지만 둔다.
 화면과 업무 API가 같은 주소여야 로그인 쿠키(__Host-, SameSite)와 CSRF가 동작하기 때문이다(service/README.md).
 
-  https://teamiroum.github.io/pwa-test/service/          버튼 두 개 (시니어 앱 / 관리자 웹)
-  https://teamiroum.github.io/pwa-test/service/senior/   바로 시니어 앱으로
-  https://teamiroum.github.io/pwa-test/service/admin/    바로 관리자 웹으로
+  https://teamiroum.github.io/service/          버튼 두 개 (시니어 앱 / 관리자 웹)
+  https://teamiroum.github.io/service/senior    바로 시니어 앱으로
+  https://teamiroum.github.io/service/admin     바로 관리자 웹으로
 
-저장소의 다른 폴더(맨 위 시험용 PWA, senior/ 시험판)는 건드리지 않는다.
+index.html·senior/·admin/만 새로 쓴다. 예전 시험판(test/: 시험용 PWA, test/senior/ 시니어 시험판)은 건드리지 않는다.
+(이 저장소는 예전 이름이 pwa-test였다. 2026-10-14 service로 바꾸며 시험판을 test/로 옮김)
 
 실행:  python service/web/pages/deploy_pages.py --out <폴더>    # 만들기만 (올리지 않음)
        python service/web/pages/deploy_pages.py                 # 만들어서 올림
@@ -22,9 +23,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-REPO = "https://github.com/TeamIroum/pwa-test.git"
-SUBDIR = "service"
-PAGES_URL = f"https://teamiroum.github.io/pwa-test/{SUBDIR}/"
+REPO = "https://github.com/TeamIroum/service.git"
+PAGES_URL = "https://teamiroum.github.io/service/"
 SENIOR = "https://desktop-iv9p5jl.tail3f4b5a.ts.net/"
 ADMIN = "https://desktop-iv9p5jl.tail3f4b5a.ts.net:10000/"
 
@@ -97,11 +97,12 @@ def main() -> None:
         print(f"만듦: {a.out}")
         return
     with tempfile.TemporaryDirectory() as tmp:
-        work = Path(tmp) / "pwa-test"
+        work = Path(tmp) / "service"
         git("clone", "--depth", "1", REPO, str(work), cwd=Path(tmp))
-        shutil.rmtree(work / SUBDIR, ignore_errors=True)
-        build(work / SUBDIR, a.senior, a.admin)
-        git("add", "-A", SUBDIR, cwd=work)
+        for sub in ("senior", "admin"):
+            shutil.rmtree(work / sub, ignore_errors=True)
+        build(work, a.senior, a.admin)
+        git("add", "-A", "index.html", "senior", "admin", cwd=work)
         if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=work).returncode == 0:
             print("바뀐 것이 없습니다")
             return
