@@ -4,6 +4,10 @@
 
 ## 한눈에 보기
 
+![서비스 구성](../docs/presentation/서비스_아키텍처.png)
+
+발표용 그림: `docs/presentation/서비스_아키텍처.svg`·`.png` (기획 단계 그림은 `시스템_아키텍처`). 아래는 같은 내용의 Mermaid 그림.
+
 ```mermaid
 flowchart TB
     subgraph USER["사용자 기기"]
