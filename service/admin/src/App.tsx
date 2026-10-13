@@ -64,7 +64,7 @@ const NAV: { role: Role; items: { v: View; label: string }[] }[] = [
 ]
 
 /** 실제 백엔드에 연결하지 않은 메뉴 (실제 백엔드 모드에서 예시 표시) */
-const EXAMPLE_VIEWS: View[] = ['teams', 'assign', 'stats', 'admins']
+const EXAMPLE_VIEWS: View[] = ['assign', 'stats', 'admins']
 const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토']
 /** 위치 표시줄의 날짜. 실제 백엔드면 오늘 */
 const TODAY_LABEL = REAL_BACKEND

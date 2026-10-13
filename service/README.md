@@ -20,6 +20,7 @@
 - 출발 확인·활동 시작 규칙을 기능정의서(SEN-13·ACT-07·ACC-02)대로 (`patrol/command/StartDepartureService.java`): 출발 확인은 출석 확정(PRESENT) 2명 이상일 때만, 활동 시작은 출발 확인 뒤에만, 조원 누구든 누르면 출석한 조원 전원이 같은 시각으로 시작. 원본은 개인 시작(D-02: 출발 확인을 기다리지 않고 누른 사람만 시작)이었다. 원본의 `StartDepartureIntegrationTest`는 개인 시작을 전제로 해서 이 규칙과 맞지 않는다(Docker가 없어 고치지 않음)
 - 시연(local 프로필, `application-local.yml`): AI가 이상 없다고 본 사진도 모두 검토 목록에 올린다(`inspection.review.no-issue-sample-rate: 1`, 운영 기본값 0). 시연에서 담당자 판정을 늘 보여 주기 위함
 - 참여자 계정 API 추가(기능정의서 ACT-01, `participant/`): `GET·POST /admin/participants`, `GET·PATCH /admin/participants/{id}`, `POST /admin/participants/{id}/status-changes`, `GET /admin/participants/organizations`. 활동 담당자 관할 기관만, 번호는 암호문·검색용 HMAC으로만 저장하고 응답에는 가린 번호(`010-****-1234`), 같은 번호는 거절, 일시 중지·종료하면 인증 버전을 올리고 로그인 세션을 모두 끊는다. 번호 변경은 새 번호 확인 절차가 필요해 받지 않는다
+- 평소 조 편성 API 추가(기능정의서 ACT-02, `team/`): `GET·POST /admin/teams`, `PATCH /admin/teams/{id}`. 한 조 2~3명(자리 1~3), 조원은 적용 시작일(`effectiveFrom`, 오늘 이후)부터 바뀌고 이전 구성은 이력(`team_memberships`)으로 남는다. 이미 배정된 순회는 조원을 따로 복사해 두므로 바뀌지 않는다. 다른 조에서 데려오면 그 조에서 빠지며, 그 조가 1명이 되면 거절, 0명이면 그 조를 닫는다
 - 시연(local 프로필): 관리자 웹에서 새로 등록한 어르신도 고정 시연 인증번호로 로그인한다(`inspection.demo.registered-seniors: true`, 기본값 false). 문자 발송 공급자가 없어서
 
 ## 이 PC로 서비스하기
@@ -63,13 +64,14 @@
 ```bash
 cd service/ui-test
 npm install && npm run install-browser          # 처음 한 번
-powershell -ExecutionPolicy Bypass -File run-all.ps1   # 전체: 초기화 → 순회를 오늘로 → 시험 8개 → 다시 초기화 (약 3분, 실제 데이터를 바꿈)
+powershell -ExecutionPolicy Bypass -File run-all.ps1   # 전체: 초기화 → 순회를 오늘로 → 시험 9개 → 다시 초기화 (약 3분, 실제 데이터를 바꿈)
 node admin.mjs https://<PC>.ts.net:10000         # 관리자 웹: 로그인·검토 목록·사건·오늘 활동 현황
 node admin-decide.mjs https://<PC>.ts.net:10000  # 관리자 웹에서 판정 저장 → 사건 생성 (LOGIN=demo-road 등으로 계정 선택)
 node senior.mjs https://<PC>.ts.net --shoot      # 시니어 앱: 로그인 → 출석 → 전체 화면 촬영 → 보내기
 node senior-tour.mjs https://<PC>.ts.net        # 시니어 앱 화면 둘러보기 (shots/tour/index.html, 데이터 안 바꿈)
 node pause-check.mjs <시니어 주소> <관리자 주소>   # 잠깐 쉬기 ↔ 관리자 화면 '쉬는 중'
 node admin-participants.mjs <관리자 주소> <시니어 주소>  # 참여자 등록 → 같은 번호 거절 → 일시 중지 → 그 번호로 로그인 안 됨
+node admin-teams.mjs <관리자 주소>                 # 조 만들기 → 1명 남는 편성 거절 → 배정된 순회 조원은 그대로
 node gh-entry.mjs                                # 깃페이지 입구(teamiroum.github.io/service) → 두 앱 로그인
 ```
 

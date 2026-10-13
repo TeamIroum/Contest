@@ -725,8 +725,32 @@ function ReplaceModal({ patrols, participants, onClose, onPick }: { patrols: Pat
 
 /* ---------------- 조 편성 ---------------- */
 
-export function Teams({ teams, setTeams, participants }: { teams: Team[]; setTeams: Dispatch<SetStateAction<Team[]>>; participants: Participant[] }) {
+export function Teams({ teams: example, setTeams, participants: exampleP }: { teams: Team[]; setTeams: Dispatch<SetStateAction<Team[]>>; participants: Participant[] }) {
   const [edit, setEdit] = useState<Team | 'new' | null>(null)
+  // 실제 모드: 서버의 평소 조(오늘 기준 조원)와 관할 참여자. 저장(run) 뒤에도 다시 받는다
+  const [rows, setRows] = useState<real.RealTeam[]>([])
+  const [people, setPeople] = useState<real.RealParticipant[]>([])
+  useEffect(() => {
+    if (!REAL_BACKEND) return
+    let alive = true
+    const load = () =>
+      Promise.all([real.loadParticipants(), real.loadTeams()])
+        .then(([p, t]) => {
+          if (!alive) return
+          setPeople(p)
+          setRows(t)
+        })
+        .catch(() => undefined)
+    load()
+    const off = real.onRealChanged(load)
+    return () => {
+      alive = false
+      off()
+    }
+  }, [])
+  const teams: Team[] = REAL_BACKEND ? rows : example
+  const participants: Participant[] = REAL_BACKEND ? people : exampleP
+  const nameOf = (id: string) => participants.find((p) => p.id === id)?.name ?? pName(id)
   return (
     <>
       <PageHead
@@ -747,7 +771,8 @@ export function Teams({ teams, setTeams, participants }: { teams: Team[]; setTea
                 <p className="m-0 text-base font-bold">
                   {t.name} <span className="text-sm font-normal text-mute">· {t.memberIds.length}명</span>
                 </p>
-                <p className="m-0 mt-1 text-sm">{t.memberIds.map(pName).join(', ')}</p>
+                <p className="m-0 mt-1 text-sm">{t.memberIds.map(nameOf).join(', ')}</p>
+                {REAL_BACKEND && (t as real.RealTeam).since && <p className="m-0 mt-0.5 text-xs text-mute">{real.md((t as real.RealTeam).since!)}부터 이 구성</p>}
               </div>
               <Button size="sm" onClick={() => setEdit(t)}>
                 편집
@@ -762,8 +787,17 @@ export function Teams({ teams, setTeams, participants }: { teams: Team[]; setTea
           teams={teams}
           participants={participants}
           onClose={() => setEdit(null)}
-          onSave={(t) => {
-            setTeams((l) => (l.some((x) => x.id === t.id) ? l.map((x) => (x.id === t.id ? t : x)) : [...l, t]))
+          onSave={async (t, effectiveFrom) => {
+            if (REAL_BACKEND) {
+              const before = rows.find((x) => x.id === t.id)
+              const orgId = people.find((p) => p.id === t.memberIds[0])?.orgId ?? ''
+              const ok = await real.run(() =>
+                before
+                  ? real.updateTeam(before, { name: t.name, memberIds: t.memberIds, effectiveFrom })
+                  : real.createTeam({ organizationId: orgId, name: t.name, memberIds: t.memberIds, effectiveFrom }),
+              )
+              if (!ok) return
+            } else setTeams((l) => (l.some((x) => x.id === t.id) ? l.map((x) => (x.id === t.id ? t : x)) : [...l, t]))
             setEdit(null)
           }}
         />
@@ -772,9 +806,23 @@ export function Teams({ teams, setTeams, participants }: { teams: Team[]; setTea
   )
 }
 
-function TeamModal({ team, teams, participants, onClose, onSave }: { team: Team | null; teams: Team[]; participants: Participant[]; onClose: () => void; onSave: (t: Team) => void }) {
+function TeamModal({
+  team,
+  teams,
+  participants,
+  onClose,
+  onSave,
+}: {
+  team: Team | null
+  teams: Team[]
+  participants: Participant[]
+  onClose: () => void
+  onSave: (t: Team, effectiveFrom?: string) => void
+}) {
   const [name, setName] = useState(team?.name ?? `${teams.length + 1}조`)
   const [ids, setIds] = useState<string[]>(team?.memberIds ?? [])
+  // 실제 모드: 바뀐 조원이 언제부터 적용되는지 (오늘 이후). 이미 배정된 순회 조원은 그대로
+  const [from, setFrom] = useState(real.todayKst())
   const other = (id: string) => teams.find((t) => t.id !== team?.id && t.memberIds.includes(id))?.name
   const active = participants.filter((p) => p.status === 'ACTIVE')
   const ok = name.trim() && ids.length >= 2 && ids.length <= 3
@@ -785,7 +833,7 @@ function TeamModal({ team, teams, participants, onClose, onSave }: { team: Team 
       footer={
         <>
           <Button onClick={onClose}>취소</Button>
-          <Button variant="primary" disabled={!ok} onClick={() => onSave({ id: team?.id ?? `t${Date.now()}`, name: name.trim(), memberIds: ids })}>
+          <Button variant="primary" disabled={!ok} onClick={() => onSave({ id: team?.id ?? `t${Date.now()}`, name: name.trim(), memberIds: ids }, REAL_BACKEND ? from : undefined)}>
             저장
           </Button>
         </>
@@ -794,6 +842,11 @@ function TeamModal({ team, teams, participants, onClose, onSave }: { team: Team 
       <Field label="조 이름" required>
         <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
       </Field>
+      {REAL_BACKEND && (
+        <Field label="적용 시작일" required hint="이날부터 이 구성으로 순회에 배정합니다. 이미 배정된 순회의 조원은 바뀌지 않아요.">
+          <input type="date" value={from} min={real.todayKst()} onChange={(e) => setFrom(e.target.value)} className={inputCls} />
+        </Field>
+      )}
       <fieldset className="m-0 grid gap-1.5 border-0 p-0">
         <legend className="mb-1.5 text-sm font-semibold">
           조원 선택 <span className="font-normal text-mute">({ids.length}/3명, 최소 2명)</span>
@@ -825,7 +878,7 @@ function TeamModal({ team, teams, participants, onClose, onSave }: { team: Team 
                       className="size-5 flex-none accent-[var(--color-brand)]"
                     />
                     <span className="flex-1">
-                      <b className="font-bold">{p.name}</b> <span className="text-sm text-mute">· 활동 {p.days.join('·')}</span>
+                      <b className="font-bold">{p.name}</b> {p.days.length > 0 && <span className="text-sm text-mute">· 활동 {p.days.join('·')}</span>}
                     </span>
                     {other(p.id) && <span className="rounded-full bg-bg px-2 py-0.5 text-xs font-semibold text-sub">현재 {other(p.id)}</span>}
                   </label>

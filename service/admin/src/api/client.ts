@@ -60,7 +60,7 @@ export class ApiError extends Error {
 let onSessionEnded: () => void = () => {}
 export const setSessionEndedHandler = (fn: () => void) => (onSessionEnded = fn)
 
-type Method = 'GET' | 'POST' | 'PUT' | 'DELETE'
+type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 /** JSON API 호출. 실패하면 서버 code·message를 담은 오류를 던진다. idempotent=true면 Idempotency-Key를 붙인다 */
 export async function api<T>(method: Method, path: string, body?: unknown, opts: { idempotent?: boolean } = {}): Promise<T> {
   if (method !== 'GET') await ensureCsrf()

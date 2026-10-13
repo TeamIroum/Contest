@@ -27,6 +27,7 @@ import {
   type PatrolStatus,
   type Repair,
   type ReviewTask,
+  type Team,
   type TriggerReason,
 } from '../data'
 import { ApiError, api } from './client'
@@ -573,7 +574,9 @@ const toParticipant = (p: ApiParticipant): RealParticipant => ({
 
 export async function loadParticipants(): Promise<RealParticipant[]> {
   const r = await api<{ items: ApiParticipant[] }>('GET', '/admin/participants?size=100')
-  return r.items.map(toParticipant)
+  const list = r.items.map(toParticipant)
+  list.forEach((p) => upsert(PARTICIPANTS, p)) // 다른 화면(조 편성 등)의 이름 찾기용
+  return list
 }
 export const loadParticipantOrgs = () => api<{ id: string; name: string }[]>('GET', '/admin/participants/organizations')
 export const createParticipant = (p: { organizationId: string; name: string; phoneNumber: string; days: string[] }) =>
@@ -585,3 +588,29 @@ export const createParticipant = (p: { organizationId: string; name: string; pho
   )
 export const changeParticipantStatus = (p: RealParticipant, status: Participant['status'], reason: string) =>
   api<ApiParticipant>('POST', `/admin/participants/${p.id}/status-changes`, { status, reason, version: p.version }, { idempotent: true })
+
+/* ---------------- 평소 조 편성 (ACT-02, service/backend AdminTeamController) ---------------- */
+
+type ApiTeam = {
+  id: string
+  name: string
+  organizationId: string
+  members: { participantId: string; name: string; seatNo: number; status: string }[]
+  effectiveFrom: string | null
+  version: number
+}
+export type RealTeam = Team & { version: number; orgId: string; since: string | null }
+const toTeam = (t: ApiTeam): RealTeam => ({
+  id: t.id,
+  name: t.name,
+  memberIds: t.members.map((m) => m.participantId),
+  version: t.version,
+  orgId: t.organizationId,
+  since: t.effectiveFrom,
+})
+export const loadTeams = async () => (await api<ApiTeam[]>('GET', '/admin/teams')).map(toTeam)
+/** 조원은 effectiveFrom(기본 오늘)부터 바뀐다. 이미 배정된 순회의 조원은 그대로 */
+export const createTeam = (t: { organizationId: string; name: string; memberIds: string[]; effectiveFrom?: string }) =>
+  api<ApiTeam>('POST', '/admin/teams', { organizationId: t.organizationId, name: t.name, participantIds: t.memberIds, effectiveFrom: t.effectiveFrom }, { idempotent: true })
+export const updateTeam = (t: RealTeam, next: { name: string; memberIds: string[]; effectiveFrom?: string }) =>
+  api<ApiTeam>('PATCH', `/admin/teams/${t.id}`, { name: next.name, participantIds: next.memberIds, effectiveFrom: next.effectiveFrom, version: t.version })
