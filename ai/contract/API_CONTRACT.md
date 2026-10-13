@@ -159,6 +159,7 @@ verify용: `fixed`, `not_fixed`, `different_place`, `worse`
 | `image_hidden` | 가림 점검에서 부족 판정 | 해당 사진 조회·판독 사용 차단, 재검토 |
 | `image_unhidden` | 가림 점검에서 다시 괜찮다고 기록 | 재승인 여부는 백엔드 정책대로 (자동 재승인 안 해도 됨) |
 | `result_updated` | 재판독·재비교로 결과가 바뀜 (`status`, `retry` 포함) | `GET /results/{photo_id}`로 새 결과를 받아 스냅샷 추가 |
+| `image_deleted` | 보관 기간이 지나 AI 서버의 가린 사진을 지움 (`policy`: `normal` 또는 `case`, `days`). 판독 결과는 남고 `masked_image_url`은 `null`, `image_deleted`가 붙음 | 백엔드 사본은 백엔드 보관 정책대로 정리. 이후 이 사진으로 `/verify`의 `before_photo_id`를 쓰면 `PHOTO_NOT_FOUND` |
 
 `/analyze` 처리 중에 AI가 가림 누락을 찾아 다시 가린 경우에는 응답의 `image_revision`이 이미 2 이상이고 알림도 함께 남습니다. 백엔드가 알고 있는 버전 이하의 알림은 무시하면 됩니다. 알림 기록은 작업자 1개 기준이라, 서버 작업자를 늘리려면 DB·Redis로 옮겨야 합니다. 예시: `fixtures/get_events.json`
 
@@ -263,4 +264,4 @@ AI 응답의 `senior_message`는 상황별로 고정된 안내 문구(`taxonomy.
 4. **재촬영(`status: "retake"`)이어도 사진이 저장된 경우가 있습니다.** 흐림·어두움은 저장하지 않지만(`masked_image_url: null`), 틀 밖 판정은 AI가 사진을 본 뒤라 저장되어 있습니다. (시설 안 보임은 `retake`가 아니라 `needs_review`입니다.) `masked_image_url` 유무로 구분하세요.
 5. **전후 비교 결과 값**: repair 모드는 `fixed | not_fixed | unclear`, change 모드는 `worse | same | better | unclear`입니다. 같은 시설이 아니거나 부위가 안 보이면 `status: "retake"`입니다. 업무 분류로는 `fixed`=수리 확인 제안, `not_fixed`=미수리 의심, `worse`=악화 의심, `retake`·`unclear`·확신 낮음=비교 불가로 연결합니다. `close_case`·`re_request`·`regrade`는 제안이며 확정은 담당자가 합니다.
 6. **재판독은 백엔드도 기한을 두세요.** AI는 30초·2분·10분 간격으로 세 번 다시 판독하고 끝냅니다. `result_updated` 알림을 받거나, 정해 둔 시간 안에 결과가 확정되지 않으면 담당자 검토로 넘깁니다.
-7. **운영 설정**: `REQUIRE_DEVICE_MASKING=1`(앱이 가리지 않은 사진 거절), `API_KEYS` 설정, 서버 작업자 1개. 현재 값은 `GET /health`의 `require_device_masking`으로 확인합니다. `GET /health`의 `ok`가 `false`이면 마스킹 검출기(`detectors`)를 불러오지 못한 상태이며, 그동안 들어온 사진은 가리지 않고 `status: "error"`로 거절합니다. AI 서버에도 가린 사진이 백엔드 저장소와 별도로 쌓이므로 보관 기간을 함께 정합니다.
+7. **운영 설정**: `REQUIRE_DEVICE_MASKING=1`(앱이 가리지 않은 사진 거절), `API_KEYS` 설정, 서버 작업자 1개. 현재 값은 `GET /health`의 `require_device_masking`으로 확인합니다. `GET /health`의 `ok`가 `false`이면 마스킹 검출기(`detectors`)를 불러오지 못한 상태이며, 그동안 들어온 사진은 가리지 않고 `status: "error"`로 거절합니다. AI 서버의 가린 사진은 보관 기간이 지나면 지웁니다(`RETENTION_NORMAL_DAYS` 기본 180일: 이상 없는 정상 사진, `RETENTION_CASE_DAYS` 기본 1095일: 이상·담당자 확인·수리 확인·보수 증거 사진, 참고 사진은 지우지 않음). 지울 때 `GET /events`에 `image_deleted`가 남습니다.

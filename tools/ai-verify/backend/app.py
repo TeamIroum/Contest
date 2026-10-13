@@ -450,6 +450,8 @@ def _apply_event(ev: dict) -> str:
         elif t == "image_unhidden":
             store.update_run(rid, hidden=0)
             out.append(f"#{rid} 다시 표시 (실제 백엔드는 재승인 정책 적용)")
+        elif t == "image_deleted":
+            out.append(f"#{rid} AI 서버 보관 기간이 지나 원본 쪽 사진 삭제 (콘솔 사본은 검증 기록용으로 유지)")
         elif t == "result_updated":
             changed = _refresh(run, "event")
             out.append(f"#{rid} " + ("새 결과 스냅샷 추가" if changed else "결과 변화 없음"))
