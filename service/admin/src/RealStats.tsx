@@ -20,12 +20,18 @@ const typeName = (t: string) => KIND_NAME[KIND_OF_TYPE[t]] ?? t
 export function RealStats() {
   const [p, setP] = useState<Period>('two')
   const [r, setR] = useState<real.StatsReport | null>(null)
+  const [narr, setNarr] = useState<real.Narrative | null>(null)
+  const [making, setMaking] = useState(false)
   useEffect(() => {
     let alive = true
     const [from, to] = RANGE[p]()
     real
       .loadStats(from, to)
-      .then((x) => alive && setR(x))
+      .then((x) => {
+        if (!alive) return
+        setR(x)
+        setNarr(null)
+      })
       .catch(() => undefined)
     return () => {
       alive = false
@@ -90,6 +96,8 @@ export function RealStats() {
       ]),
       `동네점검단_실적_${r.from}_${r.to}.xlsx`,
     )
+    // 누가 어떤 기간을 내려받았는지 감사 이력에 남긴다 (전화번호는 엑셀에 넣지 않음)
+    real.recordExport(r.from, r.to, ['요약', '부서별 집계', '사건·보수 내역', '점검원 활동']).catch(() => undefined)
   }
 
   return (
@@ -181,6 +189,35 @@ export function RealStats() {
                   {report}
                 </p>
                 <p className="m-0 mt-2 text-xs text-mute">집계값으로 만든 고정 문장입니다. 엑셀은 요약 · 부서별 집계 · 사건·보수 내역 · 점검원 활동 4개 시트입니다.</p>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <Button
+                    disabled={making}
+                    onClick={async () => {
+                      setMaking(true)
+                      let made: real.Narrative | null = null
+                      await real.run(async () => {
+                        made = await real.makeNarrative(r!.from, r!.to)
+                      })
+                      setNarr(made)
+                      setMaking(false)
+                    }}
+                  >
+                    {making ? 'AI가 문장을 쓰는 중…' : 'AI로 보고 문장 만들기'}
+                  </Button>
+                  <span className="text-xs text-mute">확정 집계값만 AI에 넘기고, 숫자가 하나라도 다르면 고정 문장을 씁니다.</span>
+                </div>
+                {narr && (
+                  <div className="mt-3 rounded-lg border border-line p-4" data-testid="ai-narrative">
+                    <p className="m-0 mb-2 flex items-center gap-2 text-xs text-mute">
+                      <span className={`rounded-full px-2 py-0.5 font-bold ${narr.source === 'llm' ? 'bg-brand-50 text-brand' : 'bg-bg text-sub'}`}>
+                        {narr.source === 'llm' ? 'AI 문장 · 숫자 검증 통과' : '고정 문장'}
+                      </span>
+                      {real.mdhm(narr.generatedAt)} · {narr.revision}번째
+                      {narr.note && <span>· {narr.note}</span>}
+                    </p>
+                    <p className="m-0 text-sm leading-relaxed whitespace-pre-line">{narr.text}</p>
+                  </div>
+                )}
               </div>
             </Card>
           </div>

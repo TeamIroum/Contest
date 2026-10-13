@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -180,6 +181,19 @@ public class AiClient {
         HttpRequest request = request("audit/masking/" + enc(id)).header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(payload))).build();
         return jsonOf(send(request, "audit"));
+    }
+
+    /**
+     * POST /report/narrative(JSON). 확정 집계값(key·label·value·unit)으로 보고 문장만 만든다. 숫자가 집계값과 다르면 AI가 고정 문장을 돌려준다.
+     * service/: 기간 보고(OPS-04)용으로 추가했다.
+     */
+    public JsonNode reportNarrative(List<Map<String, Object>> items, String audience) {
+        Map<String, Object> payload = new java.util.LinkedHashMap<>();
+        payload.put("items", items);
+        payload.put("audience", audience);
+        HttpRequest request = request("report/narrative").header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(payload))).build();
+        return jsonOf(send(request, "report/narrative"));
     }
 
     /** GET /health(인증 없음). ok=false는 마스킹 검출기 장애다. */

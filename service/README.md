@@ -28,6 +28,13 @@
 - 기간 집계 API 추가(기능정의서 OPS-03, `stats/`, 사업 총괄만): `GET /admin/stats?from=&to=`(기본 오늘까지 14일, 한국 시간). 끝난 순회·출석 확인 연인원·사진·점검 장소·건너뜀·미방문·검토·사건·보수·종결·재보수를 따로 세고, 사진 수로 활동 시간을 계산하지 않는다. 부서별·시설별 사건과 엑셀용 활동·사건 목록도 함께 준다
 - (백엔드 변경 없음) 보수 증빙 사진: 관리자 웹이 고른 사진을 브라우저에서 시니어 앱과 같은 가림 코드(`senior/src/masking`)로 얼굴·번호판·차량을 가린 뒤 원본 API `POST /admin/media`(REPAIR_EVIDENCE)로 올리고, 보수 완료에 `evidenceMediaIds`로 연결한다. 가림 모델은 Caddy가 관리자 주소의 `/models/`에 시니어 앱 폴더를 연결해 준다(`web/Caddyfile`)
 - 출발 전 재배정 API 추가(기능정의서 ACT-05, `schedule/PatrolReassignmentService`): `POST /admin/patrols/{id}/reassignments`(participantIds·routeVersionId 중 바꿀 것, reason, version). 조원은 원본 재편성 `TeamFormationService.reassign`(D-29, 이력 보존·편성 규칙)으로, 코스는 공개 버전의 장소·구도를 새로 복사한다. 출발 확인·활동 기록이 있으면 거절하고, 재점검 배정 이력이 있는 순회는 코스를 바꾸지 않는다
+- 운영 API 추가(기능정의서 OPS-01·04·05·06·09)
+  - 기관·거점(`organization/`, 사업 총괄): `GET·POST /admin/organizations`, `PATCH /admin/organizations/{id}`. 유형별 상위 기관 규칙, 순환 거절
+  - 보고 문장(`report/`, 사업 총괄): `POST /admin/reports/narratives`. 확정 집계값만 AI `/report/narrative`에 넘기고(AiClient에 호출 추가), 숫자가 다르거나 AI가 안 되면 고정 문장. `report_jobs`에 회차로 남김
+  - 엑셀 내려받기 기록: `POST /admin/exports/records`. 엑셀은 화면이 만들고, 누가 어떤 기간을 받았는지 감사 이력에 남김
+  - 감사 이력(`audit/`, 사업 총괄·시스템 관리자): `GET /admin/audit-events`, `/admin/audit-events/actions`. 전화번호·토큰·비밀번호·주소로 보이는 칸은 가림
+  - 알림(`notification/`): `GET /admin/notifications`, `PUT /admin/notifications/{id}/read`, `/read`(모두). 15초마다 최근 하루의 검토 요청·출석/복귀 요청·재점검 요청을 찾아 담당 범위 관리자에게 화면 안 알림을 만든다(문자·푸시 없음)
+  - 역할·관할(OPS-02)은 공무원 계정의 역할 변경(`PUT /admin/accounts/{id}/roles`)으로 처리한다
 - 시연 관리자 계정 3개 추가(시드 `R__dev_seed_demo_scenario.sql`, `application-local.yml`): `demo-park`(공원녹지과 시설 담당자, 벤치 검토), `demo-program`(사업 총괄, 통계·보고), `demo-admin`(시스템 관리자, 공무원 계정). 원본 시드에는 벤치를 관리하는 공원녹지과 담당자가 없어 벤치 사진을 볼 사람이 없었다. 초기화 때 6개 모두 비밀번호를 준비한다
 - 시연(local 프로필): 관리자 웹에서 새로 등록한 어르신도 고정 시연 인증번호로 로그인한다(`inspection.demo.registered-seniors: true`, 기본값 false). 문자 발송 공급자가 없어서
 
@@ -72,7 +79,7 @@
 ```bash
 cd service/ui-test
 npm install && npm run install-browser          # 처음 한 번
-powershell -ExecutionPolicy Bypass -File run-all.ps1   # 전체: 초기화 → 순회를 오늘로 → 시험 14개 → 다시 초기화 (약 3분, 실제 데이터를 바꿈)
+powershell -ExecutionPolicy Bypass -File run-all.ps1   # 전체: 초기화 → 순회를 오늘로 → 시험 15개 → 다시 초기화 (약 3분, 실제 데이터를 바꿈)
 node admin.mjs https://<PC>.ts.net:10000         # 관리자 웹: 로그인·검토 목록·사건·오늘 활동 현황
 node admin-accounts.mjs <관리자 주소>              # 시연 관리자 6개 계정 로그인·역할별 메뉴 (데이터 안 바꿈)
 node admin-decide.mjs https://<PC>.ts.net:10000  # 관리자 웹에서 판정 저장 → 사건 생성 (LOGIN=demo-road 등으로 계정 선택)
@@ -85,6 +92,7 @@ node admin-assign.mjs <관리자 주소>                # 코스 만들기 → �
 node admin-reinspect.mjs <관리자 주소>             # 보수 완료 → 재점검 요청을 내일 순회에 배정 → 취소 → 다시 배정 (admin-decide 뒤)
 node admin-officers.mjs <관리자 주소>              # 계정 발급 → 첫 로그인 변경 → 잠김·해제 → 비밀번호 초기화 → 사용 중지
 node admin-stats.mjs <관리자 주소>                 # 통계·보고: 보고 문장·기간 전환·엑셀 (데이터 안 바꿈)
+node admin-ops.mjs <관리자 주소>                   # 알림 → 기관·거점 추가 → AI 보고 문장 → 엑셀 → 감사 이력
 node gh-entry.mjs                                # 깃페이지 입구(teamiroum.github.io/service) → 두 앱 로그인
 ```
 

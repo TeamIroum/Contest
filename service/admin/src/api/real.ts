@@ -795,3 +795,30 @@ export type StatsReport = {
 }
 /** from·to: YYYY-MM-DD (한국 시간). 비우면 오늘까지 최근 14일 */
 export const loadStats = (from?: string, to?: string) => api<StatsReport>('GET', `/admin/stats?${new URLSearchParams({ ...(from ? { from } : {}), ...(to ? { to } : {}) })}`)
+
+/* ---------------- 보고 문장·엑셀 기록 (OPS-04·09), 감사 이력 (OPS-06), 기관·거점 (OPS-01), 알림 (OPS-05) ---------------- */
+
+export type Narrative = { id: string; from: string; to: string; text: string; source: 'llm' | 'template'; note: string | null; generatedAt: string; revision: number }
+/** 확정 집계값만 AI에 넘겨 보고 문장을 만든다. 숫자가 다르거나 AI가 안 되면 고정 문장 */
+export const makeNarrative = (from: string, to: string) => api<Narrative>('POST', '/admin/reports/narratives', { from, to })
+/** 엑셀을 내려받았다는 기록 (감사 이력) */
+export const recordExport = (from: string, to: string, sheets: string[]) => api('POST', '/admin/exports/records', { from, to, sheets })
+
+export type AuditEvent = { id: string; at: string; actorName: string | null; action: string; resourceType: string; resourceId: string; reason: string | null; before: unknown; after: unknown }
+export const loadAudit = (q: { action?: string; from?: string; to?: string; page?: number }) =>
+  api<{ items: AuditEvent[]; totalElements: number; page: number; size: number }>(
+    'GET',
+    `/admin/audit-events?${new URLSearchParams(Object.fromEntries(Object.entries({ ...q, size: 30 }).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)])))}`,
+  )
+export const loadAuditActions = () => api<{ action: string; resourceType: string; count: number }[]>('GET', '/admin/audit-events/actions')
+
+export type Org = { id: string; type: 'AGENCY' | 'DEPARTMENT' | 'MEETING_POINT'; name: string; parentId: string | null; parentName: string | null; status: 'ACTIVE' | 'INACTIVE'; people: number; version: number }
+export const loadOrgs = () => api<Org[]>('GET', '/admin/organizations')
+export const createOrg = (o: { type: Org['type']; name: string; parentId: string | null }) => api<Org>('POST', '/admin/organizations', o)
+export const updateOrg = (o: Org, next: { name?: string; status?: Org['status']; parentId?: string | null; changeParent?: boolean }) =>
+  api<Org>('PATCH', `/admin/organizations/${o.id}`, { ...next, version: o.version })
+
+export type AppNotification = { id: string; type: string; resourceType: string; resourceId: string; message: string; createdAt: string; readAt: string | null }
+export const loadNotifications = () => api<{ items: AppNotification[]; unread: number }>('GET', '/admin/notifications')
+export const readNotification = (id: string) => api('PUT', `/admin/notifications/${id}/read`)
+export const readAllNotifications = () => api('PUT', '/admin/notifications/read')

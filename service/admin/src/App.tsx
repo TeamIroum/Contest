@@ -29,6 +29,7 @@ import { Button, Pill, Toast, inputCls } from './ui'
 import { nowAt } from './util'
 import { REAL_BACKEND, ApiError, changePassword, fetchMe, login, logout, setSessionEndedHandler } from './api/client'
 import { RealAdmins } from './RealAdmins'
+import { NotificationMenu, RealAudit, RealOrgs } from './RealOps'
 import { RealAssign } from './RealAssign'
 import { RealStats } from './RealStats'
 import { applyServerDefectCodes, loadIssues, loadReviews, loadTodayPatrols, onRealChanged, onRealError, todayKst } from './api/real'
@@ -36,7 +37,7 @@ import { ALERT_LABEL, loadAlertSettings, playAlert, saveAlertSettings, unlockAle
 
 // 시니어 동네 점검단 · 관리자 웹
 // 시연: 관리자 계정 하나에 세 역할(활동 담당자 · 시설 담당자 · 사업 총괄). 역할별로 메뉴를 나눈다.
-type View = 'today' | 'teams' | 'assign' | 'participants' | 'review' | 'issues' | 'stats' | 'admins'
+type View = 'today' | 'teams' | 'assign' | 'participants' | 'review' | 'issues' | 'stats' | 'orgs' | 'audit' | 'admins'
 
 const NAV: { role: Role; items: { v: View; label: string }[] }[] = [
   {
@@ -57,12 +58,19 @@ const NAV: { role: Role; items: { v: View; label: string }[] }[] = [
   },
   {
     role: 'PROGRAM_MANAGER',
-    items: [{ v: 'stats', label: '통계·보고' }],
+    items: [
+      { v: 'stats', label: '통계·보고' },
+      { v: 'orgs', label: '기관·거점' },
+      { v: 'audit', label: '감사 이력' },
+    ],
   },
   {
     // 공무원 계정 발급·초기화·잠금 해제는 시스템 관리자만 (D-04)
     role: 'SYSTEM_ADMIN',
-    items: [{ v: 'admins', label: '공무원 계정' }],
+    items: [
+      { v: 'admins', label: '공무원 계정' },
+      { v: 'audit', label: '감사 이력' },
+    ],
   },
 ]
 
@@ -374,6 +382,7 @@ export default function App() {
           </p>
           <div className="flex flex-none items-center gap-2">
             <p className="m-0 hidden text-sm font-semibold text-sub sm:block">{TODAY_LABEL}</p>
+            {REAL_BACKEND && <NotificationMenu onGo={(v) => go(v as View)} />}
             <AlertSoundMenu value={alerts} onChange={setAlerts} />
           </div>
         </div>
@@ -416,6 +425,8 @@ export default function App() {
           {view === 'issues' && <Issues issues={issues} setIssues={setIssues} reqs={reqs} setReqs={setReqs} patrols={patrols} selected={selIssue} onSelect={setSelIssue} onGoAssign={() => go('assign')} />}
           {view === 'stats' && (REAL_BACKEND ? <RealStats /> : <Stats reviews={reviews} issues={issues} patrols={patrols} teams={teams} />)}
           {view === 'admins' && (REAL_BACKEND ? <RealAdmins me={ME.loginId} /> : <Admins />)}
+          {view === 'orgs' && (REAL_BACKEND ? <RealOrgs /> : <p className="m-0 text-sm text-sub">기관·거점 관리는 실제 업무 서버에 연결했을 때만 씁니다.</p>)}
+          {view === 'audit' && (REAL_BACKEND ? <RealAudit /> : <p className="m-0 text-sm text-sub">감사 이력은 실제 업무 서버에 연결했을 때만 볼 수 있습니다.</p>)}
           <p className="mt-8 text-center text-xs text-mute">
             {REAL_BACKEND
               ? '업무 서버에 연결되어 있습니다. AI 판독 결과는 판단 지원이며 판정은 담당자가 확정합니다.'
@@ -465,6 +476,8 @@ const ICON: Record<View, string> = {
   issues: 'M14.5 6.5a4 4 0 0 0-5.3 5.3L4 17l3 3 5.2-5.2a4 4 0 0 0 5.3-5.3l-2.5 2.5-2.5-.5-.5-2.5Z',
   stats: 'M5 20V10M12 20V4M19 20v-7',
   admins: 'M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6Z',
+  orgs: 'M4 20V8l8-4 8 4v12M9 20v-6h6v6',
+  audit: 'M7 4h10v16H7ZM10 8h4M10 12h4M10 16h2',
 }
 
 function NavIcon({ v }: { v: View }) {
