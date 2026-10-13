@@ -41,7 +41,7 @@
 4. 시연 데이터 초기화 (리허설 뒤 등)
 
    ```powershell
-   powershell -ExecutionPolicy Bypass -File serviceeset-demo.ps1     # 또는 serviceeset-demo.bat 더블클릭
+   powershell -ExecutionPolicy Bypass -File service\reset-demo.ps1     # 또는 service\reset-demo.bat 더블클릭
    ```
 
    공개 주소·Caddy는 그대로 두고 업무 백엔드만 다시 켠다(약 15초). 10/15 순회 출석 전 상태, 사진·검토·사건 0건, 시연 관리자 비밀번호(`ADMIN_PASSWORD`) 준비까지 한다.
