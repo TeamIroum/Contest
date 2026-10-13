@@ -600,7 +600,7 @@ export type Member = {
   attendance: Attendance
   /** 요청 없이 담당자가 출석 처리한 사유 */
   proxyReason?: string
-  /** 개인 시작 시각. 담당자 출발 확인과 별개 (없으면 '시작 기록 없음') */
+  /** 활동 시작 시각. 출발 확인 뒤 조원 누구든 누르면 출석한 조원 모두 같은 시각 (없으면 '시작 기록 없음') */
   startedAt?: string
   startSource?: 'SELF' | 'ADMIN_CORRECTION'
   /** 실제 복귀 시각 (입력·정정 가능) */
@@ -620,7 +620,7 @@ export type Patrol = {
   start: string
   expectedReturn: string
   status: PatrolStatus
-  /** 담당자 출발 확인 시각. 개인 시작과 순서·조건 없이 독립된 기록 */
+  /** 담당자 출발 확인 시각. 출석 확정 2명 이상일 때만, 이 뒤에야 활동을 시작할 수 있다 */
   departureConfirmedAt?: string
   members: Member[]
   /** 처리된 장소 수 */

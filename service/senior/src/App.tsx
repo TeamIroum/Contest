@@ -102,6 +102,8 @@ export default function App() {
   const [next, setNext] = useState<Pick<SubmitBody, 'nextAction' | 'nextStopId'>>({})
   /** 업무 API에서 순회를 받았는지 (못 받으면 예시 데이터로 시연) */
   const [server, setServer] = useState(false)
+  /** 실제 백엔드: 우리 조가 이미 활동을 시작했는지 (조원 누구든 누르면 조 전체가 시작) */
+  const [teamStarted, setTeamStarted] = useState(false)
   /** 실제 백엔드: 오늘 순회 불러오기 상태. ok가 되기 전에는 예시 데이터를 보여 주지 않는다 */
   const [patrolState, setPatrolState] = useState<'loading' | 'ok' | 'none' | 'error'>('loading')
   const [, setStopsVersion] = useState(0) // STOPS가 서버 순회로 바뀌면 다시 그림
@@ -151,6 +153,7 @@ export default function App() {
     myAttRef.current = st.myAtt
     departedRef.current = st.departed
     setMyAtt(st.myAtt)
+    setTeamStarted(!!st.me?.startedAt)
     if (st.me?.paused !== undefined) setPaused(st.me.paused)
     setPartnerAtt(st.partnerAtt)
     setDeparted(st.departed)
@@ -181,9 +184,9 @@ export default function App() {
       (p) => showServerPatrol(p),
       () => {},
     )
-  // 실제 백엔드: 출석 요청 뒤 담당자 출석 확인·출발 확인을 기다리는 동안 순회 상태를 4초마다 다시 받는다
+  // 실제 백엔드: 출석 화면에 있는 동안 순회 상태를 4초마다 다시 받는다 (담당자 출석·출발 확인, 조원이 먼저 누른 활동 시작)
   useEffect(() => {
-    if (!REAL_BACKEND || !server || screen !== 'ready' || (myAtt === 'present' && partnerAtt === 'present' && departed)) return
+    if (!REAL_BACKEND || !server || screen !== 'ready') return
     const t = setInterval(() => refreshPatrol(), 4000)
     return () => clearInterval(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -605,15 +608,19 @@ export default function App() {
                         },
                       )
                   }}
+                  teamStarted={teamStarted}
                   onStart={() => {
-                    // 실제 백엔드: 활동 시작을 알린다 (출발 확인을 기다리지 않음. 실패해도 촬영은 이어 감)
-                    if (REAL_BACKEND) startActivity(TEAM.patrolId, patrol).catch((e) => say(e, '활동 시작을 알리지 못했어요.'))
                     // 이미 끝난 장소는 건너뛰고 아직 안 끝난 첫 장소부터 (모두 끝났으면 순회 화면이 "모두 마쳤어요"를 보여 줌)
-                    const first = STOPS.findIndex((s) => !stopDone(s))
-                    setIdx(first < 0 ? 0 : first)
-                    const st = STOPS[first < 0 ? 0 : first]
-                    setSlot(Math.max(0, st.slots.findIndex((_, i) => !slotDone(st, i))))
-                    setScreen('route')
+                    const go = () => {
+                      const first = STOPS.findIndex((s) => !stopDone(s))
+                      setIdx(first < 0 ? 0 : first)
+                      const st = STOPS[first < 0 ? 0 : first]
+                      setSlot(Math.max(0, st.slots.findIndex((_, i) => !slotDone(st, i))))
+                      setScreen('route')
+                    }
+                    if (!REAL_BACKEND) return go()
+                    // 담당자 출발 확인 뒤에만 시작된다. 조원 누구든 누르면 조 전체가 시작 (이미 시작했으면 그대로 이어 감)
+                    startActivity(TEAM.patrolId, patrol).then(go, (e) => say(e, '활동을 시작하지 못했어요.'))
                   }}
                 />
               )}
@@ -1108,33 +1115,42 @@ function Home({ onGo, pending }: { onGo: () => void; pending: number }) {
   )
 }
 
-// 출석 요청 → (담당자 출석 확인) → 각자 활동 시작.
-// 담당자 출발 확인과 개인 시작은 서로 기다리지 않는 별개 기록이라, 출석을 요청하면 바로 시작할 수 있다 (D-02)
+// 출석 요청 → 담당자 출석 확인·출발 확인 → 활동 시작 (기능정의서 SEN-13·ACC-02)
+// 출발 확인(출석 확정 2명 이상) 전에는 시작할 수 없고, 조원 누구든 누르면 조 전체가 함께 시작한다
 function Ready({
   myAtt,
   partnerAtt,
   departed,
+  teamStarted = false,
   onRequest,
   onStart,
 }: {
   myAtt: Attend
   partnerAtt: Attend
   departed: boolean
+  teamStarted?: boolean
   onRequest: () => void
   onStart: () => void
 }) {
+  const staff = `${STAFF.name || '담당'} 선생님`
   const attText = (a: Attend) => (a === 'present' ? '출석 확인됨' : a === 'requested' ? '선생님 확인 중' : '아직이에요')
   let title = '출석을 요청해 주세요'
-  let sub: ReactNode = `요청하면 ${STAFF.name} 선생님이 출석을 확인해요.`
-  if (myAtt !== 'none') {
-    title = '활동을 시작해도 좋아요'
-    sub = '선생님 확인을 기다리지 않고 바로 시작할 수 있어요.'
+  let sub: ReactNode = `요청하면 ${staff}이 출석과 출발을 확인해요.`
+  if (myAtt !== 'none' && !departed) {
+    title = '선생님 확인을 기다리고 있어요'
+    sub = '두 분 출석과 출발을 확인하면 시작할 수 있어요.'
+  } else if (departed && teamStarted) {
+    title = '조원이 활동을 시작했어요'
+    sub = '함께 이어서 해요.'
+  } else if (departed) {
+    title = '함께 출발해요'
+    sub = '누르면 우리 조 모두 활동을 시작해요.'
   }
   return (
     <>
       <H1 chip eyebrow={`오늘 ${TEAM.no}조 출석`} sub={sub}>{title}</H1>
       <Card className="mt-2 !py-3.5 big:mt-6">
-        <StepPath steps={['출석 요청', '활동 시작']} at={myAtt === 'none' ? 0 : 1} />
+        <StepPath steps={['출석 요청', '선생님 확인', '활동 시작']} at={myAtt === 'none' ? 0 : departed ? 2 : 1} />
       </Card>
       <Card>
         <p className="m-0 mb-3 text-[1.1rem] font-extrabold">오늘 {TEAM.no}조 출석</p>
@@ -1154,7 +1170,6 @@ function Ready({
           ))}
         </ul>
       </Card>
-      {/* 출발 확인은 기다릴 필요가 없는 기록이라, 아직이면 흐리게 보여 준다 */}
       {departed ? (
         <Card className="flex items-center justify-between !py-4">
           <span className="text-[1.05rem] font-bold">선생님 출발 확인</span>
@@ -1163,14 +1178,16 @@ function Ready({
       ) : (
         <p className="m-0 flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 rounded-[1.6rem] bg-surface/60 px-5 py-3.5 text-[0.98rem]">
           <span className="font-bold text-sub">선생님 출발 확인</span>
-          <span className="font-semibold text-mute">기다리지 않아도 돼요</span>
+          <span className="font-semibold text-mute">{myAtt === 'none' ? '출석 뒤에 해요' : '기다리는 중이에요'}</span>
         </p>
       )}
       <Bottom sticky>
         {myAtt === 'none' ? (
           <Primary onClick={onRequest}>출석 요청하기</Primary>
         ) : (
-          <Primary onClick={onStart}>활동 시작하기</Primary>
+          <Primary onClick={onStart} disabled={!departed}>
+            {!departed ? '출발 확인을 기다리는 중' : teamStarted ? '이어서 하기' : '활동 시작하기'}
+          </Primary>
         )}
       </Bottom>
     </>

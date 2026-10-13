@@ -179,7 +179,7 @@ export default function App() {
   }, [stage])
 
   // 시연: 3조 어르신이 출석 확인 뒤 각자 앱에서 [활동 시작]을 누른다.
-  // 첫 개인 시작이 접수되면 조가 '활동 중'이 된다. 담당자 출발 확인과는 순서·조건이 없는 별개 기록이다.
+  // 출발 확인 뒤 조원 누구든 활동 시작을 누르면 조 전체가 '활동 중'이 된다 (기능정의서 SEN-13·ACC-02).
   const p3 = patrols.find((p) => p.id === 'p-1012-3')
   const p3NextStarter = p3?.status !== 'CANCELLED' ? p3?.members.find((mb) => mb.attendance === 'PRESENT' && !mb.startedAt)?.id : undefined
   useEffect(() => {

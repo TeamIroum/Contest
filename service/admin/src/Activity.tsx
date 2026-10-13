@@ -45,7 +45,7 @@ export function pendingActivityCount(patrols: Patrol[]) {
 
 const isActive = (p: Patrol) => p.status === 'IN_PROGRESS' || p.status === 'RETURNING'
 const isFinished = (p: Patrol) => p.status === 'COMPLETED' || p.status === 'ABORTED' || p.status === 'CANCELLED'
-/** 실제 활동 기록(개인 시작·복귀·촬영)이 있는지. 있으면 '활동 없이 해산'을 쓸 수 없다 */
+/** 실제 활동 기록(활동 시작·복귀·촬영)이 있는지. 있으면 '활동 없이 해산'을 쓸 수 없다 */
 const hasActivity = (p: Patrol) => p.members.some((m) => m.startedAt || m.returnedAt) || p.progress.captured + p.progress.skipped + p.progress.review > 0
 
 /** 담당자가 지금 해야 할 일 (화면 강조용) */
@@ -196,15 +196,15 @@ export function Today({
     if (p.real) return void real.run(() => real.confirmAttendance(p, memberId, attendance === 'ABSENT' ? 'ABSENT' : 'PRESENT', proxyReason))
     patch(p.id, (x) => ({ ...x, members: x.members.map((m) => (m.id === memberId ? { ...m, attendance, proxyReason } : m)) }))
   }
-  /** 출발 확인: 확인자·시각만 기록. 개인 시작과 순서·조건 없이 독립 (상태를 바꾸지 않음) */
+  /** 출발 확인: 출석 확정 2명 이상일 때만(서버가 검사). 확인 뒤에 어르신이 활동 시작을 누르면 조 전체가 시작한다 */
   function depart(p: Patrol) {
     if (p.real) {
-      real.run(() => real.confirmDeparture(p)).then((ok) => ok && setToast(`${teamName(teams, p.teamId)} 출발 확인을 기록했습니다. 어르신 개인 시작과는 별개입니다.`))
+      real.run(() => real.confirmDeparture(p)).then((ok) => ok && setToast(`${teamName(teams, p.teamId)} 출발 확인을 기록했습니다. 어르신이 활동 시작을 누르면 조 전체가 함께 시작합니다.`))
       return
     }
     const hm = nowAt().slice(6)
     patch(p.id, (x) => ({ ...x, departureConfirmedAt: hm }))
-    setToast(`${teamName(teams, p.teamId)} 출발 확인을 기록했습니다. 어르신 개인 시작과는 별개입니다.`)
+    setToast(`${teamName(teams, p.teamId)} 출발 확인을 기록했습니다. 어르신이 활동 시작을 누르면 조 전체가 함께 시작합니다.`)
   }
   /** 복귀 확인: 앱 복귀 요청이 없어도 가능. 정상/중도와 사유를 함께 기록. 전원 확인되면 완료/중도 종료 */
   function confirmReturn(p: Patrol, memberId: string, input: ReturnInput) {
@@ -243,7 +243,7 @@ export function Today({
       <PageHead
         title="오늘 활동 현황"
         sub={todayLabel}
-        help="출석은 어르신 요청을 담당자가 확정합니다. 출발 확인과 어르신 개인 시작은 서로 기다리지 않는 별개 기록이며, 첫 개인 시작부터 조가 활동 중이 됩니다. 결석이 생기면 출발 전에 다시 편성하세요. 복귀는 앱 요청이 없어도, 사진 전송이 남아 있어도 담당자가 확인할 수 있으며 모두 확인하면 활동이 끝납니다. 복귀가 늦어도 자동 알림은 보내지 않습니다. 시각 정정은 조원 줄 끝 ⋯ 메뉴에 있습니다."
+        help="출석은 어르신 요청을 담당자가 확정합니다. 출석이 확정된 조원이 2명 이상이면 출발을 확인하고, 그 뒤에 어르신이 활동 시작을 누르면 조 전체가 함께 활동 중이 됩니다. 결석이 생기면 출발 전에 다시 편성하세요. 복귀는 앱 요청이 없어도, 사진 전송이 남아 있어도 담당자가 확인할 수 있으며 모두 확인하면 활동이 끝납니다. 복귀가 늦어도 자동 알림은 보내지 않습니다. 시각 정정은 조원 줄 끝 ⋯ 메뉴에 있습니다."
       />
       {/* 숫자 카드를 누르면 그 조만 걸러 본다. 처리할 일이 있는 카드는 호박색 테두리 */}
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -402,7 +402,7 @@ export function Today({
                       </Button>
                     )}
                     <span className="text-xs text-mute">
-                      {p.status === 'ASSIGNED' ? '어르신은 출발 확인 없이도 시작할 수 있습니다.' : '출발 확인은 개인 시작과 별도 기록입니다.'}
+                      {p.status === 'ASSIGNED' ? '출석 확정 2명 이상이면 출발을 확인하세요. 확인 뒤에 어르신이 활동을 시작합니다.' : '조원 누구든 시작을 누르면 조 전체가 함께 시작합니다.'}
                     </span>
                   </div>
                 )}
@@ -459,7 +459,7 @@ export function Today({
       {proxyFor && (
         <ReasonModal
           title={`${pName(proxyFor.memberId)} 대리 출석`}
-          note="어르신의 출석 요청 없이 담당자가 출석으로 기록합니다. 개인 시작 시각은 자동으로 만들지 않습니다."
+          note="어르신의 출석 요청 없이 담당자가 출석으로 기록합니다. 활동 시작은 출발 확인 뒤 조원이 앱에서 누르면 함께 기록됩니다."
           placeholder="예: 휴대폰을 두고 오셔서 센터에서 직접 확인"
           confirm="대리 출석"
           onClose={() => setProxyFor(null)}

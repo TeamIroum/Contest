@@ -117,7 +117,17 @@ public class PatrolCommandSupport {
         return members.stream().filter(m -> !m.absent()).count();
     }
 
-    /** 1인 출발 방지(D-30): 담당자 출발 확인·개인 시작 모두에 적용한다. */
+    /**
+     * 출발 확인 조건(기능정의서 ACT-07·ACC-02): 출석이 확정(PRESENT)된 조원이 2명 이상이어야 한다.
+     * (service/: 원본은 '결석이 아닌 조원 2명'만 보아 출석 확인 전에도 출발 확인이 됐다)
+     */
+    public void requirePresentPair(PatrolRow patrol, List<MemberRow> members) {
+        if (members.stream().filter(m -> "PRESENT".equals(m.attendance())).count() < 2) {
+            throw stateConflict("ATTENDANCE_SHORT", patrol, "출석이 확인된 조원이 2명 이상이어야 출발을 확인할 수 있어요.");
+        }
+    }
+
+    /** 1인 출발 방지(D-30): 담당자 출발 확인·활동 시작 모두에 적용한다. */
     public void requireNotSolo(PatrolRow patrol, List<MemberRow> members) {
         if (availableMembers(members) < 2) {
             throw stateConflict("SOLO_DEPARTURE", patrol, "함께 출발할 조원이 없어요. 활동 담당자에게 조 편성을 확인해 주세요.");

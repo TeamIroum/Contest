@@ -21,9 +21,13 @@ import kr.iroum.inspection.patrol.PatrolReader.PatrolRow;
 import kr.iroum.inspection.patrol.PatrolViews.Actor;
 
 /**
- * 개인 시작과 담당자 출발 확인(D-02, 업무 API 6.1·8.1절). 둘은 서로 기다리지 않는 독립 기록이다.
- * 한 사람의 시작이 다른 조원의 시각을 만들지 않고, 출발 확인은 활동 상태를 바꾸지 않는다.
- * 참여 가능 인원이 1명 이하이면 둘 다 거절한다(D-30). 출발 확인 재호출은 최초 값을 유지한다(D-31).
+ * 활동 시작과 담당자 출발 확인(기능정의서 SEN-13·ACT-07·ACC-02, 업무 API 6·8절).
+ * <ul>
+ * <li>출발 확인: 출석 확정(PRESENT) 조원이 2명 이상일 때만. 재호출은 최초 값을 유지한다(D-31).</li>
+ * <li>활동 시작: 담당자 출발 확인 뒤에만. 조원 누구든 한 번 누르면 출석한 조원 전원이 같은 시각으로 시작한다(조 전체 IN_PROGRESS).</li>
+ * </ul>
+ * service/: 원본은 개인 시작(D-02, 출발 확인을 기다리지 않고 누른 사람만 시작)이었다. 기능정의서대로 바꿨다.
+ * 참여 가능 인원이 1명 이하이면 둘 다 거절한다(D-30).
  */
 @Service
 public class StartDepartureService {
@@ -96,15 +100,22 @@ public class StartDepartureService {
                         // 종료·복귀 확인 뒤 늦게 온 시작은 이력만 남기고 확정값을 바꾸지 않는다(업무 API 7절).
                         return result(patrol, me, false, patrol.revision());
                     }
+                    if (patrol.departureConfirmedAt() == null) {
+                        throw support.stateConflict("DEPARTURE_NOT_CONFIRMED", patrol, "선생님이 출발을 확인한 뒤에 시작할 수 있어요.");
+                    }
+                    if (!"PRESENT".equals(me.attendance())) {
+                        throw support.stateConflict("ATTENDANCE_NOT_CONFIRMED", patrol, "선생님이 출석을 확인한 뒤에 시작할 수 있어요.");
+                    }
                     support.requireNotSolo(patrol, members);
                     if (me.returnedAt() != null && occurredAt.isAfter(me.returnedAt())) {
                         throw new ApiException(ErrorCode.INVALID_ACTIVITY_TIME, "시작 시각이 복귀 시각보다 늦어요.");
                     }
                     Instant received = support.now();
+                    // 조 전체 시작: 출석이 확정되고 아직 시작·복귀하지 않은 조원 모두를 같은 시각으로 시작한다 (누른 사람은 순회 이벤트에 남음)
                     jdbc.update("""
                             UPDATE patrol_members SET started_at = ?, start_received_at = ?, start_source = 'SELF', updated_at = now()
-                            WHERE patrol_id = ? AND participant_id = ? AND assignment_active""",
-                            Timestamp.from(occurredAt), Timestamp.from(received), patrolId, participantId);
+                            WHERE patrol_id = ? AND assignment_active AND attendance = 'PRESENT' AND started_at IS NULL AND returned_at IS NULL""",
+                            Timestamp.from(occurredAt), Timestamp.from(received), patrolId);
                     support.evaluate(patrolId, user.userId(), null, participantId);
                     support.recomputeDepartedAt(patrolId);
                     long revision = support.bumpRevision(patrolId);
@@ -132,7 +143,9 @@ public class StartDepartureService {
                         // 출발 확인은 ASSIGNED/IN_PROGRESS에서만 기록한다(8.1절). 그 밖은 기록 없이 현재 값을 돌려준다.
                         return departure(patrol);
                     }
-                    support.requireNotSolo(patrol, support.members(patrolId));
+                    List<MemberRow> members = support.members(patrolId);
+                    support.requireNotSolo(patrol, members);
+                    support.requirePresentPair(patrol, members);
                     Instant now = support.now();
                     jdbc.update("UPDATE patrols SET departure_confirmed_at = ?, departure_confirmed_by = ? WHERE id = ?",
                             Timestamp.from(now), user.userId(), patrolId);

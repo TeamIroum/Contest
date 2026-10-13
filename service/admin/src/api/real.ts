@@ -69,6 +69,11 @@ export const todayKst = () => new Date(Date.now() + 9 * 3600_000).toISOString().
 export const md = (date: string) => `${date.slice(5, 7)}/${date.slice(8, 10)}`
 /** 오늘 날짜의 'HH:mm'(한국 시간)을 ISO 시각으로 */
 export function todayAt(hhmm: string) {
+  // 지금과 같은 분이면 현재 시각(초 포함)을 보낸다. 분 단위로 자르면 같은 분에 시작한 조원의 복귀가
+  // '복귀 시각이 시작 시각보다 빨라요'(422)로 거절된다
+  const now = new Date()
+  const nowHm = new Date(now.getTime() + 9 * 3600_000).toISOString().slice(11, 16)
+  if (hhmm === nowHm) return now.toISOString()
   return new Date(`${todayKst()}T${hhmm}:00+09:00`).toISOString()
 }
 
