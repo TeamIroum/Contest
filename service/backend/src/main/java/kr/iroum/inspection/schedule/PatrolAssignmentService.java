@@ -38,7 +38,7 @@ public class PatrolAssignmentService {
 
     public record ScheduledPatrol(UUID id, LocalDate activityDate, UUID teamId, String teamName, UUID routeId, String routeName, int routeVersionNo,
             Instant scheduledStartAt, Instant expectedReturnAt, String activityStatus, List<String> members, int stops, int reinspectionSlots,
-            long version) {
+            long version, List<UUID> memberIds, UUID routeVersionId, boolean departureConfirmed) {
     }
 
     private final JdbcTemplate jdbc;
@@ -72,6 +72,8 @@ public class PatrolAssignmentService {
                 SELECT p.id, p.activity_date, p.team_id, p.team_name_snapshot, v.route_id, p.route_name_snapshot, v.version_no,
                        p.scheduled_start_at, p.expected_return_at, p.activity_status, p.version,
                        (SELECT array_agg(m.name_snapshot ORDER BY m.seat_no) FROM patrol_members m WHERE m.patrol_id = p.id AND m.assignment_active) AS members,
+                       (SELECT array_agg(m.participant_id ORDER BY m.seat_no) FROM patrol_members m WHERE m.patrol_id = p.id AND m.assignment_active) AS member_ids,
+                       p.route_version_id, p.departure_confirmed_at IS NOT NULL AS departure_confirmed,
                        (SELECT count(*) FROM patrol_stops s WHERE s.patrol_id = p.id) AS stops,
                        (SELECT count(*) FROM capture_slots c JOIN patrol_stops s ON s.id = c.patrol_stop_id
                          WHERE s.patrol_id = p.id AND c.purpose = 'REINSPECTION') AS reinspection_slots
@@ -82,11 +84,14 @@ public class PatrolAssignmentService {
                 (rs, i) -> {
                     java.sql.Array names = rs.getArray("members");
                     List<String> members = names == null ? List.of() : List.of((String[]) names.getArray());
+                    java.sql.Array idArray = rs.getArray("member_ids");
+                    List<UUID> memberIds = idArray == null ? List.of() : List.of((UUID[]) idArray.getArray());
                     return new ScheduledPatrol(rs.getObject("id", UUID.class), rs.getDate("activity_date").toLocalDate(),
                             rs.getObject("team_id", UUID.class), rs.getString("team_name_snapshot"), rs.getObject("route_id", UUID.class),
                             rs.getString("route_name_snapshot"), rs.getInt("version_no"), rs.getTimestamp("scheduled_start_at").toInstant(),
                             rs.getTimestamp("expected_return_at").toInstant(), rs.getString("activity_status"), members, rs.getInt("stops"),
-                            rs.getInt("reinspection_slots"), rs.getLong("version"));
+                            rs.getInt("reinspection_slots"), rs.getLong("version"), memberIds, rs.getObject("route_version_id", UUID.class),
+                            rs.getBoolean("departure_confirmed"));
                 },
                 user.userId(), AccessPolicy.ACTIVITY_MANAGER, Date.valueOf(start), Date.valueOf(end));
     }
@@ -164,7 +169,7 @@ public class PatrolAssignmentService {
     }
 
     /** 코스 버전의 장소·구도를 배정 당시 시설 정보와 함께 순회에 복사한다. */
-    private void copyRoute(UUID programId, UUID patrolId, UUID routeVersionId) {
+    void copyRoute(UUID programId, UUID patrolId, UUID routeVersionId) {
         Map<UUID, UUID> stopIds = new LinkedHashMap<>();
         List<UUID> routeStops = new ArrayList<>();
         jdbc.query("SELECT id FROM route_stops WHERE route_version_id = ? ORDER BY sequence_no", rs -> {

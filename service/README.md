@@ -27,6 +27,7 @@
 - 공무원 계정 API 추가(기능정의서 OPS-07·08, `officer/`, 시스템 관리자만): `GET·POST /admin/accounts`, `GET /admin/accounts/organizations`, `PUT /admin/accounts/{id}/roles`, `POST /admin/accounts/{id}/password-resets`·`unlocks`·`status-changes`. 발급·초기화 때 임시 비밀번호(12자)를 응답에 한 번만 담고 해시로만 저장한다(멱등 결과·감사 기록에도 남기지 않으므로 이 API들은 멱등 키를 받지 않는다). 초기화·사용 중지는 인증 버전을 올리고 로그인 세션을 끊는다. 본인 계정의 초기화·사용 중지·시스템 관리자 역할 빼기는 거절한다. 잠금 기준은 로그인 쪽 그대로(5회 실패 10분)
 - 기간 집계 API 추가(기능정의서 OPS-03, `stats/`, 사업 총괄만): `GET /admin/stats?from=&to=`(기본 오늘까지 14일, 한국 시간). 끝난 순회·출석 확인 연인원·사진·점검 장소·건너뜀·미방문·검토·사건·보수·종결·재보수를 따로 세고, 사진 수로 활동 시간을 계산하지 않는다. 부서별·시설별 사건과 엑셀용 활동·사건 목록도 함께 준다
 - (백엔드 변경 없음) 보수 증빙 사진: 관리자 웹이 고른 사진을 브라우저에서 시니어 앱과 같은 가림 코드(`senior/src/masking`)로 얼굴·번호판·차량을 가린 뒤 원본 API `POST /admin/media`(REPAIR_EVIDENCE)로 올리고, 보수 완료에 `evidenceMediaIds`로 연결한다. 가림 모델은 Caddy가 관리자 주소의 `/models/`에 시니어 앱 폴더를 연결해 준다(`web/Caddyfile`)
+- 출발 전 재배정 API 추가(기능정의서 ACT-05, `schedule/PatrolReassignmentService`): `POST /admin/patrols/{id}/reassignments`(participantIds·routeVersionId 중 바꿀 것, reason, version). 조원은 원본 재편성 `TeamFormationService.reassign`(D-29, 이력 보존·편성 규칙)으로, 코스는 공개 버전의 장소·구도를 새로 복사한다. 출발 확인·활동 기록이 있으면 거절하고, 재점검 배정 이력이 있는 순회는 코스를 바꾸지 않는다
 - 시연 관리자 계정 3개 추가(시드 `R__dev_seed_demo_scenario.sql`, `application-local.yml`): `demo-park`(공원녹지과 시설 담당자, 벤치 검토), `demo-program`(사업 총괄, 통계·보고), `demo-admin`(시스템 관리자, 공무원 계정). 원본 시드에는 벤치를 관리하는 공원녹지과 담당자가 없어 벤치 사진을 볼 사람이 없었다. 초기화 때 6개 모두 비밀번호를 준비한다
 - 시연(local 프로필): 관리자 웹에서 새로 등록한 어르신도 고정 시연 인증번호로 로그인한다(`inspection.demo.registered-seniors: true`, 기본값 false). 문자 발송 공급자가 없어서
 
@@ -80,7 +81,7 @@ node senior-tour.mjs https://<PC>.ts.net        # 시니어 앱 화면 둘러보
 node pause-check.mjs <시니어 주소> <관리자 주소>   # 잠깐 쉬기 ↔ 관리자 화면 '쉬는 중'
 node admin-participants.mjs <관리자 주소> <시니어 주소>  # 참여자 등록 → 같은 번호 거절 → 일시 중지 → 그 번호로 로그인 안 됨
 node admin-teams.mjs <관리자 주소>                 # 조 만들기 → 1명 남는 편성 거절 → 배정된 순회 조원은 그대로
-node admin-assign.mjs <관리자 주소>                # 코스 만들기 → 순회 배정 → 시간 겹침 거절 → 코스 v2 공개, 배정된 순회는 v1
+node admin-assign.mjs <관리자 주소>                # 코스 만들기 → 순회 배정 → 시간 겹침 거절 → 출발 전 바꾸기(코스·조원) → 코스 v2 공개
 node admin-reinspect.mjs <관리자 주소>             # 보수 완료 → 재점검 요청을 내일 순회에 배정 → 취소 → 다시 배정 (admin-decide 뒤)
 node admin-officers.mjs <관리자 주소>              # 계정 발급 → 첫 로그인 변경 → 잠김·해제 → 비밀번호 초기화 → 사용 중지
 node admin-stats.mjs <관리자 주소>                 # 통계·보고: 보고 문장·기간 전환·엑셀 (데이터 안 바꿈)

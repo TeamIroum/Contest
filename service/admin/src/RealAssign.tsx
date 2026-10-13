@@ -36,12 +36,15 @@ export function RealAssign() {
   const [reqs, setReqs] = useState<real.ReinspectionItem[]>([])
   const [assignFor, setAssignFor] = useState<real.ReinspectionItem | null>(null)
   const [cancelFor, setCancelFor] = useState<real.ReinspectionItem | null>(null)
+  const [changeFor, setChangeFor] = useState<real.ScheduledPatrol | null>(null)
+  const [people, setPeople] = useState<real.RealParticipant[]>([])
   useEffect(() => {
     let alive = true
     const load = () =>
       Promise.all([real.loadSchedule(), real.loadRoutes(), real.loadTeams(), real.loadReinspections(), real.loadParticipants()])
-        .then(([s, r, t, q]) => {
+        .then(([s, r, t, q, ps]) => {
           if (!alive) return
+          setPeople(ps)
           setSchedule(s)
           setRoutes(r)
           setTeams(t)
@@ -141,7 +144,7 @@ export function RealAssign() {
               <table className="w-full min-w-[720px] border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-line bg-bg/60 text-left text-[14px] text-mute">
-                    {['조', '코스', '시간', '조원', '재점검', '상태'].map((h) => (
+                    {['조', '코스', '시간', '조원', '재점검', '상태', ''].map((h) => (
                       <th key={h} scope="col" className="px-4 py-2.5 font-semibold">
                         {h}
                       </th>
@@ -151,7 +154,7 @@ export function RealAssign() {
                 <tbody>
                   {byDate.map(([date, list]) => [
                     <tr key={`h-${date}`} className="border-b border-line">
-                      <th scope="colgroup" colSpan={6} className="bg-bg/70 px-4 py-2 text-left text-[13px] font-bold text-sub">
+                      <th scope="colgroup" colSpan={7} className="bg-bg/70 px-4 py-2 text-left text-[13px] font-bold text-sub">
                         {dayLabel(date)} · {list.length}개 조
                       </th>
                     </tr>,
@@ -171,6 +174,13 @@ export function RealAssign() {
                         <td className="px-4 py-2.5">{p.reinspectionSlots ? `${p.reinspectionSlots}장` : '-'}</td>
                         <td className="px-4 py-2.5">
                           <Pill tone={STATUS[p.activityStatus]?.[1] ?? 'gray'}>{STATUS[p.activityStatus]?.[0] ?? p.activityStatus}</Pill>
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          {p.activityStatus === 'ASSIGNED' && !p.departureConfirmed && (
+                            <Button size="sm" variant="ghost" onClick={() => setChangeFor(p)}>
+                              바꾸기
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     )),
@@ -241,6 +251,7 @@ export function RealAssign() {
           ))}
         </div>
       </div>
+      {changeFor && <ReassignModal patrol={changeFor} people={people} routes={active} onClose={() => setChangeFor(null)} />}
       {assignFor && <ReinspectModal req={assignFor} onClose={() => setAssignFor(null)} />}
       {cancelFor && <CancelReinspectModal req={cancelFor} schedule={schedule} onClose={() => setCancelFor(null)} />}
       {newPatrol && <NewPatrolModal teams={teams} routes={active} onClose={() => setNewPatrol(false)} />}
@@ -602,6 +613,73 @@ function CancelReinspectModal({ req, schedule, onClose }: { req: real.Reinspecti
         <input value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls} maxLength={500} placeholder="예: 다른 날 순회로 옮김" />
       </Field>
       <p className="m-0 text-xs text-mute">취소해도 순회에 생긴 재점검 사진 칸은 남고, 다음 배정 때 다시 쓰입니다.</p>
+    </Modal>
+  )
+}
+
+/** 출발 전 재배정(ACT-05): 결원 교체·조원 변경·코스 변경. 출발 확인 뒤에는 바꿀 수 없다 */
+function ReassignModal({ patrol, people, routes, onClose }: { patrol: real.ScheduledPatrol; people: real.RealParticipant[]; routes: real.RealRoute[]; onClose: () => void }) {
+  const [ids, setIds] = useState<string[]>(patrol.memberIds)
+  const [routeId, setRouteId] = useState(routes.find((r) => r.current?.id === patrol.routeVersionId)?.id ?? patrol.routeId)
+  const [reason, setReason] = useState('')
+  const route = routes.find((r) => r.id === routeId)
+  const membersChanged = ids.length !== patrol.memberIds.length || ids.some((x) => !patrol.memberIds.includes(x))
+  const routeChanged = !!route?.current && route.current.id !== patrol.routeVersionId
+  const ok = (membersChanged || routeChanged) && ids.length >= 2 && ids.length <= 3 && reason.trim()
+  const active = people.filter((x) => x.status === 'ACTIVE' || patrol.memberIds.includes(x.id))
+  return (
+    <Modal
+      title={`${real.md(patrol.activityDate)} ${patrol.teamName} 바꾸기`}
+      onClose={onClose}
+      footer={
+        <>
+          <Button onClick={onClose}>취소</Button>
+          <Button
+            variant="primary"
+            disabled={!ok}
+            onClick={async () => {
+              const next = { reason: reason.trim(), ...(membersChanged ? { participantIds: ids } : {}), ...(routeChanged ? { routeVersionId: route!.current!.id } : {}) }
+              if (await real.run(() => real.reassignPatrol(patrol, next))) onClose()
+            }}
+          >
+            바꾸기
+          </Button>
+        </>
+      }
+    >
+      <p className="m-0 text-sm text-sub">출발 확인 전까지만 바꿀 수 있습니다. 이전 조원과 출결 기록은 이력으로 남습니다.</p>
+      <fieldset className="m-0 grid gap-1.5 border-0 p-0">
+        <legend className="mb-1.5 text-sm font-semibold">
+          조원 <span className="font-normal text-mute">({ids.length}/3명, 최소 2명)</span>
+        </legend>
+        <div className="grid max-h-56 gap-1.5 overflow-y-auto">
+          {active.map((x) => {
+            const on = ids.includes(x.id)
+            const full = !on && ids.length >= 3
+            return (
+              <label key={x.id} className={`flex min-h-11 items-center gap-3 rounded-xl border px-3.5 py-2 text-[15px] ${on ? 'border-brand bg-brand-50' : 'border-line'} ${full ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                <input type="checkbox" checked={on} disabled={full} onChange={() => setIds(on ? ids.filter((y) => y !== x.id) : [...ids, x.id])} className="size-5 accent-[var(--color-brand)]" />
+                <b>{x.name}</b>
+                {patrol.memberIds.includes(x.id) && <span className="text-xs text-mute">지금 조원</span>}
+              </label>
+            )
+          })}
+        </div>
+      </fieldset>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="코스" hint={route?.current ? `v${route.current.versionNo} · ${route.current.stops.length}곳` : undefined}>
+          <select value={routeId} onChange={(e) => setRouteId(e.target.value)} className={inputCls}>
+            {routes.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="바꾸는 이유" required hint="처리 기록에 남습니다">
+          <input value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls} maxLength={500} placeholder="예: 김○○ 병원 진료로 결원" />
+        </Field>
+      </div>
     </Modal>
   )
 }

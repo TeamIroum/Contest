@@ -666,7 +666,13 @@ export type ScheduledPatrol = {
   stops: number
   reinspectionSlots: number
   version: number
+  memberIds: string[]
+  routeVersionId: string
+  departureConfirmed: boolean
 }
+/** 출발 전 재배정(ACT-05): 바꿀 것만 보낸다 (조원 2~3명, 코스 현재 버전) */
+export const reassignPatrol = (p: ScheduledPatrol, next: { participantIds?: string[]; routeVersionId?: string; reason: string }) =>
+  api<ScheduledPatrol>('POST', `/admin/patrols/${p.id}/reassignments`, { ...next, version: p.version })
 export const hhmm = (iso: string) => kst(iso).slice(11, 16)
 /** 오늘부터 2주 순회 일정 (취소한 순회 제외) */
 export const loadSchedule = () => api<ScheduledPatrol[]>('GET', '/admin/patrol-schedule')
