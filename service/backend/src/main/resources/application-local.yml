@@ -28,4 +28,11 @@ inspection:
         login-id: demo-road
       - user-id: 10000000-0000-4000-8000-000000000012
         login-id: demo-sewer
+      # service/: 공원녹지과(벤치), 사업 총괄(통계·보고), 시스템 관리자(공무원 계정)
+      - user-id: 10000000-0000-4000-8000-000000000013
+        login-id: demo-park
+      - user-id: 10000000-0000-4000-8000-000000000031
+        login-id: demo-program
+      - user-id: 10000000-0000-4000-8000-000000000041
+        login-id: demo-admin
     admin-temporary-password: ${DEMO_ADMIN_TEMP_PASSWORD:}
