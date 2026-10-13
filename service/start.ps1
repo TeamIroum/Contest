@@ -123,7 +123,9 @@ if ((Test-Port 8180) -or (Test-Port 8181)) { Write-Host '  3 Caddy :8180·:8181 
 # --- 5. Tailscale Funnel (공개 HTTPS. 기존 :8443은 건드리지 않음) ---
 tailscale funnel --bg --https=443 http://127.0.0.1:8180 | Out-Null
 tailscale funnel --bg --https=10000 http://127.0.0.1:8181 | Out-Null
-$host_ = ((tailscale status --json | ConvertFrom-Json).Self.DNSName).TrimEnd('.')
+# PC 공개 주소. Windows PowerShell 5.1은 tailscale status JSON을 다 읽지 못하므로(ConvertFrom-Json 실패) 첫 DNSName(자기 자신)만 뽑는다
+$st = tailscale status --json | Out-String
+$host_ = if ($st -match '"DNSName":\s*"([^"]+)"') { $Matches[1].TrimEnd('.') } else { '<PC>.ts.net' }
 
 Write-Host ''
 Write-Host "시니어 앱 : https://$host_"
