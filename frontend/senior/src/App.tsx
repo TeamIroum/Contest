@@ -7,7 +7,7 @@ import * as quality from './camera/quality.js'
 import * as masking from './masking/masking.js'
 import * as outbox from './offline/outbox.js'
 import type { OutboxItem, SubmitBody } from './offline/outbox.js'
-import { fetchPatrol, fetchTodayPatrol, sendOpts } from './api/client'
+import { ApiError, REAL_BACKEND, fetchPatrol, fetchTodayPatrol, memberStates, requestAttendance, requestOtp, sendOpts, startActivity, verifyOtp, type ApiPatrol, type OtpChallenge } from './api/client'
 import { playNotify, playRetake, playShutter, playSuccess, setSoundEnabled, unlockAudio } from './sounds'
 import { ABORT_REASONS, MAX_ATTEMPTS, ME, PARTNER, SKIP_REASONS, STAFF, STOPS, TEAM, applyPatrol, slotDone, stopDone, type Stop } from './data'
 
@@ -42,6 +42,17 @@ export default function App() {
   const [myAtt, setMyAtt] = useState<Attend>('none')
   const [partnerAtt, setPartnerAtt] = useState<Attend>('none')
   const [departed, setDeparted] = useState(false)
+  // 실제 업무 백엔드(VITE_BACKEND=real)일 때만 쓰는 값
+  const [patrol, setPatrol] = useState<ApiPatrol | null>(null)
+  const [challenge, setChallenge] = useState<OtpChallenge | null>(null)
+  const [codeKey, setCodeKey] = useState(0) // 인증번호가 틀리면 입력 칸을 비운다
+  const [notice, setNotice] = useState('')
+  useEffect(() => {
+    if (!notice) return
+    const t = setTimeout(() => setNotice(''), 6000)
+    return () => clearTimeout(t)
+  }, [notice])
+  const say = (e: unknown, fallback: string) => setNotice(e instanceof ApiError ? e.serverMessage || fallback : '연결이 안 돼요. 잠시 뒤 다시 해 주세요.')
 
   const [idx, setIdx] = useState(0)
   const [slot, setSlot] = useState(0)
@@ -109,27 +120,59 @@ export default function App() {
     navigator.storage?.persist?.().catch(() => {}) // 대기 사진이 지워지지 않게
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn0])
+  const myAttRef = useRef<Attend>('none')
+  const departedRef = useRef(false)
+  /** 서버 순회를 화면에 반영. 실제 백엔드면 조원 이름·담당자·출석·출발 확인 상태도 */
+  const showServerPatrol = (p: ApiPatrol) => {
+    applyPatrol(p)
+    setStopsVersion((v) => v + 1)
+    if (!REAL_BACKEND) return
+    setPatrol(p)
+    const st = memberStates(p)
+    if (st.me) ME.name = st.me.name
+    if (st.partner) PARTNER.name = st.partner.name
+    if (p.contact?.name) STAFF.name = p.contact.name
+    if (p.contact?.phoneNumber) STAFF.phone = p.contact.phoneNumber
+    const no = Number(p.teamName?.match(/\d+/)?.[0])
+    if (no) TEAM.no = no
+    if (st.myAtt === 'present' && myAttRef.current !== 'present') playNotify()
+    if (st.departed && !departedRef.current) playNotify()
+    myAttRef.current = st.myAtt
+    departedRef.current = st.departed
+    setMyAtt(st.myAtt)
+    setPartnerAtt(st.partnerAtt)
+    setDeparted(st.departed)
+  }
   // 오늘 순회: 업무 API가 있으면 서버 순회로 바꾼다
   useEffect(() => {
     if (!loggedIn0) return
     fetchTodayPatrol().then(
       (p) => {
-        applyPatrol(p)
+        showServerPatrol(p)
         setServer(true)
-        setStopsVersion((v) => v + 1)
+        // 로그인 전에 쌓인 대기 사진을 이제 보낸다 (실제 백엔드는 로그인 토큰이 있어야 받음)
+        if (REAL_BACKEND) outbox.flush(sendOpts()).catch(() => {}).finally(updatePending)
       },
-      () => setServer(false),
+      (e) => {
+        setServer(false)
+        if (REAL_BACKEND) say(e, '오늘 순회를 불러오지 못했어요.')
+      },
     )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn0])
   const refreshPatrol = () =>
     server &&
     fetchPatrol(TEAM.patrolId).then(
-      (p) => {
-        applyPatrol(p)
-        setStopsVersion((v) => v + 1)
-      },
+      (p) => showServerPatrol(p),
       () => {},
     )
+  // 실제 백엔드: 출석 요청 뒤 담당자 출석 확인·출발 확인을 기다리는 동안 순회 상태를 4초마다 다시 받는다
+  useEffect(() => {
+    if (!REAL_BACKEND || !server || screen !== 'ready' || (myAtt === 'present' && partnerAtt === 'present' && departed)) return
+    const t = setInterval(() => refreshPatrol(), 4000)
+    return () => clearInterval(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [server, screen, myAtt, partnerAtt, departed])
   const updatePending = () => outbox.count().then(setPending, () => {})
   // 대기 사진은 앱을 다시 볼 때, 연결이 돌아올 때 다시 보낸다
   useEffect(() => {
@@ -161,7 +204,7 @@ export default function App() {
 
   // 시연용: 담당자 출석 확인 → 짝 어르신 출석 → 담당자 출발 확인이 잠시 뒤 자동으로 이루어진다
   useEffect(() => {
-    if (myAtt !== 'requested') return
+    if (REAL_BACKEND || myAtt !== 'requested') return
     const t = setTimeout(() => {
       setMyAtt('present')
       playNotify()
@@ -169,12 +212,12 @@ export default function App() {
     return () => clearTimeout(t)
   }, [myAtt])
   useEffect(() => {
-    if (myAtt === 'none' || partnerAtt === 'present') return
+    if (REAL_BACKEND || myAtt === 'none' || partnerAtt === 'present') return
     const t = setTimeout(() => setPartnerAtt('present'), 2400)
     return () => clearTimeout(t)
   }, [myAtt, partnerAtt])
   useEffect(() => {
-    if (myAtt !== 'present' || partnerAtt !== 'present' || departed) return
+    if (REAL_BACKEND || myAtt !== 'present' || partnerAtt !== 'present' || departed) return
     const t = setTimeout(() => {
       setDeparted(true)
       playNotify()
@@ -464,8 +507,48 @@ export default function App() {
           ) : (
             <>
               {screen === 'start' && <Start onNext={() => setScreen('phone')} />}
-              {screen === 'phone' && <PhoneInput value={phone} onChange={setPhone} onNext={() => setScreen('code')} />}
-              {screen === 'code' && <CodeInput phone={phone} onBack={() => setScreen('phone')} onDone={() => setScreen('home')} />}
+              {notice && (
+                <p className="m-0 rounded-xl bg-g3-soft p-3 text-[0.95rem] text-g3-ink" role="alert">
+                  {notice}
+                </p>
+              )}
+              {screen === 'phone' && (
+                <PhoneInput
+                  value={phone}
+                  onChange={setPhone}
+                  onNext={() => {
+                    if (!REAL_BACKEND) return setScreen('code')
+                    requestOtp(phone).then(
+                      (c) => {
+                        setChallenge(c)
+                        setScreen('code')
+                      },
+                      (e) => say(e, '인증번호를 보내지 못했어요.'),
+                    )
+                  }}
+                />
+              )}
+              {screen === 'code' && (
+                <CodeInput
+                  key={codeKey}
+                  phone={phone}
+                  onBack={() => setScreen('phone')}
+                  onResend={() => {
+                    if (REAL_BACKEND) requestOtp(phone).then(setChallenge, (e) => say(e, '인증번호를 다시 보내지 못했어요.'))
+                  }}
+                  onDone={(code) => {
+                    if (!REAL_BACKEND) return setScreen('home')
+                    if (!challenge) return setScreen('phone')
+                    verifyOtp(challenge.challengeId, code).then(
+                      () => setScreen('home'),
+                      (e) => {
+                        say(e, '숫자가 맞지 않아요. 다시 넣어 주세요.')
+                        setCodeKey((k) => k + 1)
+                      },
+                    )
+                  }}
+                />
+              )}
               {screen === 'home' && (
                 <Home
                   onGo={() => setScreen('ready')}
@@ -479,8 +562,20 @@ export default function App() {
                   myAtt={myAtt}
                   partnerAtt={partnerAtt}
                   departed={departed}
-                  onRequest={() => setMyAtt('requested')}
+                  onRequest={() => {
+                    setMyAtt('requested')
+                    if (REAL_BACKEND)
+                      requestAttendance(TEAM.patrolId, patrol).then(
+                        () => void refreshPatrol(),
+                        (e) => {
+                          setMyAtt('none')
+                          say(e, '출석을 요청하지 못했어요.')
+                        },
+                      )
+                  }}
                   onStart={() => {
+                    // 실제 백엔드: 활동 시작을 알린다 (출발 확인을 기다리지 않음. 실패해도 촬영은 이어 감)
+                    if (REAL_BACKEND) startActivity(TEAM.patrolId, patrol).catch((e) => say(e, '활동 시작을 알리지 못했어요.'))
                     // 이미 끝난 장소는 건너뛰고 아직 안 끝난 첫 장소부터 (모두 끝났으면 순회 화면이 "모두 마쳤어요"를 보여 줌)
                     const first = STOPS.findIndex((s) => !stopDone(s))
                     setIdx(first < 0 ? 0 : first)
@@ -860,6 +955,9 @@ function Keypad({ onKey, onDelete }: { onKey: (k: string) => void; onDelete: () 
   )
 }
 
+/** 시연 번호. 실제 백엔드의 시연 계정(local 프로필)은 010-0000-0001·0002만 인증번호로 들어갈 수 있다 */
+const DEMO_PHONE = REAL_BACKEND ? '010-0000-0001' : ME.phone
+
 function PhoneInput({ value, onChange, onNext }: { value: string; onChange: (v: string) => void; onNext: () => void }) {
   const ok = value.length === 11 && value.startsWith('01')
   return (
@@ -871,8 +969,8 @@ function PhoneInput({ value, onChange, onNext }: { value: string; onChange: (v: 
         {value ? fmtPhone(value) : <span className="text-line-strong">010-0000-0000</span>}
       </div>
       {!value && (
-        <button type="button" onClick={() => onChange(ME.phone.replace(/-/g, ''))} className="self-center rounded-full bg-brand-50 px-4 py-2 text-[0.95rem] font-semibold text-brand">
-          이 휴대폰 번호 쓰기 · {ME.phone}
+        <button type="button" onClick={() => onChange(DEMO_PHONE.replace(/-/g, ''))} className="self-center rounded-full bg-brand-50 px-4 py-2 text-[0.95rem] font-semibold text-brand">
+          이 휴대폰 번호 쓰기 · {DEMO_PHONE}
         </button>
       )}
       <Bottom>
@@ -885,7 +983,7 @@ function PhoneInput({ value, onChange, onNext }: { value: string; onChange: (v: 
   )
 }
 
-function CodeInput({ phone, onBack, onDone }: { phone: string; onBack: () => void; onDone: () => void }) {
+function CodeInput({ phone, onBack, onDone, onResend }: { phone: string; onBack: () => void; onDone: (code: string) => void; onResend?: () => void }) {
   const [code, setCode] = useState('')
   const [left, setLeft] = useState(180)
   useEffect(() => {
@@ -894,10 +992,11 @@ function CodeInput({ phone, onBack, onDone }: { phone: string; onBack: () => voi
   }, [])
   useEffect(() => {
     if (code.length === 6) {
-      const t = setTimeout(onDone, 400)
+      const t = setTimeout(() => onDone(code), 400)
       return () => clearTimeout(t)
     }
-  }, [code, onDone])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code])
   const mm = Math.floor(left / 60)
   const ss = String(left % 60).padStart(2, '0')
   return (
@@ -924,6 +1023,7 @@ function CodeInput({ phone, onBack, onDone }: { phone: string; onBack: () => voi
           onClick={() => {
             setLeft(180)
             setCode('')
+            onResend?.()
           }}
           className="font-semibold text-brand underline underline-offset-4"
         >
@@ -931,7 +1031,7 @@ function CodeInput({ phone, onBack, onDone }: { phone: string; onBack: () => voi
         </button>
       </div>
       {left === 0 && <p className="m-0 rounded-xl bg-g3-soft p-3 text-[0.95rem] text-g3-ink">시간이 지났어요. 인증번호를 다시 받아 주세요.</p>}
-      <p className="m-0 text-[0.85rem] text-mute">시연용: 아무 숫자 6개나 넣으면 돼요.</p>
+      <p className="m-0 text-[0.85rem] text-mute">{REAL_BACKEND ? '시연용: 담당자가 알려 준 숫자 6개를 넣어 주세요.' : '시연용: 아무 숫자 6개나 넣으면 돼요.'}</p>
       <Bottom>
         <Keypad onKey={(k) => left > 0 && code.length < 6 && setCode(code + k)} onDelete={() => setCode(code.slice(0, -1))} />
         <button type="button" onClick={onBack} className="min-h-11 text-[0.95rem] font-semibold text-sub">
