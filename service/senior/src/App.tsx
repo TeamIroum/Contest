@@ -1673,9 +1673,12 @@ function Done({ results, aborted, onHome }: { results: Record<string, StopResult
           <p className="m-0 mt-1 text-[0.9rem] text-sub">출석·복귀는 선생님이 확인해서 기록했어요</p>
         </Card>
         {aborted && <p className="m-0 text-[1rem] text-sub">몸이 불편하시면 꼭 {STAFF.name} 선생님께 말씀해 주세요.</p>}
-        <p className="m-0 text-[1.05rem]">
-          다음 활동은 <b>10월 14일 (수)</b>이에요.
-        </p>
+        {/* 다음 활동 날짜를 알려 주는 업무 API가 없어 실제 백엔드에서는 보여 주지 않는다 (예시 날짜가 남지 않게) */}
+        {!REAL_BACKEND && (
+          <p className="m-0 text-[1.05rem]">
+            다음 활동은 <b>10월 14일 (수)</b>이에요.
+          </p>
+        )}
       </div>
       <Bottom>
         <Secondary onClick={onHome}>처음 화면으로</Secondary>
