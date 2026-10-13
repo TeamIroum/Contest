@@ -13,6 +13,8 @@ inspection:
   demo:
     enabled: true
     otp-code: ${DEMO_OTP_CODE:}
+    # service/: 관리자 웹에서 등록한 어르신(ACT-01)도 고정 시연 코드로 로그인 (문자 발송 공급자가 없어서)
+    registered-seniors: true
     seniors:
       - user-id: 10000000-0000-4000-8000-000000000001
         phone: 010-0000-0001

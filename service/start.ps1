@@ -76,7 +76,7 @@ if (Test-Port 8000) { Write-Host '  1 AI 판독 :8000 (이미 떠 있음)' } els
     Start-Window '1 AI 판독 :8000' "$Root\ai" 'python -m uvicorn server:app --port 8000 --host 127.0.0.1 --workers 1 --env-file .env'
 }
 
-# --- 2. 업무 백엔드 :8080 (serviceackend, local 프로필) ---
+# --- 2. 업무 백엔드 :8080 (service\backend, local 프로필) ---
 if (Test-Port 8080) { Write-Host '  2 업무 백엔드 :8080 (이미 떠 있음. service\.env 값으로 다시 띄우려면 stop 뒤 실행)' } else {
     # JAVA_HOME이 없으면 Gradle이 받아 둔 JDK 21을 쓴다
     $java = (Get-ChildItem "$env:USERPROFILE\.gradle\jdks\*21*\bin\java.exe" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName

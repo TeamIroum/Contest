@@ -22,6 +22,7 @@ import {
   type IssueStatus,
   type Log,
   type Member,
+  type Participant,
   type Patrol,
   type PatrolStatus,
   type Repair,
@@ -544,3 +545,43 @@ export async function verifySiteVisit(i: Issue, v: VerifyInput) {
 
 /** 짧게 보여 줄 문제 번호 (UUID 앞 8자리) */
 export const shortId = (id: string) => (/^[0-9a-f]{8}-/.test(id) ? id.slice(0, 8) : id)
+
+/* ---------------- 참여자 계정 (ACT-01, service/backend AdminParticipantController) ---------------- */
+
+type ApiParticipant = {
+  id: string
+  name: string
+  phoneMasked: string | null
+  organization: { id: string; name: string }
+  availableDays: string[]
+  status: 'ACTIVE' | 'SUSPENDED' | 'ENDED'
+  version: number
+}
+const DAY_NAME: Record<string, string> = { MON: '월', TUE: '화', WED: '수', THU: '목', FRI: '금', SAT: '토', SUN: '일' }
+const DAY_CODE = Object.fromEntries(Object.entries(DAY_NAME).map(([k, v]) => [v, k]))
+export type RealParticipant = Participant & { version: number; orgId: string }
+const toParticipant = (p: ApiParticipant): RealParticipant => ({
+  id: p.id,
+  name: p.name,
+  phone: p.phoneMasked ?? '',
+  org: p.organization.name,
+  orgId: p.organization.id,
+  days: p.availableDays.map((d) => DAY_NAME[d] ?? d),
+  status: p.status,
+  version: p.version,
+})
+
+export async function loadParticipants(): Promise<RealParticipant[]> {
+  const r = await api<{ items: ApiParticipant[] }>('GET', '/admin/participants?size=100')
+  return r.items.map(toParticipant)
+}
+export const loadParticipantOrgs = () => api<{ id: string; name: string }[]>('GET', '/admin/participants/organizations')
+export const createParticipant = (p: { organizationId: string; name: string; phoneNumber: string; days: string[] }) =>
+  api<ApiParticipant>(
+    'POST',
+    '/admin/participants',
+    { organizationId: p.organizationId, name: p.name, phoneNumber: p.phoneNumber, availableDays: p.days.map((d) => DAY_CODE[d]) },
+    { idempotent: true },
+  )
+export const changeParticipantStatus = (p: RealParticipant, status: Participant['status'], reason: string) =>
+  api<ApiParticipant>('POST', `/admin/participants/${p.id}/status-changes`, { status, reason, version: p.version }, { idempotent: true })
