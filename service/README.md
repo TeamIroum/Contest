@@ -10,7 +10,8 @@
 | `backend/` | `backend` | 업무 백엔드. 원본에 고친 점 두 가지(아래) |
 | `docker/` | `infra/aws` | 업무 백엔드 + Redis 컨테이너 실행 파일(Dockerfile, compose). 서버에 올릴 때 쓴다 |
 | `ui-test/` | — | 두 앱을 실제 브라우저(Playwright Chromium)로 눌러 보고 화면을 캡처하는 시험 |
-| `start.ps1`, `stop.ps1` | — | 이 PC 한 대로 서비스 켜기·끄기 |
+| `start.ps1`, `stop.ps1`, `reset-demo.ps1` | — | 이 PC 한 대로 서비스 켜기·끄기, 시연 데이터 초기화 (같은 이름의 `.bat`는 더블클릭용) |
+| `scripts/` | — | 초기화 보조 (AI 동기화 위치 복원, 관리자 비밀번호 준비) |
 
 업무 백엔드는 `service/backend`를 local 프로필(시연 데이터 + 시연 로그인)로 실행한다. 원본과 다른 점:
 
@@ -36,6 +37,15 @@
    ```
 
    마지막에 시니어 앱(`https://<PC>.ts.net`)과 관리자 웹(`https://<PC>.ts.net:10000`) 주소가 나온다.
+
+4. 시연 데이터 초기화 (리허설 뒤 등)
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File serviceeset-demo.ps1     # 또는 serviceeset-demo.bat 더블클릭
+   ```
+
+   공개 주소·Caddy는 그대로 두고 업무 백엔드만 다시 켠다(약 15초). 10/15 순회 출석 전 상태, 사진·검토·사건 0건, 시연 관리자 비밀번호(`ADMIN_PASSWORD`) 준비까지 한다.
+   AI 동기화 위치는 보존한다(`%LOCALAPPDATA%\iroum-servicei-cursor.txt`에도 남김). 지우면 이미 처리한 AI 알림을 처음부터 다시 읽는다.
 
 - `start.ps1`은 WSL(PostgreSQL·Redis)이 꺼지지 않게 숨은 WSL 프로세스를 하나 띄운다. 열린 WSL 창이 없으면 WSL이 곧 꺼져 DB·Redis가 끊긴다
 - 깃페이지 입구: https://teamiroum.github.io/service/ (바로가기 /service/senior, /service/admin). 올리기는 `web/pages/deploy_pages.py`
