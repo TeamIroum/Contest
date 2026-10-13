@@ -96,7 +96,7 @@ writeFileSync(
 <style>body{margin:0;padding:24px;background:#eef1f5;font-family:system-ui,'Malgun Gothic',sans-serif;color:#191f28}h1{margin:0 0 4px;font-size:22px}p.top{margin:0 0 20px;color:#4e5968}
 .g{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;align-items:start}figure{margin:0;background:#fff;border-radius:16px;padding:12px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
 figure img{width:100%;border-radius:10px;border:1px solid #e5e8eb;display:block}figcaption{margin-top:10px;font-weight:700}figcaption small{display:block;font-weight:400;color:#6b7684;margin-top:2px}</style>
-<h1>시니어 앱 화면</h1><p class="top">${URL_} · 휴대폰 크기(390×844) · ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}</p><div class="g">
+<h1>시니어 앱 화면</h1><p class="top">${URL_} · 휴대폰 크기(390×844) · ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })} · <a href="../admin/index.html">관리자 웹 화면 보기</a></p><div class="g">
 ${items.map((x, i) => `<figure><a href="${x.file}" target="_blank"><img src="${x.file}" alt="${x.title}"></a><figcaption>${i + 1}. ${x.title}<small>${x.note}</small></figcaption></figure>`).join('\n')}
 </div></html>`,
 )
