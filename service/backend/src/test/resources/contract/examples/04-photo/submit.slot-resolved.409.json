@@ -1,0 +1,10 @@
+{
+  "code": "SLOT_RESOLVED",
+  "message": "이미 처리가 끝난 사진 순서예요. 최신 상태를 불러올게요.",
+  "requestId": "req-0106",
+  "fieldErrors": [],
+  "details": {
+    "captureSlotId": "50000000-0000-4000-8000-000000000002",
+    "resolution": "REVIEW_REQUESTED"
+  }
+}

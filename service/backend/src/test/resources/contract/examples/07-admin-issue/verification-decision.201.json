@@ -1,0 +1,18 @@
+{
+  "verificationId": "b5000000-0000-4000-8000-000000000001",
+  "decision": "CLOSE",
+  "followUpType": null,
+  "reason": "재촬영 사진에서 꺼짐 보수 확인",
+  "decidedBy": {
+    "id": "10000000-0000-4000-8000-000000000011",
+    "name": "이○○"
+  },
+  "decidedAt": "2026-10-21T05:00:00Z",
+  "verificationVersion": 1,
+  "issueId": "b1000000-0000-4000-8000-000000000003",
+  "issueStatus": "CLOSED",
+  "issueVersion": 4,
+  "requestId": "b3000000-0000-4000-8000-000000000001",
+  "requestStatus": "CLOSED",
+  "requestVersion": 3
+}

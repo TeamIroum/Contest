@@ -231,7 +231,7 @@ Tailscale이 설치되어 있으면 cloudflared 대신 **Tailscale Funnel**로 �
 2. https://login.tailscale.com/admin/dns 에서 MagicDNS와 HTTPS Certificates 켜기
 3. `tailscale funnel --bg --https=8443 http://localhost:8100` 실행. Funnel 허용 링크가 나오면 열어서 허용. 이후로는 스크립트가 알아서 엶
 
-**PWA는 GitHub Pages 주소로 여는 것을 권합니다**: https://teamiroum.github.io/pwa-test/ . 터널은 느려서 화면·모델(약 15MB)은 GitHub Pages(CDN)에서 받고, 사진 전송·업무 API만 터널로 이 PC의 검증 콘솔에 보냅니다. PWA를 고쳤거나 서버 주소가 바뀌면 `python tools/ai-verify/pwa/deploy_pages.py`로 다시 올립니다(서버 주소는 `tools/ai-test-app/.env.local`에서 읽음, `--api`로 지정 가능). 검증 콘솔은 `https://teamiroum.github.io`의 요청만 허용합니다(`PWA_ORIGINS`).
+**PWA는 GitHub Pages 주소로 여는 것을 권합니다**: https://teamiroum.github.io/service/test/ . 터널은 느려서 화면·모델(약 15MB)은 GitHub Pages(CDN)에서 받고, 사진 전송·업무 API만 터널로 이 PC의 검증 콘솔에 보냅니다. PWA를 고쳤거나 서버 주소가 바뀌면 `python tools/ai-verify/pwa/deploy_pages.py`로 다시 올립니다(서버 주소는 `tools/ai-test-app/.env.local`에서 읽음, `--api`로 지정 가능). 검증 콘솔은 `https://teamiroum.github.io`의 요청만 허용합니다(`PWA_ORIGINS`).
 
 탐색기에서 `tools\start-pwa.bat`(PWA, 창 1~3), `tools\start-expo.bat`(Expo, 창 1~5. PWA도 함께 열림), `tools\stop-test.bat`(끄기)을 더블클릭해도 같습니다.
 

@@ -1,0 +1,8 @@
+{
+  "patrolId": "30000000-0000-4000-8000-000000000001",
+  "type": "PAUSE_STARTED",
+  "occurredAt": "2026-10-15T01:45:00Z",
+  "paused": true,
+  "duplicate": false,
+  "patrolRevision": 9
+}

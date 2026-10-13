@@ -1,0 +1,10 @@
+{
+  "code": "PRIVACY_RELEASE_CONFLICT",
+  "message": "이미 보류 해제를 처리하고 있습니다. 처리 상태를 확인해 주세요.",
+  "requestId": "req-0102",
+  "fieldErrors": [],
+  "details": {
+    "releaseId": "9a000000-0000-4000-8000-000000000001",
+    "status": "PENDING"
+  }
+}

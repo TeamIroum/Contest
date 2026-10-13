@@ -1,0 +1,14 @@
+{
+  "name": "service-ui-test",
+  "private": true,
+  "type": "module",
+  "description": "service/의 시니어 앱·관리자 웹을 실제 브라우저(Chromium)로 눌러 보고 화면을 캡처한다",
+  "scripts": {
+    "install-browser": "playwright install chromium",
+    "admin": "node admin.mjs",
+    "senior": "node senior.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.55.0"
+  }
+}

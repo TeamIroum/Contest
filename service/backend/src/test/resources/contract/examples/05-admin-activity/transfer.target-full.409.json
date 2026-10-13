@@ -1,0 +1,11 @@
+{
+  "code": "ACTIVITY_STATE_CONFLICT",
+  "message": "그 조는 이미 3명이에요.",
+  "requestId": "req-transfer-target-full",
+  "fieldErrors": [],
+  "details": {
+    "reason": "TARGET_FULL",
+    "activityStatus": "IN_PROGRESS",
+    "transferredToPatrolId": null
+  }
+}

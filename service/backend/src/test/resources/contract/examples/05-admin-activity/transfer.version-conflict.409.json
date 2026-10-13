@@ -1,0 +1,10 @@
+{
+  "code": "VERSION_CONFLICT",
+  "message": "다른 사람이 먼저 바꿨습니다. 최신 내용을 확인해 주세요.",
+  "requestId": "req-transfer-version",
+  "fieldErrors": [],
+  "details": {
+    "currentVersion": 7,
+    "which": "target"
+  }
+}

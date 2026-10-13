@@ -1,0 +1,11 @@
+{
+  "code": "PHOTO_RESUBMISSION_REQUIRED",
+  "message": "사진을 다시 보내야 해요.",
+  "requestId": "req-0107",
+  "fieldErrors": [],
+  "details": {
+    "inspectionId": "60000000-0000-4000-8000-000000000018",
+    "clientSubmissionId": "e0000000-0000-4000-8000-000000000110",
+    "receiptStatus": "RETRY_REQUIRED"
+  }
+}

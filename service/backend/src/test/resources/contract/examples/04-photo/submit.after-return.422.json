@@ -1,0 +1,7 @@
+{
+  "code": "PHOTO_AFTER_RETURN",
+  "message": "복귀 이후에 촬영한 사진은 접수할 수 없습니다.",
+  "requestId": "req-photo-after-return",
+  "fieldErrors": [],
+  "details": null
+}

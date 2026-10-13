@@ -1,0 +1,9 @@
+{
+  "patrolId": "30000000-0000-4000-8000-000000000001",
+  "participantId": "20000000-0000-4000-8000-000000000001",
+  "attendance": "UNCHECKED",
+  "attendanceRequestedAt": "2026-10-15T00:50:00Z",
+  "attendanceRequestReceivedAt": "2026-10-15T00:50:01Z",
+  "duplicate": false,
+  "patrolRevision": 2
+}

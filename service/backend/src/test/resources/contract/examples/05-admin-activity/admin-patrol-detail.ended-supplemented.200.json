@@ -1,0 +1,256 @@
+{
+  "id": "30000000-0000-4000-8000-000000000001",
+  "version": 10,
+  "revision": 17,
+  "date": "2026-10-15",
+  "activityStatus": "ENDED",
+  "end": {
+    "endedAt": "2026-10-15T03:06:00Z",
+    "endReason": "ALL_RETURNED",
+    "trigger": "LAST_RETURN_CONFIRMED",
+    "outcomesAtEnd": {
+      "normalReturned": 1,
+      "abortReturned": 0,
+      "transferredOut": 0,
+      "absent": 1
+    },
+    "recordSource": "LIVE"
+  },
+  "currentOutcomes": {
+    "normalReturned": 1,
+    "abortReturned": 0,
+    "transferredOut": 0,
+    "absent": 0,
+    "inField": 1
+  },
+  "supplementedAfterEnd": {
+    "count": 1,
+    "lastAt": "2026-10-15T03:20:00Z"
+  },
+  "pendingReturnConfirmations": 1,
+  "teamName": "1조",
+  "routeName": "마을회관 코스",
+  "meetingPoint": {
+    "id": "a0000000-0000-4000-8000-000000000002",
+    "name": "○○동 경로당"
+  },
+  "scheduledStartAt": "2026-10-15T01:00:00Z",
+  "expectedReturnAt": "2026-10-15T03:00:00Z",
+  "departedAt": "2026-10-15T01:02:00Z",
+  "departureConfirmedAt": null,
+  "soloWaiting": null,
+  "members": [
+    {
+      "participantId": "20000000-0000-4000-8000-000000000001",
+      "userId": "10000000-0000-4000-8000-000000000001",
+      "name": "김○○",
+      "seatNo": 1,
+      "attendance": "PRESENT",
+      "attendanceRequestedAt": "2026-10-15T00:50:00Z",
+      "startedAt": "2026-10-15T01:02:00Z",
+      "startReceivedAt": "2026-10-15T01:02:01Z",
+      "startSource": "SELF",
+      "returnedAt": "2026-10-15T03:05:00Z",
+      "returnSource": "MANAGER_CONFIRMATION",
+      "phoneNumber": "010-0000-0001",
+      "attendanceCheckedAt": "2026-10-15T00:55:00Z",
+      "attendanceCheckedBy": {
+        "id": "10000000-0000-4000-8000-000000000021",
+        "name": "최○○"
+      },
+      "proxyAttendanceReason": null,
+      "returnConfirmedBy": {
+        "id": "10000000-0000-4000-8000-000000000021",
+        "name": "최○○"
+      },
+      "startMissing": false,
+      "returned": true,
+      "returnConfirmedAt": "2026-10-15T03:06:00Z",
+      "returnReason": "NORMAL",
+      "abortReason": null,
+      "returnRequest": null,
+      "joinedAt": null,
+      "transferredFromPatrolId": null,
+      "paused": false
+    },
+    {
+      "participantId": "20000000-0000-4000-8000-000000000002",
+      "userId": "10000000-0000-4000-8000-000000000002",
+      "name": "박○○",
+      "seatNo": 2,
+      "attendance": "PRESENT",
+      "attendanceRequestedAt": null,
+      "startedAt": null,
+      "startReceivedAt": null,
+      "startSource": null,
+      "returnedAt": null,
+      "returnSource": null,
+      "phoneNumber": "010-0000-0002",
+      "attendanceCheckedAt": "2026-10-15T03:20:00Z",
+      "attendanceCheckedBy": {
+        "id": "10000000-0000-4000-8000-000000000021",
+        "name": "최○○"
+      },
+      "proxyAttendanceReason": "결석 오입력. 실제로 함께 활동함(현장 사진·조원 확인)",
+      "returnConfirmedBy": null,
+      "startMissing": true,
+      "returned": false,
+      "returnConfirmedAt": null,
+      "returnReason": null,
+      "abortReason": null,
+      "returnRequest": null,
+      "joinedAt": null,
+      "transferredFromPatrolId": null,
+      "paused": false
+    }
+  ],
+  "formerMembers": [],
+  "progress": {
+    "total": 3,
+    "pending": 0,
+    "captured": 1,
+    "skipped": 0,
+    "reviewRequested": 0,
+    "notVisited": 2
+  },
+  "currentStopId": null,
+  "stops": [
+    {
+      "id": "40000000-0000-4000-8000-000000000001",
+      "order": 1,
+      "facilityId": "f0000000-0000-4000-8000-000000000001",
+      "facilityType": "SIDEWALK",
+      "name": "마을회관 앞 보도블록",
+      "visitStatus": "CAPTURED",
+      "latitude": 37.0001,
+      "longitude": 127.0001,
+      "instruction": "주변 바닥이 함께 보이게 찍어 주세요.",
+      "captureSlots": [
+        {
+          "id": "50000000-0000-4000-8000-000000000001",
+          "order": 1,
+          "label": "전체 모습",
+          "instruction": null,
+          "required": true,
+          "purpose": "REGULAR",
+          "receiptStatus": "RECEIVED",
+          "captureStatus": "ACCEPTED",
+          "activeInspectionId": null,
+          "acceptedInspectionId": "60000000-0000-4000-8000-000000000001",
+          "retakesRemaining": 2,
+          "referenceMediaId": "70000000-0000-4000-8000-000000000101",
+          "qualityFailureCount": 0
+        }
+      ],
+      "skipPending": false
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000002",
+      "order": 2,
+      "facilityId": "f0000000-0000-4000-8000-000000000002",
+      "facilityType": "DRAIN",
+      "name": "마을회관 옆 빗물받이",
+      "visitStatus": "NOT_VISITED",
+      "latitude": 37.0002,
+      "longitude": 127.0002,
+      "instruction": "덮개 전체와 주변 바닥을 찍어 주세요.",
+      "captureSlots": [
+        {
+          "id": "50000000-0000-4000-8000-000000000002",
+          "order": 1,
+          "label": "덮개 전체",
+          "instruction": null,
+          "required": true,
+          "purpose": "REGULAR",
+          "receiptStatus": "NONE",
+          "captureStatus": null,
+          "activeInspectionId": null,
+          "acceptedInspectionId": null,
+          "retakesRemaining": 2,
+          "referenceMediaId": "70000000-0000-4000-8000-000000000102",
+          "qualityFailureCount": 0
+        },
+        {
+          "id": "50000000-0000-4000-8000-000000000003",
+          "order": 2,
+          "label": "주변 바닥",
+          "instruction": "덮개에서 한 걸음 물러나 찍어 주세요.",
+          "required": true,
+          "purpose": "REGULAR",
+          "receiptStatus": "NONE",
+          "captureStatus": null,
+          "activeInspectionId": null,
+          "acceptedInspectionId": null,
+          "retakesRemaining": 2,
+          "referenceMediaId": null,
+          "qualityFailureCount": 0
+        }
+      ],
+      "skipPending": false
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000003",
+      "order": 3,
+      "facilityId": "f0000000-0000-4000-8000-000000000003",
+      "facilityType": "BENCH",
+      "name": "놀이터 입구 벤치",
+      "visitStatus": "NOT_VISITED",
+      "latitude": 37.0003,
+      "longitude": 127.0003,
+      "instruction": "앉는 판과 다리가 모두 보이게 찍어 주세요.",
+      "captureSlots": [
+        {
+          "id": "50000000-0000-4000-8000-000000000004",
+          "order": 1,
+          "label": "전체 모습",
+          "instruction": null,
+          "required": true,
+          "purpose": "REGULAR",
+          "receiptStatus": "NONE",
+          "captureStatus": null,
+          "activeInspectionId": null,
+          "acceptedInspectionId": null,
+          "retakesRemaining": 2,
+          "referenceMediaId": null,
+          "qualityFailureCount": 0
+        }
+      ],
+      "skipPending": false
+    }
+  ],
+  "syncAllowed": true,
+  "syncDeadlineAt": "2026-10-15T15:00:00Z",
+  "organizationId": "a0000000-0000-4000-8000-000000000001",
+  "organizationName": "○○동 노인복지관",
+  "departureConfirmedBy": null,
+  "returnOverdue": false,
+  "cancelledAt": null,
+  "cancelledBy": null,
+  "cancellationReason": null,
+  "recentEvents": [
+    {
+      "id": "e1000000-0000-4000-8000-000000000001",
+      "type": "ATTENDANCE_REQUESTED",
+      "actor": {
+        "id": "10000000-0000-4000-8000-000000000001",
+        "name": "김○○"
+      },
+      "stopId": null,
+      "reasonCode": null,
+      "occurredAt": "2026-10-15T00:50:00Z",
+      "receivedAt": "2026-10-15T00:50:01Z"
+    },
+    {
+      "id": "e1000000-0000-4000-8000-000000000002",
+      "type": "ACTIVITY_STARTED",
+      "actor": {
+        "id": "10000000-0000-4000-8000-000000000001",
+        "name": "김○○"
+      },
+      "stopId": null,
+      "reasonCode": null,
+      "occurredAt": "2026-10-15T01:02:00Z",
+      "receivedAt": "2026-10-15T01:02:01Z"
+    }
+  ]
+}

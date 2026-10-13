@@ -1,0 +1,197 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0E4C5A"/>
+    </marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7A8A8E"/>
+    </marker>
+    <filter id="sh" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#0E4C5A" flood-opacity="0.10"/>
+    </filter>
+    <clipPath id="cS"><rect x="60" y="190" width="270" height="130" rx="14"/></clipPath>
+    <clipPath id="cA"><rect x="60" y="340" width="270" height="130" rx="14"/></clipPath>
+    <clipPath id="cG"><rect x="430" y="190" width="240" height="110" rx="14"/></clipPath>
+    <clipPath id="cF"><rect x="430" y="340" width="240" height="130" rx="14"/></clipPath>
+    <clipPath id="cC"><rect x="725" y="190" width="210" height="280" rx="14"/></clipPath>
+    <clipPath id="cB"><rect x="975" y="190" width="300" height="280" rx="14"/></clipPath>
+    <clipPath id="cI"><rect x="1330" y="190" width="195" height="130" rx="14"/></clipPath>
+    <clipPath id="cO"><rect x="1330" y="340" width="195" height="130" rx="14"/></clipPath>
+    <style>
+      .card{fill:#fff;stroke:#D5E9EE;stroke-width:1.5}
+      .hd{font-size:21px;font-weight:700}
+      .sub{font-size:13px}
+      .b{font-size:16px;fill:#36494D}
+      .s{font-size:14px;fill:#52666B}
+      .lbl{font-size:13px;fill:#0E4C5A;font-weight:700}
+      .lblg{font-size:13px;fill:#7A8A8E;font-weight:700}
+      .ln{stroke:#0E4C5A;stroke-width:2.5;fill:none}
+      .dash{stroke:#7A8A8E;stroke-width:2;fill:none;stroke-dasharray:7 6}
+      .thin{stroke:#9DB4B8;stroke-width:1.8;fill:none}
+      .dot{fill:#0E4C5A}
+    </style>
+  </defs>
+
+  <rect width="1600" height="900" fill="#F3F6F6"/>
+
+  <!-- 제목 -->
+  <rect x="60" y="40" width="8" height="64" rx="4" fill="#0E4C5A"/>
+  <text x="88" y="78" font-size="34" font-weight="800" fill="#13292E">시니어 동네 점검단 · 서비스 구성 (시연 운영)</text>
+  <text x="88" y="106" font-size="17" fill="#52666B">깃페이지로 들어와, 이 PC 한 대에서 화면 · 업무 API · DB · AI 판독이 모두 돕니다. 기획한 AWS 3계층 구성을 한 대로 옮긴 형태입니다.</text>
+
+  <!-- 구역 이름 -->
+  <g font-size="13" font-weight="700" fill="#7A8A8E" letter-spacing="2">
+    <text x="60" y="170">사용자</text>
+    <text x="430" y="170">입구 · 공개 주소</text>
+    <text x="725" y="170">이 PC (Windows) · 외부에서 직접 닿지 않음</text>
+  </g>
+  <rect x="700" y="150" width="850" height="520" rx="20" fill="none" stroke="#C9D5D6" stroke-width="1.5" stroke-dasharray="7 6"/>
+
+  <!-- 시니어 앱 -->
+  <g filter="url(#sh)"><rect x="60" y="190" width="270" height="130" rx="14" class="card"/></g>
+  <rect x="60" y="190" width="270" height="52" fill="#E3ECEC" clip-path="url(#cS)"/>
+  <rect x="80" y="202" width="18" height="28" rx="4" fill="none" stroke="#0E4C5A" stroke-width="2.2"/>
+  <line x1="86" y1="225" x2="92" y2="225" stroke="#0E4C5A" stroke-width="2.2" stroke-linecap="round"/>
+  <text x="110" y="223" class="hd" fill="#13292E">시니어 앱</text>
+  <text x="314" y="222" text-anchor="end" class="sub" fill="#52666B">휴대폰</text>
+  <text x="80" y="274" class="b">출석 · 촬영 · 쉬기 · 복귀</text>
+  <text x="80" y="302" class="b">얼굴·번호판 기기에서 가림</text>
+
+  <!-- 관리자 웹 -->
+  <g filter="url(#sh)"><rect x="60" y="340" width="270" height="130" rx="14" class="card"/></g>
+  <rect x="60" y="340" width="270" height="52" fill="#E3ECEC" clip-path="url(#cA)"/>
+  <rect x="78" y="353" width="26" height="19" rx="3" fill="none" stroke="#0E4C5A" stroke-width="2.2"/>
+  <line x1="86" y1="379" x2="96" y2="379" stroke="#0E4C5A" stroke-width="2.2" stroke-linecap="round"/>
+  <text x="114" y="373" class="hd" fill="#13292E">관리자 웹</text>
+  <text x="314" y="372" text-anchor="end" class="sub" fill="#52666B">PC 브라우저</text>
+  <text x="80" y="424" class="b">활동 현황 · 검토 · 판정</text>
+  <text x="80" y="452" class="b">보수 · 수리 확인</text>
+
+  <!-- GitHub Pages -->
+  <g filter="url(#sh)"><rect x="430" y="190" width="240" height="110" rx="14" class="card"/></g>
+  <rect x="430" y="190" width="240" height="46" fill="#E3ECEC" clip-path="url(#cG)"/>
+  <text x="450" y="220" class="hd" fill="#13292E" font-size="19">GitHub Pages</text>
+  <text x="450" y="262" class="s">teamiroum.github.io/service</text>
+  <text x="450" y="285" class="s">입구 · 바로가기 (정적)</text>
+
+  <!-- Tailscale Funnel -->
+  <g filter="url(#sh)"><rect x="430" y="340" width="240" height="130" rx="14" class="card"/></g>
+  <rect x="430" y="340" width="240" height="52" fill="#E3ECEC" clip-path="url(#cF)"/>
+  <circle cx="460" cy="366" r="11" fill="none" stroke="#0E4C5A" stroke-width="2.2"/>
+  <path d="M455 366 l4 4 l7 -8" fill="none" stroke="#0E4C5A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="482" y="373" class="hd" fill="#13292E" font-size="19">Tailscale Funnel</text>
+  <text x="450" y="424" class="b">공개 HTTPS · 인증서 자동</text>
+  <text x="450" y="452" class="s">*.ts.net :443 · :10000</text>
+
+  <!-- Caddy -->
+  <g filter="url(#sh)"><rect x="725" y="190" width="210" height="280" rx="14" class="card"/></g>
+  <rect x="725" y="190" width="210" height="72" fill="#E3ECEC" clip-path="url(#cC)"/>
+  <text x="745" y="233" class="hd" fill="#13292E">Caddy</text>
+  <text x="919" y="232" text-anchor="end" class="sub" fill="#52666B">앞단</text>
+  <circle cx="751" cy="300" r="4" class="dot"/><text x="764" y="306" class="b">:8180 시니어 화면</text>
+  <circle cx="751" cy="340" r="4" class="dot"/><text x="764" y="346" class="b">:8181 관리자 화면</text>
+  <circle cx="751" cy="380" r="4" class="dot"/><text x="764" y="386" class="b">/api → 백엔드</text>
+  <text x="745" y="440" class="s">화면과 API가 같은 주소</text>
+
+  <!-- 업무 백엔드 -->
+  <g filter="url(#sh)"><rect x="975" y="190" width="300" height="280" rx="14" class="card"/></g>
+  <rect x="975" y="190" width="300" height="72" fill="#0E4C5A" clip-path="url(#cB)"/>
+  <rect x="995" y="210" width="28" height="13" rx="3" fill="none" stroke="#fff" stroke-width="2.2"/>
+  <rect x="995" y="228" width="28" height="13" rx="3" fill="none" stroke="#fff" stroke-width="2.2"/>
+  <text x="1035" y="226" class="hd" fill="#fff">업무 백엔드</text>
+  <text x="1036" y="250" class="sub" fill="#D5E9EE">Spring Boot · :8080</text>
+  <circle cx="1001" cy="300" r="4" class="dot"/><text x="1014" y="306" class="b">로그인 · 순회 · 출석 · 복귀</text>
+  <circle cx="1001" cy="340" r="4" class="dot"/><text x="1014" y="346" class="b">사진 접수 · 검토 · 사건 · 보수</text>
+  <circle cx="1001" cy="380" r="4" class="dot"/><text x="1014" y="386" class="b">AI 호출은 여기서만</text>
+  <text x="995" y="440" class="s">service/backend · 시연 데이터</text>
+
+  <!-- AI 판독 -->
+  <g filter="url(#sh)"><rect x="1330" y="190" width="195" height="130" rx="14" class="card"/></g>
+  <rect x="1330" y="190" width="195" height="52" fill="#0E4C5A" clip-path="url(#cI)"/>
+  <circle cx="1352" cy="216" r="10" fill="none" stroke="#fff" stroke-width="2.4"/>
+  <circle cx="1352" cy="216" r="4" fill="#fff"/>
+  <text x="1370" y="223" class="hd" fill="#fff" font-size="19">AI 판독</text>
+  <text x="1509" y="222" text-anchor="end" class="sub" fill="#D5E9EE">:8000</text>
+  <text x="1350" y="274" class="b">시설 · 이상 판독</text>
+  <text x="1350" y="302" class="b">개인정보 다시 검사</text>
+
+  <!-- Ollama -->
+  <g filter="url(#sh)"><rect x="1330" y="340" width="195" height="130" rx="14" class="card"/></g>
+  <rect x="1330" y="340" width="195" height="52" fill="#E3ECEC" clip-path="url(#cO)"/>
+  <rect x="1343" y="356" width="20" height="20" rx="3" fill="none" stroke="#0E4C5A" stroke-width="2.2"/>
+  <g stroke="#0E4C5A" stroke-width="2" stroke-linecap="round">
+    <line x1="1348" y1="352" x2="1348" y2="355"/><line x1="1358" y1="352" x2="1358" y2="355"/>
+    <line x1="1348" y1="377" x2="1348" y2="380"/><line x1="1358" y1="377" x2="1358" y2="380"/>
+  </g>
+  <text x="1373" y="373" class="hd" fill="#13292E" font-size="19">GPU · Ollama</text>
+  <text x="1350" y="424" class="b">공개 AI 모델</text>
+  <text x="1350" y="452" class="s">qwen3-vl · :11434</text>
+
+  <!-- 데이터 -->
+  <rect x="885" y="512" width="290" height="140" rx="14" fill="#EAF1F2" stroke="#C9D5D6" stroke-width="1.2"/>
+  <text x="900" y="640" class="lblg" letter-spacing="1">WSL · Ubuntu</text>
+  <g filter="url(#sh)"><rect x="900" y="530" width="130" height="90" rx="12" class="card"/></g>
+  <text x="965" y="566" text-anchor="middle" font-size="17" font-weight="700" fill="#13292E">PostgreSQL</text>
+  <text x="965" y="594" text-anchor="middle" class="s">업무 데이터</text>
+  <g filter="url(#sh)"><rect x="1035" y="530" width="125" height="90" rx="12" class="card"/></g>
+  <text x="1097" y="566" text-anchor="middle" font-size="17" font-weight="700" fill="#13292E">Redis</text>
+  <text x="1097" y="594" text-anchor="middle" class="s">로그인 세션</text>
+  <g filter="url(#sh)"><rect x="1195" y="530" width="140" height="90" rx="12" class="card"/></g>
+  <text x="1265" y="566" text-anchor="middle" font-size="17" font-weight="700" fill="#13292E">사진 파일</text>
+  <text x="1265" y="594" text-anchor="middle" class="s">가린 사진</text>
+
+  <!-- 연결선 -->
+  <!-- 사용자 → 깃페이지 (처음 한 번) -->
+  <path d="M330 215 H 428" class="dash" marker-end="url(#ag)"/>
+  <text x="380" y="206" text-anchor="middle" class="lblg">처음 한 번</text>
+  <!-- 깃페이지 → Funnel (앱 주소로 이동) -->
+  <path d="M550 300 V 338" class="dash" marker-end="url(#ag)"/>
+  <text x="560" y="325" class="lblg">앱 주소로 이동</text>
+  <!-- 사용자 → Funnel (HTTPS) -->
+  <path d="M330 290 H 365 V 420 M330 420 H 365" class="ln"/>
+  <path d="M365 405 H 428" class="ln" marker-end="url(#a)"/>
+  <text x="398" y="396" text-anchor="middle" class="lbl">HTTPS</text>
+  <!-- Funnel → Caddy -->
+  <path d="M670 405 H 723" class="ln" marker-end="url(#a)"/>
+  <!-- Caddy → 백엔드 -->
+  <path d="M935 330 H 973" class="ln" marker-end="url(#a)"/>
+  <text x="954" y="320" text-anchor="middle" class="lbl">/api</text>
+  <!-- 백엔드 ↔ AI -->
+  <path d="M1277 270 H 1328" class="ln" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text x="1302" y="258" text-anchor="middle" class="lbl">API 키</text>
+  <!-- AI → Ollama -->
+  <path d="M1427 320 V 338" class="ln" marker-end="url(#a)"/>
+  <!-- 백엔드 → 데이터 -->
+  <path d="M1125 470 V 500 M965 500 H 1265 M965 500 V 530 M1097 500 V 530 M1265 500 V 530" class="thin"/>
+
+  <!-- 요청 경로 -->
+  <rect x="60" y="700" width="1490" height="130" rx="16" fill="#fff" stroke="#D5E9EE" stroke-width="1.5"/>
+  <text x="90" y="738" font-size="19" font-weight="700" fill="#13292E">요청 경로 (휴대폰에서 사진을 보낼 때)</text>
+  <line x1="190" y1="774" x2="1420" y2="774" stroke="#C9D5D6" stroke-width="2"/>
+  <g font-size="16" font-weight="700" fill="#fff" text-anchor="middle">
+    <circle cx="190" cy="774" r="17" fill="#3B8EA5"/><text x="190" y="780">1</text>
+    <circle cx="497" cy="774" r="17" fill="#3B8EA5"/><text x="497" y="780">2</text>
+    <circle cx="805" cy="774" r="17" fill="#3B8EA5"/><text x="805" y="780">3</text>
+    <circle cx="1112" cy="774" r="17" fill="#3B8EA5"/><text x="1112" y="780">4</text>
+    <circle cx="1420" cy="774" r="17" fill="#3B8EA5"/><text x="1420" y="780">5</text>
+  </g>
+  <g font-size="16" fill="#36494D" text-anchor="middle">
+    <text x="190" y="812">기기에서 가림 · 촬영</text>
+    <text x="497" y="812">Funnel · HTTPS</text>
+    <text x="805" y="812">Caddy · /api 전달</text>
+    <text x="1112" y="812">업무 백엔드 · 저장</text>
+    <text x="1420" y="812">AI 판독 → 담당자 검토</text>
+  </g>
+
+  <!-- 원칙 -->
+  <g font-size="16" fill="#36494D">
+    <path d="M62 864 l6 7 l12 -14" fill="none" stroke="#0E4C5A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="90" y="870">화면과 API가 같은 주소 (로그인 쿠키 · CSRF)</text>
+    <path d="M512 864 l6 7 l12 -14" fill="none" stroke="#0E4C5A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="540" y="870">AI는 업무 백엔드만 호출</text>
+    <path d="M800 864 l6 7 l12 -14" fill="none" stroke="#0E4C5A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="828" y="870">외부 AI 서비스 사용 안 함</text>
+    <path d="M1080 864 l6 7 l12 -14" fill="none" stroke="#0E4C5A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="1108" y="870">start.ps1 하나로 켜고 끔</text>
+  </g>
+</svg>

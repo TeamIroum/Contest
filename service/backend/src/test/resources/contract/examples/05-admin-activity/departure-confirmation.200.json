@@ -1,0 +1,11 @@
+{
+  "patrolId": "30000000-0000-4000-8000-000000000001",
+  "departureConfirmedAt": "2026-10-15T01:05:00Z",
+  "departureConfirmedBy": {
+    "id": "10000000-0000-4000-8000-000000000021",
+    "name": "최○○"
+  },
+  "version": 4,
+  "activityStatus": "IN_PROGRESS",
+  "patrolRevision": 8
+}

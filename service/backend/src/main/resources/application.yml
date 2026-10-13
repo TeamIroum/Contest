@@ -1,0 +1,119 @@
+# 공통 설정. 비밀 값은 환경 변수로만 받는다(기본값 없음).
+spring:
+  application:
+    name: inspection-backend
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/inspection}
+    username: ${DB_USERNAME:inspection}
+    password: ${DB_PASSWORD}
+  flyway:
+    locations: classpath:db/migration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  jackson:
+    time-zone: UTC
+  servlet:
+    multipart:
+      # 사진 파일당 10 MiB(업무 API 6.3절). 요청 전체는 다른 필드를 고려해 조금 크게 둔다.
+      max-file-size: 10MB
+      max-request-size: 11MB
+      # 서버 개인정보 검사 전 사진은 디스크에 쓰지 않는다(04 지시서, 업무 API 6.3절). 임계값을 요청 한도보다 크게 두어
+      # multipart 임시 파일이 생기지 않고 메모리에서만 처리되게 한다.
+      file-size-threshold: 12MB
+
+server:
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+inspection:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+  auth:
+    # Base64 HS256 키(32바이트 이상). 기본값 없음: 없으면 기동하지 않는다.
+    jwt-secret: ${JWT_SECRET:}
+    issuer: itda-inspection
+    audience: itda-inspection-api
+    # D-15·D-23 확정값
+    access-token-ttl: 15m
+    senior-session-ttl: 7d
+    admin-session-ttl: 12h
+    restricted-session-ttl: 10m
+    # __Host- 쿠키는 Secure가 필수. 로컬 HTTP에서도 localhost는 브라우저가 보안 출처로 취급한다.
+    cookie-secure: true
+  # 전화번호 암호화(AES-256-GCM)·검색 HMAC 키. Base64 32바이트, 기본값 없음. 없으면 인증번호 경로만 503.
+  phone:
+    encryption-key: ${PHONE_ENC_KEY:}
+    hmac-key: ${PHONE_HMAC_KEY:}
+  # D-20 확정값
+  otp:
+    code-ttl: 10m
+    resend-interval: 30s
+    max-failures: 5
+    failure-block: 10m
+    send-window: 10m
+    sends-per-phone: 5
+    sends-per-ip: 20
+  activity:
+    # 사진 전송 기한 뒤 자동 미방문 장소의 건너뛰기 확정 주기(PHOTO-08)
+    skip-confirm-interval: 5m
+  # 시연 경로(/auth/demo/*)는 운영에서 끈다(404).
+  demo:
+    enabled: false
+  # 04단계 AI 판독 모듈 연동(AI 계약 2.0, docs/AI_연동_계약.md). 키는 환경 변수로만 받는다.
+  ai:
+    base-url: ${AI_BASE_URL:http://localhost:8000}
+    api-key: ${AI_API_KEY:}
+    connect-timeout: 5s
+    # AI 권고 30초 이상(판독 12초 + 진행 중 동일 요청 대기). 상위 프록시 제한과 함께 확인한다.
+    request-timeout: 30s
+    # 이벤트 커서 세대(초기화 복구 방법은 미정, 04단계 공백 G4)
+    event-generation: g1
+    # AI /events 동기화 간격(PHOTO-05)
+    events-interval: 15s
+    # 재판독 추적 기한(04단계 공백 G5)
+    reanalysis-deadline: 30m
+  # 서버 검사 완료 사진 저장소(04단계 공백 G1). filesystem(기본) 또는 s3. DB에는 논리 이름 inspection-media만 저장한다.
+  media:
+    store: ${MEDIA_STORE:filesystem}
+    # filesystem일 때 루트. 운영에서는 저장소 밖 경로(별도 볼륨)를 반드시 지정한다.
+    storage-root: ${MEDIA_STORAGE_ROOT:${java.io.tmpdir}/itda-inspection-media}
+    # s3일 때 객체 키 = <prefix>/inspection-media/<키>. 자격 증명은 AWS SDK 기본 체인(EC2 인스턴스 역할)만 쓰고 접근 키를 두지 않는다.
+    # 미리 서명한 URL·공개 객체·ACL은 쓰지 않는다. 사진은 GET /media/{id}/content로만 내보낸다.
+    s3:
+      bucket: ${MEDIA_S3_BUCKET:}
+      prefix: ${MEDIA_S3_PREFIX:}
+      region: ${MEDIA_S3_REGION:ap-northeast-2}
+      # AES256(SSE-S3) 또는 aws:kms(SSE-KMS). kms-key-id가 비면 S3 관리 키(aws/s3).
+      server-side-encryption: ${MEDIA_S3_SSE:AES256}
+      kms-key-id: ${MEDIA_S3_KMS_KEY_ID:}
+      # 로컬 S3 호환 시험 컨테이너 전용. 운영에서는 비워 둔다.
+      endpoint: ${MEDIA_S3_ENDPOINT:}
+  photo:
+    # 사진 접수 리스: AI 호출·저장이 이 시간 안에 끝나지 않으면 복구 작업이 다시 판단한다.
+    ingestion-lease: 2m
+    # 리스 만료·AI 재판독 추적 기한 주기 복구 간격(PHOTO-03)
+    recovery-interval: 30s
+  review:
+    # AI 이상 미검출 표본 검토 비율(운영 설정, 04단계 공백 G3). 0이면 표본 작업을 만들지 않는다.
+    no-issue-sample-rate: 0
+  # 참고·보수 사진 업로드에서 AI 개인정보 검사를 할 수 없을 때 응답 details.retryAfterSeconds로 알려 줄 재시도 안내(운영 설정, 06단계 CONTRACT-01)
+  privacy-mask:
+    retry-after: 30s
+  # D-28 보류 해제 전송(업무 API 9.3절 기본안)
+  privacy-release:
+    max-auto-attempts: 5
+    initial-backoff: 30s
+    backoff-multiplier: 2
+    max-backoff: 10m
+    request-timeout: 30s

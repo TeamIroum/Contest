@@ -1,0 +1,28 @@
+{
+  "transferId": "71000000-0000-4000-8000-000000000001",
+  "transferredAt": "2026-10-15T01:40:00Z",
+  "participantId": "20000000-0000-4000-8000-000000000002",
+  "reason": "2조 조원 중도 복귀로 혼자 남아 합류",
+  "source": {
+    "patrolId": "30000000-0000-4000-8000-000000000001",
+    "activityStatus": "IN_PROGRESS",
+    "version": 6,
+    "patrolRevision": 9,
+    "inField": 1
+  },
+  "target": {
+    "patrolId": "30000000-0000-4000-8000-000000000002",
+    "activityStatus": "IN_PROGRESS",
+    "version": 7,
+    "patrolRevision": 12,
+    "inField": 2
+  },
+  "member": {
+    "participantId": "20000000-0000-4000-8000-000000000002",
+    "assignmentRef": "61000000-0000-4000-8000-000000000012",
+    "seatNo": 2,
+    "attendance": "PRESENT",
+    "startedAt": null,
+    "startSource": null
+  }
+}

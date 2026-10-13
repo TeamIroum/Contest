@@ -1,0 +1,10 @@
+{
+  "code": "SUBMISSION_CONFLICT",
+  "message": "같은 제출 번호로 다른 사진이 전송되었습니다.",
+  "requestId": "req-0105",
+  "fieldErrors": [],
+  "details": {
+    "existingInspectionId": "60000000-0000-4000-8000-000000000011",
+    "clientSubmissionId": "e0000000-0000-4000-8000-000000000101"
+  }
+}

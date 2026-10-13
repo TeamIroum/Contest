@@ -1,0 +1,136 @@
+{
+  "patrolId": "30000000-0000-4000-8000-000000000001",
+  "revision": 7,
+  "version": 3,
+  "activityStatus": "IN_PROGRESS",
+  "end": null,
+  "departedAt": "2026-10-15T01:02:00Z",
+  "departureConfirmedAt": null,
+  "soloWaiting": null,
+  "syncAllowed": true,
+  "syncDeadlineAt": "2026-10-15T15:00:00Z",
+  "currentStopId": "40000000-0000-4000-8000-000000000002",
+  "progress": {
+    "total": 3,
+    "pending": 2,
+    "captured": 1,
+    "skipped": 0,
+    "reviewRequested": 0,
+    "notVisited": 0
+  },
+  "members": [
+    {
+      "participantId": "20000000-0000-4000-8000-000000000001",
+      "attendance": "PRESENT",
+      "startedAt": "2026-10-15T01:02:00Z",
+      "startSource": "SELF",
+      "returnedAt": null,
+      "returnSource": null,
+      "returned": false,
+      "returnConfirmedAt": null,
+      "returnReason": null,
+      "abortReason": null,
+      "returnRequest": null,
+      "paused": false
+    },
+    {
+      "participantId": "20000000-0000-4000-8000-000000000002",
+      "attendance": "PRESENT",
+      "startedAt": null,
+      "startSource": null,
+      "returnedAt": null,
+      "returnSource": null,
+      "returned": false,
+      "returnConfirmedAt": null,
+      "returnReason": null,
+      "abortReason": null,
+      "returnRequest": null,
+      "paused": false
+    }
+  ],
+  "stops": [
+    {
+      "id": "40000000-0000-4000-8000-000000000001",
+      "visitStatus": "CAPTURED",
+      "captureSlots": [
+        {
+          "id": "50000000-0000-4000-8000-000000000001",
+          "receiptStatus": "RECEIVED",
+          "captureStatus": "ACCEPTED",
+          "activeInspectionId": null,
+          "acceptedInspectionId": "60000000-0000-4000-8000-000000000001",
+          "retakesRemaining": 2,
+          "referenceMediaId": "70000000-0000-4000-8000-000000000101",
+          "qualityFailureCount": 0
+        }
+      ],
+      "skipPending": false
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000002",
+      "visitStatus": "PENDING",
+      "captureSlots": [
+        {
+          "id": "50000000-0000-4000-8000-000000000002",
+          "receiptStatus": "NONE",
+          "captureStatus": null,
+          "activeInspectionId": null,
+          "acceptedInspectionId": null,
+          "retakesRemaining": 2,
+          "referenceMediaId": "70000000-0000-4000-8000-000000000102",
+          "qualityFailureCount": 0
+        },
+        {
+          "id": "50000000-0000-4000-8000-000000000003",
+          "receiptStatus": "NONE",
+          "captureStatus": null,
+          "activeInspectionId": null,
+          "acceptedInspectionId": null,
+          "retakesRemaining": 2,
+          "referenceMediaId": null,
+          "qualityFailureCount": 0
+        }
+      ],
+      "skipPending": false
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000003",
+      "visitStatus": "PENDING",
+      "captureSlots": [
+        {
+          "id": "50000000-0000-4000-8000-000000000004",
+          "receiptStatus": "NONE",
+          "captureStatus": null,
+          "activeInspectionId": null,
+          "acceptedInspectionId": null,
+          "retakesRemaining": 2,
+          "referenceMediaId": null,
+          "qualityFailureCount": 0
+        }
+      ],
+      "skipPending": false
+    }
+  ],
+  "assets": [
+    {
+      "mediaId": "70000000-0000-4000-8000-000000000101",
+      "mediaVersion": 1,
+      "contentPath": "/api/v1/media/70000000-0000-4000-8000-000000000101/content"
+    },
+    {
+      "mediaId": "70000000-0000-4000-8000-000000000102",
+      "mediaVersion": 2,
+      "contentPath": "/api/v1/media/70000000-0000-4000-8000-000000000102/content"
+    }
+  ],
+  "revokedMediaIds": [
+    "70000000-0000-4000-8000-000000000100"
+  ],
+  "myAssignment": {
+    "participantId": "20000000-0000-4000-8000-000000000001",
+    "assignmentRef": "61000000-0000-4000-8000-000000000001",
+    "active": true,
+    "leftAt": null,
+    "transferredToPatrolId": null
+  }
+}

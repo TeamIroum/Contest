@@ -1,0 +1,40 @@
+# 업무 백엔드 + Redis를 한 서버에서 띄운다. 값은 같은 폴더 .env(권한 600, Git에 올리지 않음)에서 읽는다.
+# Redis는 호스트 포트를 열지 않고 compose 네트워크 안에서만 쓴다. AOF로 세션을 재기동 뒤에도 유지한다.
+services:
+  backend:
+    image: ${BACKEND_IMAGE:-inspection-backend:latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      # 앞단 프록시(Caddy·nginx) 뒤에서 실제 클라이언트 IP를 X-Forwarded-For로 받는다. 그 프록시 주소만 믿는다.
+      SERVER_FORWARD_HEADERS_STRATEGY: native
+      SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES: ${WEB_PROXY_IP_REGEX}
+    ports:
+      - "8080:8080"
+    volumes:
+      - media:/var/lib/inspection/media
+    depends_on:
+      redis:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+  redis:
+    image: redis:7.4
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+    volumes:
+      - redis:/data
+
+volumes:
+  media:
+  redis:
