@@ -1,0 +1,10 @@
+{
+  "code": "ISSUE_STATE_CONFLICT",
+  "message": "문제의 현재 상태에서 할 수 없는 요청입니다. 최신 내용을 확인해 주세요.",
+  "requestId": "req-issue-state-conflict",
+  "fieldErrors": [],
+  "details": {
+    "issueId": "b1000000-0000-4000-8000-000000000003",
+    "currentStatus": "OPEN"
+  }
+}

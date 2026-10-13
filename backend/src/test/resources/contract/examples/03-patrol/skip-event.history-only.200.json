@@ -1,0 +1,11 @@
+{
+  "patrolId": "30000000-0000-4000-8000-000000000001",
+  "stopId": "40000000-0000-4000-8000-000000000003",
+  "visitStatus": "NOT_VISITED",
+  "stopUpdated": false,
+  "duplicate": false,
+  "patrolRevision": 16,
+  "nextAction": "RETURN_TO_CENTER",
+  "nextStopId": null,
+  "nextCaptureSlotId": null
+}

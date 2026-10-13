@@ -1,0 +1,11 @@
+{
+  "mediaId": "70000000-0000-4000-8000-000000000001",
+  "privacyStatus": "QUARANTINED",
+  "version": 2,
+  "providerSyncStatus": "PENDING",
+  "affectedInspectionIds": [
+    "60000000-0000-4000-8000-000000000001"
+  ],
+  "reviewedAt": "2026-10-15T04:40:00Z",
+  "release": null
+}

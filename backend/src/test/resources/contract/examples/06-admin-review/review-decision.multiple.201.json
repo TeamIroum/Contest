@@ -1,0 +1,35 @@
+{
+  "reviewId": "b0000000-0000-4000-8000-000000000004",
+  "reviewTaskId": "80000000-0000-4000-8000-000000000001",
+  "reviewTaskStatus": "RESOLVED",
+  "decision": "ISSUE_CONFIRMED",
+  "followUpType": null,
+  "reinspectionRequestId": null,
+  "decidedBy": {
+    "id": "10000000-0000-4000-8000-000000000011",
+    "name": "이○○"
+  },
+  "decidedAt": "2026-10-15T05:00:00Z",
+  "version": 2,
+  "analysisResultId": "90000000-0000-4000-8000-000000000001",
+  "correctionId": "d0000000-0000-4000-8000-000000000011",
+  "classificationVersion": 1,
+  "issueIds": [
+    "b1000000-0000-4000-8000-000000000004",
+    "b1000000-0000-4000-8000-000000000002"
+  ],
+  "issueResults": [
+    {
+      "mode": "CREATE",
+      "inspectionId": "60000000-0000-4000-8000-000000000001",
+      "issueId": "b1000000-0000-4000-8000-000000000004",
+      "defectCode": "sunken"
+    },
+    {
+      "mode": "LINK",
+      "inspectionId": "60000000-0000-4000-8000-000000000001",
+      "issueId": "b1000000-0000-4000-8000-000000000002",
+      "defectCode": "sunken"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "code": "VERSION_CONFLICT",
+  "message": "다른 사용자가 내용을 변경했습니다. 다시 확인해 주세요.",
+  "requestId": "req-0001",
+  "fieldErrors": [],
+  "details": {
+    "currentVersion": 4
+  }
+}

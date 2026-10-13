@@ -1,0 +1,89 @@
+{
+  "photo_id": "p_example_05",
+  "participant_id": "P-001",
+  "captured_at": "2026-10-08T09:14:00+09:00",
+  "status": "ok",
+  "masked_image_url": "/images/p_example_05_masked.jpg",
+  "image_revision": 1,
+  "quality": {
+    "ok": true,
+    "problems": [],
+    "metrics": {
+      "sharpness": 1430.7,
+      "brightness": 117.9
+    }
+  },
+  "facility": {
+    "type": "exercise",
+    "label": "운동기구",
+    "certainty": "high",
+    "facility_id": "EX-0001",
+    "place": "근린공원 어린이놀이터 옆 운동기구 [예시]",
+    "match_ambiguous": false,
+    "location_tags": [
+      "child_facility"
+    ]
+  },
+  "issues": [
+    {
+      "type": "part_detached",
+      "severity": 3,
+      "bbox": [
+        0.45,
+        0.1,
+        0.7,
+        0.6
+      ],
+      "evidence": "허리돌리기 기구의 발판 한쪽이 축에서 빠져 기울어져 있음",
+      "label": "부품 이탈"
+    }
+  ],
+  "ai_severity": 3,
+  "grade": "긴급",
+  "grade_reasons": [
+    "부품 이탈: 허리돌리기 기구의 발판 한쪽이 축에서 빠져 기울어져 있음 (AI 판단 정도 3/3)",
+    "어린이 시설 위치 가중치 적용"
+  ],
+  "dept": "공원 담당",
+  "action": "alert_now",
+  "senior_message": {
+    "key": "danger_keep_away",
+    "text": "위험한 곳이에요. 가까이 가지 마세요. 담당자에게 바로 알렸어요."
+  },
+  "duplicate_of": "C-0412",
+  "retry": null,
+  "notes": [
+    "기존 접수 건 C-0412에 묶음 (담당자 중복 알림 없음)"
+  ],
+  "meta": {
+    "contract_version": "2.0",
+    "provider": "mock",
+    "model": "mock",
+    "prompt_version": "analyze-f7ffcf9",
+    "taxonomy_version": "0.3",
+    "latency_ms": 2400,
+    "created_at": "2026-10-08T09:14:03+09:00",
+    "privacy": {
+      "faces": 0,
+      "plates": 0,
+      "vehicles": 0,
+      "boxes": [],
+      "detectors": {
+        "face": "yunet",
+        "plate": "pretrained+heuristic",
+        "vehicle": "vehicle"
+      },
+      "masked_area_ratio": 0.0,
+      "mode": "device+server",
+      "device": {
+        "faces": 0,
+        "plates": 1,
+        "vehicles": null,
+        "detector": "yunet+plate-t384+effdet0",
+        "app_version": "1.0.0"
+      },
+      "server_added": 0
+    },
+    "raw_certainty": "high"
+  }
+}

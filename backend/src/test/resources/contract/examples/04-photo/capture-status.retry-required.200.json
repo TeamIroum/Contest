@@ -1,0 +1,17 @@
+{
+  "inspectionId": "60000000-0000-4000-8000-000000000018",
+  "clientSubmissionId": "e0000000-0000-4000-8000-000000000110",
+  "attemptNo": 1,
+  "receiptStatus": "RETRY_REQUIRED",
+  "captureStatus": "TECHNICAL_FAILED",
+  "nextAction": "RETRY",
+  "retakeReason": null,
+  "retakesRemaining": 2,
+  "message": "사진이 아직 전송되지 않았어요. 다시 보낼게요.",
+  "stopId": "40000000-0000-4000-8000-000000000002",
+  "captureSlotId": "50000000-0000-4000-8000-000000000002",
+  "nextStopId": null,
+  "nextCaptureSlotId": null,
+  "patrolRevision": 8,
+  "qualityFailureCount": 0
+}

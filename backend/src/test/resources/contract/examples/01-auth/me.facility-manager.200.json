@@ -1,0 +1,18 @@
+{
+  "id": "10000000-0000-4000-8000-000000000011",
+  "name": "이○○",
+  "roles": [
+    "FACILITY_MANAGER"
+  ],
+  "accountStatus": "ACTIVE",
+  "passwordChangeRequired": false,
+  "participantId": null,
+  "scopes": [
+    {
+      "role": "FACILITY_MANAGER",
+      "organizationId": "a0000000-0000-4000-8000-000000000021",
+      "organizationName": "○○구 도로관리과",
+      "organizationType": "DEPARTMENT"
+    }
+  ]
+}

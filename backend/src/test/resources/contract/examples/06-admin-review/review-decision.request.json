@@ -1,0 +1,18 @@
+{
+  "decision": "ISSUE_CONFIRMED",
+  "followUpType": null,
+  "analysisResultId": "90000000-0000-4000-8000-000000000001",
+  "reason": "AI의 들뜸 분류를 꺼짐으로 정정한 근거에 따라 이상을 확인함",
+  "version": 1,
+  "correctionId": "d0000000-0000-4000-8000-000000000011",
+  "classificationVersion": 1,
+  "issueResolutions": [
+    {
+      "mode": "CREATE",
+      "inspectionId": "60000000-0000-4000-8000-000000000001",
+      "existingIssueId": null,
+      "defectCode": "sunken",
+      "summary": "보도블록 꺼짐"
+    }
+  ]
+}

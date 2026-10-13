@@ -1,0 +1,89 @@
+{
+  "photo_id": "p_example_06",
+  "participant_id": "P-001",
+  "captured_at": "2026-10-08T09:14:00+09:00",
+  "status": "needs_review",
+  "masked_image_url": "/images/p_example_06_masked.jpg",
+  "image_revision": 1,
+  "quality": {
+    "ok": true,
+    "problems": [],
+    "metrics": {
+      "sharpness": 1430.7,
+      "brightness": 117.9
+    }
+  },
+  "facility": {
+    "type": "sidewalk",
+    "label": "보도블록",
+    "certainty": "low",
+    "facility_id": null,
+    "place": null,
+    "match_ambiguous": false,
+    "location_tags": [
+      "school_route"
+    ]
+  },
+  "issues": [
+    {
+      "type": "sunken",
+      "severity": 2,
+      "bbox": [
+        0.1,
+        0.5,
+        0.6,
+        0.9
+      ],
+      "evidence": "블록 일부가 낮아 보이나 그림자 때문에 단차 크기가 분명하지 않음",
+      "label": "꺼짐"
+    }
+  ],
+  "ai_severity": 2,
+  "grade": "긴급",
+  "grade_reasons": [
+    "꺼짐: 블록 일부가 낮아 보이나 그림자 때문에 단차 크기가 분명하지 않음 (AI 판단 정도 2/3)",
+    "통학로 위치 가중치 적용"
+  ],
+  "dept": "도로 담당",
+  "action": "human_review_urgent",
+  "senior_message": {
+    "key": "danger_keep_away",
+    "text": "위험한 곳이에요. 가까이 가지 마세요. 담당자에게 바로 알렸어요."
+  },
+  "duplicate_of": null,
+  "retry": null,
+  "notes": [
+    "AI 확신 낮음: 담당자 확인 필요 (등급은 잠정)"
+  ],
+  "meta": {
+    "contract_version": "2.0",
+    "provider": "mock",
+    "model": "mock",
+    "prompt_version": "analyze-f7ffcf9",
+    "taxonomy_version": "0.3",
+    "latency_ms": 2400,
+    "created_at": "2026-10-08T09:14:03+09:00",
+    "privacy": {
+      "faces": 0,
+      "plates": 0,
+      "vehicles": 0,
+      "boxes": [],
+      "detectors": {
+        "face": "yunet",
+        "plate": "pretrained+heuristic",
+        "vehicle": "vehicle"
+      },
+      "masked_area_ratio": 0.0,
+      "mode": "device+server",
+      "device": {
+        "faces": 0,
+        "plates": 1,
+        "vehicles": null,
+        "detector": "yunet+plate-t384+effdet0",
+        "app_version": "1.0.0"
+      },
+      "server_added": 0
+    },
+    "raw_certainty": "low"
+  }
+}
