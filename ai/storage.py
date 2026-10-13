@@ -102,6 +102,19 @@ class LocalImageStore:
                 return 0
         return 1 if (self.root / (key + SUFFIX)).is_file() else 0  # 버전 기록 이전에 저장된 사진
 
+    def delete_masked(self, photo_id: str) -> bool:
+        """보관 기간이 지난 가린 사진과 버전 기록을 지운다. 지웠으면 True."""
+        key = safe_photo_id(photo_id)
+        if key != photo_id:
+            return False
+        with _rev_lock:
+            found = False
+            for p in (self.root / (key + SUFFIX), self.rev_root / (key + REV_SUFFIX)):
+                if p.is_file():
+                    p.unlink()
+                    found = True
+        return found
+
     def path_for(self, file_name: str) -> Path | None:
         """주소의 파일 이름으로 실제 경로를 찾는다. 가린 사진 이름 형식이 아니면 None (경로 조작 방지)."""
         if not file_name.endswith(SUFFIX) or not _SAFE_ID.match(file_name[: -len(SUFFIX)]):
@@ -233,10 +246,11 @@ class EventLog:
       image_hidden    담당자 가림 점검에서 부족 판정. 백엔드도 이 사진의 조회·판독 사용을 막아야 함
       image_unhidden  가림 점검에서 다시 괜찮다고 기록됨 (재승인 여부는 백엔드 정책)
       result_updated  재판독·재비교가 끝나 결과가 바뀜. GET /results/{photo_id}로 다시 받음
+      image_deleted   보관 기간이 지나 가린 사진을 지움 (판독 결과는 남음). retention.py 참고
     한 프로세스(작업자 1개) 기준 구현이다. 작업자를 늘리면 DB나 Redis로 옮긴다.
     """
 
-    TYPES = {"image_remasked", "image_hidden", "image_unhidden", "result_updated"}
+    TYPES = {"image_remasked", "image_hidden", "image_unhidden", "result_updated", "image_deleted"}
 
     def __init__(self, path: str | Path | None = None):
         self.path = Path(path or os.environ.get("EVENT_LOG")
