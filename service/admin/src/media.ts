@@ -11,6 +11,10 @@ export type MediaRef = {
   mediaVersion: number
   privacyStatus: 'APPROVED' | 'QUARANTINED' | 'REJECTED'
   contentPath: string
+  /** 사진 기록 version. 개인정보 검토 요청에 보낸다 (실제 업무 서버만) */
+  version?: number
+  /** 보류 해제(재승인) 처리 상태 */
+  privacyRelease?: { releaseId: string; status: string; retryable?: boolean; failureReason?: string | null } | null
 }
 
 /** API 서버 주소. 같은 주소에서 서비스하면 비워 둔다 (.env의 VITE_API_ORIGIN) */

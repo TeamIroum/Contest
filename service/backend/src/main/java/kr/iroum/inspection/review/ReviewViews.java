@@ -48,7 +48,11 @@ public final class ReviewViews {
     public record CapturedBy(String teamName, List<CapturedMember> members) {
     }
 
-    public record Media(UUID id, int mediaVersion, String privacyStatus, String contentPath, PrivacyRelease privacyRelease) {
+    /**
+     * mediaVersion: 가림 회차(AI 이미지 revision). version: 사진 기록 version(media.version) — 개인정보 검토
+     * (POST /admin/media/{id}/privacy-reviews·privacy-release-retries)가 요구하는 낙관적 잠금 값. (service/: 화면이 판정을 보낼 수 있게 추가)
+     */
+    public record Media(UUID id, int mediaVersion, String privacyStatus, String contentPath, PrivacyRelease privacyRelease, long version) {
     }
 
     public record Finding(String facilityType, String code, String label, List<Double> bbox, String evidence) {

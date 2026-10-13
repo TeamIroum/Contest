@@ -114,10 +114,10 @@ public class ReviewReader {
     }
 
     public Media media(UUID mediaId) {
-        Map<String, Object> m = jdbc.queryForMap("SELECT privacy_status, provider_image_revision FROM media WHERE id = ?", mediaId);
+        Map<String, Object> m = jdbc.queryForMap("SELECT privacy_status, provider_image_revision, version FROM media WHERE id = ?", mediaId);
         Integer revision = (Integer) m.get("provider_image_revision");
         return new Media(mediaId, revision == null ? 1 : revision, (String) m.get("privacy_status"), "/api/v1/media/" + mediaId + "/content",
-                privacy.release(mediaId).orElse(null));
+                privacy.release(mediaId).orElse(null), ((Number) m.get("version")).longValue());
     }
 
     /** 스냅샷 하나(analysis_results) → 관리자 분석 객체. */

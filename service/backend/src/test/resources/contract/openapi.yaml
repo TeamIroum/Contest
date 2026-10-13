@@ -8849,6 +8849,10 @@ components:
           anyOf:
           - $ref: '#/components/schemas/PrivacyRelease'
           - type: 'null'
+        version:
+          type: integer
+          minimum: 0
+          description: 사진 기록 version(media.version). 개인정보 검토(privacy-reviews·privacy-release-retries) 요청의 version 값. service/에서 추가
       required:
       - id
       - mediaVersion

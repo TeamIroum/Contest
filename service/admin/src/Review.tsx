@@ -373,6 +373,7 @@ function TaskDetail({
             </figure>
           ))}
         </div>
+        {task.real && task.photos.map((p) => p.media?.version !== undefined && <PrivacyPanel key={`pv-${p.slot}`} media={p.media} />)}
         {zoom && zoomPhoto && (
           <Modal title={`${f.name} ${zoom}`} onClose={() => setZoom(null)} width="max-w-4xl">
             <Photo kind={f.kind} {...zoomPhoto} box={!!a?.findings.length} boxes={a?.findings.map((x) => x.bbox)} className={`w-full ${task.type === 'CAPTURE_FAILURE' ? 'blur-[4px]' : ''}`} label={`${f.name} ${zoom} 크게`} />
@@ -628,6 +629,72 @@ const DECISION_DESC: Record<Decision, string> = {
 }
 
 /** 시설 종류·문제 유형 분류: AI 원본과 사람 정정을 구분해 보여 주고, 사유와 함께 정정한다 (D-08). 위험도 정정은 없다 */
+/**
+ * 개인정보 검토 (실제 업무 서버): 공개된 사진은 '가림 부족'으로 즉시 보류, 보류된 사진은 확인 뒤 공개 허용.
+ * 공개는 AI가 해제를 확인한 뒤에만 된다(처리 중 표시). 실패하면 다시 시도.
+ */
+function PrivacyPanel({ media }: { media: NonNullable<ReviewTask['photos'][number]['media']> }) {
+  const [open, setOpen] = useState(false)
+  const [reason, setReason] = useState('')
+  const [saving, setSaving] = useState(false)
+  const held = media.privacyStatus !== 'APPROVED'
+  const rel = media.privacyRelease
+  const go = (action: () => Promise<unknown>) => {
+    setSaving(true)
+    real.run(action).then((done) => {
+      setSaving(false)
+      if (done) {
+        setOpen(false)
+        setReason('')
+      }
+    })
+  }
+  if (!held && !open)
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="justify-self-start text-xs text-mute underline underline-offset-2">
+        얼굴·번호판 가림이 부족해요
+      </button>
+    )
+  const pending = rel?.status === 'PENDING'
+  const failed = rel?.status === 'FAILED'
+  return (
+    <section className="grid gap-2 rounded-lg border border-g2/40 bg-g2-soft/60 p-3 text-sm" aria-label="개인정보 검토">
+      <p className="m-0 font-bold">{held ? '개인정보 보류 중인 사진' : '가림 부족으로 보류하기'}</p>
+      <p className="m-0 text-xs text-sub">
+        {held
+          ? pending
+            ? '공개를 허용했습니다. AI가 가림을 다시 확인하면 공개됩니다.'
+            : failed
+              ? `공개 처리에 실패했습니다${rel?.failureReason ? ` (${rel.failureReason})` : ''}.`
+              : '가려지지 않은 얼굴·번호판이 있어 사진을 숨겼습니다. 다시 가린 사진을 확인한 뒤 공개를 허용하세요.'
+          : '사진에 가려지지 않은 얼굴이나 번호판이 있으면 바로 숨기고 AI에 다시 가리도록 알립니다.'}
+      </p>
+      {!pending && !(failed && rel?.retryable) && (
+        <>
+          <input value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls} placeholder={held ? '예: 다시 가린 사진에서 얼굴이 모두 가려짐' : '예: 왼쪽 사람 얼굴이 가려지지 않음'} aria-label="개인정보 검토 사유" />
+          <div className="flex gap-2">
+            <Button size="sm" variant="primary" disabled={!reason.trim() || saving} onClick={() => go(() => real.privacyReview(media, held, reason.trim()))}>
+              {held ? '가림 확인 · 공개 허용' : '보류하기'}
+            </Button>
+            {!held && (
+              <Button size="sm" onClick={() => setOpen(false)}>
+                취소
+              </Button>
+            )}
+          </div>
+        </>
+      )}
+      {failed && rel?.retryable && (
+        <div>
+          <Button size="sm" variant="primary" disabled={saving} onClick={() => go(() => real.privacyRetry(media))}>
+            공개 다시 시도
+          </Button>
+        </div>
+      )}
+    </section>
+  )
+}
+
 function ClassificationPanel({ task, onSave, disabled }: { task: ReviewTask; onSave: (next: { kind: Kind; issueTypes: string[] }, reason: string) => void; disabled: boolean }) {
   const f = fac(task.facilityId)
   const current = task.classification ?? { source: 'AI' as const, kind: f.kind, issueTypes: [], version: 0, correctionId: null }

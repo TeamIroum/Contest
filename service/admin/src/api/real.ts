@@ -428,6 +428,13 @@ type ApiIssue = {
 
 const REPAIR_EVENT_NAME: Record<string, string> = { REQUESTED: '보수 요청', STARTED: '보수 시작', COMPLETED: '보수 완료' }
 
+/** 개인정보 검토: ok=false 가림 부족(즉시 보류) / ok=true 가림 확인(보류 사진 공개 허용, AI 확인 뒤 공개) */
+export const privacyReview = (m: MediaRef, ok: boolean, reason: string) =>
+  api('POST', `/admin/media/${m.id}/privacy-reviews`, { ok, reason, version: m.version }, { idempotent: true })
+/** 공개 허용이 실패했을 때 다시 시도 */
+export const privacyRetry = (m: MediaRef) =>
+  api('POST', `/admin/media/${m.id}/privacy-release-retries`, { releaseId: m.privacyRelease!.releaseId, version: m.version }, { idempotent: true })
+
 /** 수리 확인 기록 (GET /admin/issues/{id}/verifications). 판정까지 된 것만 처리 이력에 넣는다 */
 type ApiVerification = {
   verificationMethod: 'PHOTO' | 'SITE_VISIT'
