@@ -1,6 +1,7 @@
 // 시니어 앱을 휴대폰 크기 실제 브라우저로: 로그인(시연 번호·인증번호) → 오늘 순회 → 출석 → 장소 → 전체 화면 촬영 → 결과
 // 카메라는 Chromium 가짜 장치(움직이는 시험 화면)를 쓴다.
 //   node senior.mjs [시니어 앱 주소] [--shoot]   (기본: 이 PC의 Caddy http://127.0.0.1:8180, --shoot이면 셔터까지 눌러 실제로 보낸다)
+//   VIDEO=<사진을 이어 붙인 .mjpeg>: 카메라에 실제 사진을 비춘다 (없으면 Chromium 기본 시험 화면)
 import { open, report, serviceEnv } from './common.mjs'
 
 const URL_ = process.argv.slice(2).find((a) => !a.startsWith('--')) || 'http://127.0.0.1:8180'
@@ -8,7 +9,7 @@ const SHOOT = process.argv.includes('--shoot')
 const code = serviceEnv().DEMO_OTP_CODE
 if (!code) throw new Error('service\\.env에 DEMO_OTP_CODE가 필요합니다')
 
-const { browser, page, problems, shot } = await open({ mobile: true })
+const { browser, page, problems, shot } = await open({ mobile: true, video: process.env.VIDEO })
 const tap = (name) => page.getByRole('button', { name, exact: false }).first().click()
 try {
   console.log(`시니어 앱 ${URL_}`)

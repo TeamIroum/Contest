@@ -9,6 +9,7 @@
 | `web/` | `infra/demo-https` | 앞단 Caddy. 정적 화면 + `/api` → 업무 백엔드(:8080) |
 | `backend/` | `backend` | 업무 백엔드. 원본 그대로에 CSRF 쿠키 버그 수정만 더함(아래) |
 | `docker/` | `infra/aws` | 업무 백엔드 + Redis 컨테이너 실행 파일(Dockerfile, compose). 서버에 올릴 때 쓴다 |
+| `ui-test/` | — | 두 앱을 실제 브라우저(Playwright Chromium)로 눌러 보고 화면을 캡처하는 시험 |
 | `start.ps1`, `stop.ps1` | — | 이 PC 한 대로 서비스 켜기·끄기 |
 
 업무 백엔드는 `service/backend`를 local 프로필(시연 데이터 + 시연 로그인)로 실행한다. 원본과 다른 점:
@@ -35,3 +36,18 @@
 
 - PC가 켜져 있고 인터넷이 연결되어 있어야 열린다. 다 쓰면 `stop.ps1`로 공개 주소를 닫는다
 - 시연 데이터의 순회는 2026-10-15 10:00~12:00(한국 시간) 하나다. 다른 날 시험하려면 `tools/e2e/move_demo_date.sql`
+
+## 화면 시험 (`ui-test/`)
+
+서비스를 켠 뒤 실제 브라우저로 두 앱을 눌러 보고 `ui-test/shots/`에 캡처를 남긴다. 화면 오류·실패한 API 응답을 모아 끝에 보여 준다. 값은 `service\.env`에서 읽는다.
+
+```bash
+cd service/ui-test
+npm install && npm run install-browser          # 처음 한 번
+node admin.mjs https://<PC>.ts.net:10000         # 관리자 웹: 로그인·검토 목록·사건·오늘 활동 현황
+node admin-decide.mjs https://<PC>.ts.net:10000  # 관리자 웹에서 판정 저장 → 사건 생성 (LOGIN=demo-road 등으로 계정 선택)
+node senior.mjs https://<PC>.ts.net --shoot      # 시니어 앱: 로그인 → 출석 → 전체 화면 촬영 → 보내기
+```
+
+- 시니어 앱 카메라는 Chromium 가짜 장치다. `VIDEO=<JPEG를 이어 붙인 .mjpeg>`를 주면 그 사진을 카메라에 비춘다(기본 시험 화면은 단색이라 흐림으로 나온다)
+- `--shoot`과 `admin-decide.mjs`는 실제 데이터를 만든다(사진 접수, 판정, 사건)
