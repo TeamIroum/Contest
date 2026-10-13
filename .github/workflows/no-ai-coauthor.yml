@@ -1,0 +1,28 @@
+name: no-ai-coauthor
+
+# AI 도구(Claude, ChatGPT/Codex, Copilot, Gemini 등)를 커밋 작성자·공동 작성자로 올리지 않는다.
+# 커밋 본문에서 AI를 언급하는 것은 괜찮고, 작성자 정보·Co-authored-by 줄·PR 본문의 자동 서명만 막는다.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: 커밋과 PR 본문에서 AI 기여자 표시 찾기
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: bash .github/scripts/check-ai-coauthor.sh

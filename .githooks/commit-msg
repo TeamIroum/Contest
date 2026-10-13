@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# 커밋할 때 AI 공동 작성자 줄이 있으면 막는다. 켜기: git config core.hooksPath .githooks
+exec bash "$(git rev-parse --show-toplevel)/.github/scripts/check-ai-coauthor.sh" --message "$1"
