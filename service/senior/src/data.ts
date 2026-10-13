@@ -36,6 +36,8 @@ export type Stop = {
   slotIds?: string[]
   /** 서버 구도 상태 (captureStatus). ACCEPTED·REVIEW_REQUESTED면 이미 끝난 구도 */
   slotStatus?: (string | null | undefined)[]
+  /** 서버 장소 상태 (visitStatus): PENDING 말고는 끝난 장소 (CAPTURED·SKIPPED·REVIEW_REQUESTED·NOT_VISITED). 조원이 건너뛴 곳도 여기로 안다 */
+  visitStatus?: string | null
   /** 서버가 알려 준 남은 재촬영 횟수 (구도별) */
   slotRetakes?: (number | undefined)[]
   x: number
@@ -70,12 +72,12 @@ const KIND_OF: Record<string, Kind> = {
 /** 끝난 구도: 다시 찍지 않는다 (찍어 올려도 '이미 끝난 곳'으로 거절됨) */
 export const isResolvedStatus = (s?: string | null) => s === 'ACCEPTED' || s === 'REVIEW_REQUESTED'
 export const slotDone = (st: Stop, slot: number) => isResolvedStatus(st.slotStatus?.[slot])
-export const stopDone = (st: Stop) => st.slots.every((_, i) => slotDone(st, i))
+export const stopDone = (st: Stop) => (!!st.visitStatus && st.visitStatus !== 'PENDING') || st.slots.every((_, i) => slotDone(st, i))
 
 /** 서버 순회(GET /patrols/{id})를 앱 장소 목록으로 바꿔 넣는다 */
 export function applyPatrol(p: {
   id: string
-  stops: { id: string; name: string; facilityType: string; instruction?: string; captureSlots: { id: string; label: string; captureStatus?: string | null; retakesRemaining?: number; purpose?: string }[] }[]
+  stops: { id: string; name: string; facilityType: string; instruction?: string; visitStatus?: string | null; captureSlots: { id: string; label: string; captureStatus?: string | null; retakesRemaining?: number; purpose?: string }[] }[]
 }) {
   TEAM.patrolId = p.id
   STOPS = p.stops.map((s, i) => ({
@@ -88,6 +90,7 @@ export function applyPatrol(p: {
     instruction: s.instruction ?? '',
     slotIds: s.captureSlots.map((c) => c.id),
     slotStatus: s.captureSlots.map((c) => c.captureStatus),
+    visitStatus: s.visitStatus,
     slotRetakes: s.captureSlots.map((c) => c.retakesRemaining),
     ...MAP_SPOTS[i % MAP_SPOTS.length],
   }))

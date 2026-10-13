@@ -103,8 +103,8 @@ export async function verifyOtp(challengeId: string, code: string): Promise<Logi
 
 // ---------------- 오늘 순회 (응답 JSON 명세 7절: GET /me/patrols, GET /patrols/{id})
 export type ApiSlot = { id: string; label: string; instruction?: string; captureStatus?: string | null; retakesRemaining?: number; purpose?: 'REGULAR' | 'REINSPECTION' }
-export type ApiStop = { id: string; order?: number; name: string; facilityType: string; instruction?: string; captureSlots: ApiSlot[] }
-export type ApiMember = { participantId: string; name: string; attendance?: 'UNCHECKED' | 'PRESENT' | 'ABSENT'; attendanceRequestedAt?: string | null; startedAt?: string | null; paused?: boolean }
+export type ApiStop = { id: string; order?: number; name: string; facilityType: string; instruction?: string; visitStatus?: string | null; captureSlots: ApiSlot[] }
+export type ApiMember = { participantId: string; name: string; attendance?: 'UNCHECKED' | 'PRESENT' | 'ABSENT'; attendanceRequestedAt?: string | null; startedAt?: string | null; paused?: boolean; returned?: boolean }
 export type ApiPatrol = {
   id: string
   stops: ApiStop[]
@@ -150,7 +150,7 @@ export function memberStates(p: ApiPatrol) {
   const me = p.members?.find((m) => m.participantId === meId)
   const partner = p.members?.find((m) => m.participantId !== meId)
   const att = (m?: ApiMember) => (m?.attendance === 'PRESENT' ? 'present' : m?.attendanceRequestedAt ? 'requested' : 'none') as 'none' | 'requested' | 'present'
-  return { me, partner, myAtt: att(me), partnerAtt: att(partner), departed: !!p.departureConfirmedAt }
+  return { me, partner, myAtt: att(me), partnerAtt: att(partner), departed: !!p.departureConfirmedAt, returned: !!me?.returned }
 }
 
 // ---------------- 출석 요청·활동 시작 (같은 clientEventId로 다시 보내면 서버가 같은 결과를 돌려줌)
@@ -160,3 +160,9 @@ export const startActivity = (patrolId: string, p: ApiPatrol | null) => api('POS
 /** 잠깐 쉬기 시작·끝. 담당자 화면(오늘 활동 현황)에 '쉬는 중'으로 보인다 */
 export const sendPause = (patrolId: string, p: ApiPatrol | null, on: boolean) =>
   api('POST', `/patrols/${patrolId}/pause-events`, { ...event(p), type: on ? 'PAUSE_STARTED' : 'PAUSE_ENDED' })
+/** 이곳은 찍을 수 없어요: 장소를 건너뜀으로 기록한다. reason = UNSAFE / NOT_FOUND / FACILITY_REMOVED / OTHER */
+export const sendSkip = (patrolId: string, p: ApiPatrol | null, stopId: string, reason: string) =>
+  api('POST', `/patrols/${patrolId}/stops/${stopId}/skip-events`, { ...event(p), reason })
+/** 복귀 요청. abortReason(HEALTH / DEVICE / OTHER)이 있으면 중도 종료, 없으면 정상 복귀. 담당자가 복귀 확인을 하면 끝난다 */
+export const sendReturn = (patrolId: string, p: ApiPatrol | null, abortReason?: string) =>
+  api('POST', `/patrols/${patrolId}/return-requests`, { ...event(p), returnReason: abortReason ? 'ABORT' : 'NORMAL', abortReason: abortReason ?? null })

@@ -6,7 +6,7 @@ import * as quality from './camera/quality.js'
 import * as masking from './masking/masking.js'
 import * as outbox from './offline/outbox.js'
 import type { OutboxItem, SubmitBody } from './offline/outbox.js'
-import { ApiError, NoPatrolError, REAL_BACKEND, fetchPatrol, kstClock, sendPause, fetchTodayPatrol, memberStates, requestAttendance, requestOtp, sendOpts, startActivity, verifyOtp, type ApiPatrol, type OtpChallenge } from './api/client'
+import { ApiError, NoPatrolError, REAL_BACKEND, fetchPatrol, kstClock, sendPause, sendReturn, sendSkip, fetchTodayPatrol, memberStates, requestAttendance, requestOtp, sendOpts, startActivity, verifyOtp, type ApiPatrol, type OtpChallenge } from './api/client'
 import { playNotify, playRetake, playShutter, playSuccess, setSoundEnabled, unlockAudio } from './sounds'
 import { ABORT_REASONS, MAX_ATTEMPTS, ME, PARTNER, SKIP_REASONS, STAFF, STOPS, TEAM, applyPatrol, slotDone, stopDone, type Stop } from './data'
 
@@ -239,11 +239,49 @@ export default function App() {
     }, 1600)
     return () => clearTimeout(t)
   }, [myAtt, partnerAtt, departed])
+  // 복귀 확인 기다리기: 실제 백엔드면 담당자가 관리자 화면에서 복귀를 확인할 때까지 4초마다 다시 본다 (시연 데이터는 잠시 뒤 끝남)
   useEffect(() => {
     if (screen !== 'returnWait') return
-    const t = setTimeout(() => setScreen('done'), 2800)
-    return () => clearTimeout(t)
+    if (!REAL_BACKEND) {
+      const t = setTimeout(() => setScreen('done'), 2800)
+      return () => clearTimeout(t)
+    }
+    const check = () =>
+      fetchPatrol(TEAM.patrolId).then(
+        (p) => {
+          if (!memberStates(p).returned) return
+          playNotify()
+          setScreen('done')
+        },
+        () => {},
+      )
+    check()
+    const t = setInterval(check, 4000)
+    return () => clearInterval(t)
   }, [screen])
+
+  /** 복귀 요청을 이미 보냈는지 (그만하기에서 보냈으면 '센터에 도착했어요'에서 다시 보내지 않는다) */
+  const returnSent = useRef(false)
+  /** 이곳은 찍을 수 없어요: 서버에 건너뜀을 남긴 뒤 다음 장소로 */
+  function skipStop(reason: string) {
+    setSheet(null)
+    if (!REAL_BACKEND) return goNextStop('skipped')
+    sendSkip(TEAM.patrolId, patrol, stop.id, reason).then(
+      () => goNextStop('skipped'),
+      (e) => say(e, '건너뛴 것을 기록하지 못했어요. 다시 해 주세요.'),
+    )
+  }
+  /** 센터에 도착했어요 (정상 복귀): 복귀 요청을 보내고 담당자 확인을 기다린다 */
+  function arriveCenter() {
+    if (!REAL_BACKEND || returnSent.current) return setScreen('returnWait')
+    sendReturn(TEAM.patrolId, patrol).then(
+      () => {
+        returnSent.current = true
+        setScreen('returnWait')
+      },
+      (e) => say(e, '복귀를 알리지 못했어요. 다시 해 주세요.'),
+    )
+  }
 
   function goNextStop(result: StopResult) {
     setResults((r) => ({ ...r, [stop.id]: result }))
@@ -448,7 +486,13 @@ export default function App() {
     }
   }
 
-  function abort() {
+  /** 오늘 활동 그만하기: 중도 종료 복귀 요청을 보낸다. 몸이 불편할 수 있으니 서버 응답을 기다리지 않고 화면은 바로 넘긴다 */
+  function abort(reason: string) {
+    if (REAL_BACKEND)
+      sendReturn(TEAM.patrolId, patrol, reason).then(
+        () => (returnSent.current = true),
+        (e) => say(e, '그만한다는 것을 선생님께 알리지 못했어요. 도움 버튼으로 연락해 주세요.'),
+      )
     setSheet(null)
     setPaused(false)
     setAborted(true)
@@ -613,7 +657,7 @@ export default function App() {
               {screen === 'upload' && <Upload onDone={afterUpload} stage={live ? stage : undefined} />}
               {screen === 'retake' && <Retake stop={stop} attempt={attempt} onRetry={() => setScreen('camera')} note={live ? retakeNote : null} shot={live ? shot : undefined} />}
               {screen === 'sent' && <Sent stop={stop} slot={slot} outcome={outcome} last={idx === STOPS.length - 1} onNext={afterSent} message={live ? serverMsg : undefined} shot={live ? shot : undefined} />}
-              {screen === 'return' && <Return aborted={aborted} results={results} onBack={() => setScreen('returnWait')} />}
+              {screen === 'return' && <Return aborted={aborted} results={results} onBack={arriveCenter} />}
               {screen === 'returnWait' && <ReturnWait results={results} />}
               {screen === 'done' && <Done results={results} aborted={aborted} onHome={resetDay} />}
             </>
@@ -627,10 +671,7 @@ export default function App() {
       {sheet === 'skip' && (
         <SkipSheet
           onClose={() => setSheet(null)}
-          onSkip={() => {
-            setSheet(null)
-            goNextStop('skipped')
-          }}
+          onSkip={skipStop}
         />
       )}
       {sheet === 'abort' && <AbortSheet onClose={() => setSheet(null)} onAbort={abort} />}
@@ -1226,7 +1267,7 @@ function Route({
       <Bottom>
         {done ? (
           <>
-            <p className="m-0 rounded-2xl bg-g0-soft px-4 py-3 text-center text-[1.02rem] font-bold text-g0-ink">이미 끝난 곳이에요</p>
+            <p className="m-0 rounded-2xl bg-g0-soft px-4 py-3 text-center text-[1.02rem] font-bold text-g0-ink">{s.visitStatus === 'SKIPPED' ? '건너뛴 곳이에요' : s.visitStatus === 'NOT_VISITED' ? '못 간 곳으로 기록됐어요' : '이미 끝난 곳이에요'}</p>
             <Primary onClick={onNextStop}>다음 장소로</Primary>
           </>
         ) : (
@@ -1698,11 +1739,11 @@ function ChoiceButton({ children, onClick }: { children: ReactNode; onClick: () 
   )
 }
 
-function SkipSheet({ onClose, onSkip }: { onClose: () => void; onSkip: () => void }) {
+function SkipSheet({ onClose, onSkip }: { onClose: () => void; onSkip: (reason: string) => void }) {
   return (
     <SheetFrame title="왜 찍을 수 없나요?" sub="고르면 이 장소는 건너뛰고 기록해 둬요." onClose={onClose}>
       {SKIP_REASONS.map((r) => (
-        <ChoiceButton key={r.code} onClick={onSkip}>
+        <ChoiceButton key={r.code} onClick={() => onSkip(r.code)}>
           {r.label}
         </ChoiceButton>
       ))}
@@ -1711,11 +1752,11 @@ function SkipSheet({ onClose, onSkip }: { onClose: () => void; onSkip: () => voi
   )
 }
 
-function AbortSheet({ onClose, onAbort }: { onClose: () => void; onAbort: () => void }) {
+function AbortSheet({ onClose, onAbort }: { onClose: () => void; onAbort: (reason: string) => void }) {
   return (
     <SheetFrame title="오늘 활동을 그만할까요?" sub="남은 장소는 '못 감'으로 기록하고 센터로 돌아가요." onClose={onClose}>
       {ABORT_REASONS.map((r) => (
-        <ChoiceButton key={r.code} onClick={onAbort}>
+        <ChoiceButton key={r.code} onClick={() => onAbort(r.code)}>
           {r.label}
         </ChoiceButton>
       ))}
@@ -1779,16 +1820,6 @@ function PhoneIcon({ size = 20 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
       <path d="M6.6 3.5 9 6.6c.4.5.3 1.2-.1 1.6L7.6 9.5a11 11 0 0 0 6.9 6.9l1.3-1.3c.4-.4 1.1-.5 1.6-.1l3.1 2.4c.5.4.6 1.2.1 1.7l-1.4 1.5c-.6.6-1.5.9-2.4.6C9.9 19.4 4.6 14.1 2.8 7.2c-.3-.9 0-1.8.6-2.4L4.9 3.4c.5-.5 1.3-.4 1.7.1Z" fill="currentColor" />
-    </svg>
-  )
-}
-function SunIcon() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden className="flex-none text-brand-600">
-      <circle cx="20" cy="20" r="7.5" fill="currentColor" />
-      {Array.from({ length: 8 }, (_, i) => (
-        <rect key={i} x="19" y="3" width="2.4" height="6" rx="1.2" fill="currentColor" transform={`rotate(${i * 45} 20 20)`} />
-      ))}
     </svg>
   )
 }
