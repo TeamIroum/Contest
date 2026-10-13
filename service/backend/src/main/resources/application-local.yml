@@ -7,6 +7,9 @@ spring:
 # 시연 설정. 고정 시연 코드는 환경 변수로만 받는다(비어 있으면 시연 OTP 경로 404).
 # 시니어 번호는 실제 번호가 아닌 가상 번호(010-0000-000x)만 쓴다.
 inspection:
+  # 시연: AI가 이상 없다고 본 사진도 모두 검토 목록에 올려 담당자 판정을 보여 준다 (운영 기본값 0, application.yml)
+  review:
+    no-issue-sample-rate: 1
   demo:
     enabled: true
     otp-code: ${DEMO_OTP_CODE:}

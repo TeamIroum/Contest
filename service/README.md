@@ -18,6 +18,7 @@
 - CSRF 쿠키 버그 수정(`common/security/SecurityConfig.java`): Bearer 인증이 될 때마다 Spring Security가 `__Host-itda-csrf` 쿠키를 지워, 로그인 뒤 조회 한 번이면 다음 변경 요청(출석 요청·판정 등)이 403이 되던 문제. 회귀 시험 `auth/CsrfCookieKeptRegressionTest.java`
 - 검토 응답의 사진(`review/ReviewViews.Media`)에 기록 `version` 추가: 개인정보 검토 API(`/admin/media/{id}/privacy-reviews`)가 요구하는 값인데 응답에 없어 화면이 판정을 보낼 수 없었다. 계약 명세(`src/test/resources/contract/openapi.yaml`)에 선택 칸으로 추가
 - 출발 확인·활동 시작 규칙을 기능정의서(SEN-13·ACT-07·ACC-02)대로 (`patrol/command/StartDepartureService.java`): 출발 확인은 출석 확정(PRESENT) 2명 이상일 때만, 활동 시작은 출발 확인 뒤에만, 조원 누구든 누르면 출석한 조원 전원이 같은 시각으로 시작. 원본은 개인 시작(D-02: 출발 확인을 기다리지 않고 누른 사람만 시작)이었다. 원본의 `StartDepartureIntegrationTest`는 개인 시작을 전제로 해서 이 규칙과 맞지 않는다(Docker가 없어 고치지 않음)
+- 시연(local 프로필, `application-local.yml`): AI가 이상 없다고 본 사진도 모두 검토 목록에 올린다(`inspection.review.no-issue-sample-rate: 1`, 운영 기본값 0). 시연에서 담당자 판정을 늘 보여 주기 위함
 
 ## 이 PC로 서비스하기
 
