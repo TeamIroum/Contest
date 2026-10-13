@@ -30,7 +30,7 @@ import {
   type Team,
   type TriggerReason,
 } from '../data'
-import { ApiError, api } from './client'
+import { ApiError, api, apiForm } from './client'
 
 /* ---------------- 처리 결과 알림 (App이 다시 불러오고, 실패하면 알림을 띄운다) ---------------- */
 
@@ -465,7 +465,7 @@ function toIssue(i: ApiIssue, verifications: ApiVerification[] = []): Issue {
     const cur = repairs.at(-1)
     if (!cur) continue
     if (e.type === 'STARTED') cur.startedAt = at
-    if (e.type === 'COMPLETED') Object.assign(cur, { completedAt: at, description: e.description ?? '', evidence: !!e.evidenceMedia?.length })
+    if (e.type === 'COMPLETED') Object.assign(cur, { completedAt: at, description: e.description ?? '', evidence: !!e.evidenceMedia?.length, evidenceMedia: e.evidenceMedia ?? [] })
   }
   const linked = i.inspections.filter((x) => !x.unlinkedAt)
   const before = linked[0]
@@ -519,8 +519,19 @@ export async function loadIssues(): Promise<Issue[]> {
 export const requestRepair = (i: Issue, memo: string) =>
   api('POST', `/admin/issues/${i.id}/repair-requests`, { assignedDepartmentId: i.real!.deptId, memo: memo || null, version: i.real!.version }, { idempotent: true })
 export const startRepair = (i: Issue) => api('POST', `/admin/issues/${i.id}/repair-starts`, { version: i.real!.version }, { idempotent: true })
-export const completeRepair = (i: Issue, description: string) =>
-  api('POST', `/admin/issues/${i.id}/repair-completions`, { description, completedAt: new Date().toISOString(), evidenceMediaIds: [], version: i.real!.version }, { idempotent: true })
+export const completeRepair = (i: Issue, description: string, evidenceMediaIds: string[] = []) =>
+  api('POST', `/admin/issues/${i.id}/repair-completions`, { description, completedAt: new Date().toISOString(), evidenceMediaIds, version: i.real!.version }, { idempotent: true })
+/** 보수 증빙 사진 올리기 (POST /admin/media, purpose=REPAIR_EVIDENCE). 기기에서 얼굴·번호판을 가린 사진만 받는다 */
+export function uploadEvidence(i: Issue, jpeg: Blob, report: unknown, maskingVersion: string) {
+  const form = new FormData()
+  form.append('purpose', 'REPAIR_EVIDENCE')
+  form.append('issueId', i.id)
+  form.append('deviceMasked', 'true')
+  form.append('deviceMaskReport', JSON.stringify(report))
+  form.append('maskingVersion', maskingVersion)
+  form.append('file', jpeg, 'evidence.jpg')
+  return apiForm<{ mediaId: string; privacyStatus: string }>('/admin/media', form)
+}
 
 /** 수리 확인(현장 확인): 준비(SITE_VISIT, 확인 내용) → 판정. 재점검 사진 판정은 재점검 촬영 칸 API가 생기면 연결 */
 export type VerifyInput = { decision: 'CLOSE' | 'REPAIR_AGAIN' | 'FOLLOW_UP_REQUIRED'; followUp?: 'REPHOTO' | 'SITE_VISIT'; fieldNote: string; reason: string }

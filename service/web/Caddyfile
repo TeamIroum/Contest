@@ -63,6 +63,11 @@ http://:8180 {
 http://:8181 {
 	bind 127.0.0.1
 	import api
+	# 보수 증빙 사진을 브라우저에서 가리는 모델(얼굴·번호판·차량): 시니어 앱 폴더의 /models/를 그대로 쓴다
+	handle /models/* {
+		root * ../senior/dist
+		file_server
+	}
 	root * ../admin/dist
 	import spa
 }

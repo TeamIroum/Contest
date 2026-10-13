@@ -91,6 +91,19 @@ export async function api<T>(method: Method, path: string, body?: unknown, opts:
   return b as T
 }
 
+/** 파일 올리기 (multipart). 같은 요청을 다시 보내도 서버가 같은 결과를 돌려주도록 Idempotency-Key를 붙인다 */
+export async function apiForm<T>(path: string, form: FormData): Promise<T> {
+  await ensureCsrf()
+  const key = crypto.randomUUID()
+  const call = () =>
+    fetch(`${API_BASE}${path}`, { method: 'POST', cache: 'no-store', credentials: 'include', headers: { Accept: 'application/json', ...authHeaders(), 'Idempotency-Key': key }, body: form })
+  let r = await call()
+  if (r.status === 401 && token && (await refreshSession())) r = await call()
+  const b = await r.json().catch(() => ({}))
+  if (!r.ok) throw new ApiError(r.status, b.code, b.message)
+  return b as T
+}
+
 // ---------------- 관리자 로그인 (업무 API 4.3절, D-21~23)
 export type LoginUser = { id: string; name: string; roles: string[] }
 export type LoginResult = { kind: 'in'; user: LoginUser } | { kind: 'password-change' }
