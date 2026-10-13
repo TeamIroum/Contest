@@ -1,0 +1,8 @@
+{
+  "mediaId": "70000000-0000-4000-8000-000000000091",
+  "purpose": "REPAIR_EVIDENCE",
+  "issueId": "b1000000-0000-4000-8000-000000000003",
+  "privacyStatus": "APPROVED",
+  "mediaVersion": 1,
+  "contentPath": "/api/v1/media/70000000-0000-4000-8000-000000000091/content"
+}

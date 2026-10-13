@@ -1,0 +1,11 @@
+{
+  "code": "ACTIVITY_STATE_CONFLICT",
+  "message": "다른 조로 옮긴 조원이에요. 지금 배정된 조에서 처리해 주세요.",
+  "requestId": "req-skip-transferred",
+  "fieldErrors": [],
+  "details": {
+    "reason": "MEMBER_TRANSFERRED",
+    "activityStatus": "IN_PROGRESS",
+    "transferredToPatrolId": "30000000-0000-4000-8000-000000000002"
+  }
+}

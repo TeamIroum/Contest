@@ -1,0 +1,22 @@
+{
+  "mediaId": "70000000-0000-4000-8000-000000000001",
+  "privacyStatus": "QUARANTINED",
+  "version": 2,
+  "providerSyncStatus": "PENDING",
+  "affectedInspectionIds": [
+    "60000000-0000-4000-8000-000000000001"
+  ],
+  "reviewedAt": "2026-10-15T05:00:00Z",
+  "release": {
+    "releaseId": "9a000000-0000-4000-8000-000000000001",
+    "status": "PENDING",
+    "decidedAt": "2026-10-15T05:00:00Z",
+    "decidedMediaVersion": 1,
+    "attempts": 0,
+    "nextRetryAt": null,
+    "completedAt": null,
+    "failureReason": null,
+    "invalidReason": null,
+    "retryable": false
+  }
+}

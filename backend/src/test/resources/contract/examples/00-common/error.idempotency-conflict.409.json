@@ -1,0 +1,7 @@
+{
+  "code": "IDEMPOTENCY_CONFLICT",
+  "message": "같은 요청 키로 다른 내용이 전송되었습니다.",
+  "requestId": "req-0006",
+  "fieldErrors": [],
+  "details": null
+}

@@ -1,0 +1,12 @@
+{
+  "patrolId": "30000000-0000-4000-8000-000000000001",
+  "participantId": "20000000-0000-4000-8000-000000000002",
+  "attendance": "PRESENT",
+  "attendanceCheckedAt": "2026-10-15T00:55:00Z",
+  "proxyAttendanceReason": "휴대폰 미소지, 현장 확인",
+  "correctionReason": null,
+  "version": 3,
+  "activityStatus": "ASSIGNED",
+  "patrolRevision": 2,
+  "pendingReturnConfirmation": false
+}

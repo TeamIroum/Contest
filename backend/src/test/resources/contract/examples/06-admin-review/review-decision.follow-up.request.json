@@ -1,0 +1,10 @@
+{
+  "decision": "FOLLOW_UP_REQUIRED",
+  "followUpType": "REPHOTO",
+  "analysisResultId": null,
+  "correctionId": null,
+  "classificationVersion": null,
+  "reason": "품질 실패로 사진을 다시 확인해야 함",
+  "version": 1,
+  "issueResolutions": []
+}

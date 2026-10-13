@@ -1,0 +1,12 @@
+{
+  "code": "STALE_VERIFICATION",
+  "message": "지난 회차의 재점검 요청입니다. 최신 내용을 확인해 주세요.",
+  "requestId": "req-stale-verification",
+  "fieldErrors": [],
+  "details": {
+    "issueId": "b1000000-0000-4000-8000-000000000003",
+    "currentStatus": "AWAITING_VERIFICATION",
+    "currentRequestId": "b3000000-0000-4000-8000-000000000002",
+    "currentVerificationId": null
+  }
+}
