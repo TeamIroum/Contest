@@ -24,6 +24,8 @@
 | [AI_기능_설계.md](AI_기능_설계.md) | AI가 맡는 네 기능의 개발 기준과 역할 분담 | AI·백엔드 |
 | [AI_실행_가이드.md](AI_실행_가이드.md) | AI 판독 서버·검증 콘솔 실행, 판독 모델(mock·Ollama) 바꾸기, 휴대폰 시험용 앱(PWA·RN) 실행, 문제 해결 | AI·전체 |
 | [presentation/시니어_동네_점검단_기획안.html](presentation/시니어_동네_점검단_기획안.html) | 팀 이로움 기획안 (발표·공유용 웹 문서) | 기획·발표 |
+| [presentation/이로움_발표자료_초안.pptx](presentation/이로움_발표자료_초안.pptx) | 본선 발표 자료 (본문 13장 + 부록 5장, 발표자 노트 포함) | 발표 |
+| [presentation/시스템_아키텍처.svg](presentation/시스템_아키텍처.svg) | 시스템 구성도 (PNG: [시스템_아키텍처.png](presentation/시스템_아키텍처.png)) | 전체 |
 | [../ai/contract/API_CONTRACT.md](../ai/contract/API_CONTRACT.md) | AI 판독 모듈 호출 계약 v2.0 | AI·백엔드 |
 | [../ai/contract/APP_MASKING_GUIDE.md](../ai/contract/APP_MASKING_GUIDE.md) | 앱 기기 마스킹 구현 안내 | 앱 |
 | [../ai/MASKING_AND_SERVER.md](../ai/MASKING_AND_SERVER.md) | 마스킹과 AI 서버 처리 설계 근거 | AI |

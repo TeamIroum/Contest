@@ -8,8 +8,8 @@
 .
 ├─ docs/                설계 문서 (서비스 설계서, 기능정의서, API 명세서, DB 설계, AI 기능 설계, AI 실행 가이드)
 │  ├─ database/         DB 초안 DDL, 트랜잭션 검증 자료
-│  └─ presentation/     발표·공유용 자료
-├─ backend/             업무 백엔드 (Java / Spring Boot, PostgreSQL, Redis)
+│  └─ presentation/     발표 자료, 기획안 웹 문서, 시스템 구성도
+├─ backend/             업무 백엔드 (Java 21 / Spring Boot 4.1 / Gradle, PostgreSQL, Redis, Flyway)
 ├─ frontend/
 │  ├─ senior/           시니어 앱 (PWA, 브라우저 기기 마스킹)
 │  ├─ admin/            관리자 웹 (활동 담당자, 시설 담당자, 사업 총괄)
@@ -43,14 +43,25 @@
 ```bash
 cd infra/local
 cp .env.example .env
-docker compose up -d     # PostgreSQL :5432, Redis :6379, AI 판독 모듈(mock) :8000
+docker compose up -d     # PostgreSQL :5432, Redis :6379, AI 판독 모듈 :8000 (PC의 Ollama로 판독)
 ```
 
-AI 모듈 API 문서는 http://localhost:8000/docs 에서 볼 수 있습니다. `.env`의 `AI_API_KEYS` 값을 `X-API-Key` 헤더로 보냅니다. 백엔드·프론트 실행 방법은 빌드 도구와 프레임워크가 정해지면 각 폴더 README에 추가합니다.
+AI 모듈 API 문서는 http://localhost:8000/docs 에서 볼 수 있습니다. `.env`의 `AI_API_KEYS` 값을 `X-API-Key` 헤더로 보냅니다. Ollama 준비와 판독 모델은 [AI 실행 가이드](docs/AI_실행_가이드.md)를 봅니다.
+
+업무 백엔드(포트 8080)는 위 PostgreSQL·Redis·AI 모듈을 띄운 뒤 실행합니다.
+
+```bash
+cd backend
+# 필수: DB_PASSWORD(= infra/local/.env의 POSTGRES_PASSWORD), JWT_SECRET(Base64 32바이트 이상)
+# AI 연결: AI_BASE_URL(기본 http://localhost:8000), AI_API_KEY(= infra/local/.env의 AI_API_KEYS 중 하나)
+# 시연 로그인: DEMO_OTP_CODE (local 프로필에서만)
+./gradlew bootRun --args='--spring.profiles.active=local'
+```
+
+DB 이름·사용자의 기본값은 `inspection`이며 `DB_URL`·`DB_USERNAME`으로 바꿉니다. 설정 전체는 `backend/src/main/resources/application.yml`에 있습니다. 프론트 실행 방법은 각 폴더 README를 봅니다.
 
 ## 아직 정하지 않은 것
 
-- Java·Spring Boot 버전, 빌드 도구 (마이그레이션은 Flyway로 정함, [DB 설계](docs/DB_설계.md) 12절)
 - 프론트엔드 프레임워크 (시니어 앱은 PWA로 확정)
 - 실행 서버 구성(EC2·S3·RDS), Cloudflare 사용 범위
 - AI 판독용 GPU 서버의 사양과 위치. 공개 모델 자체 운영(Ollama)과 활동 시간에만 가동은 확정 ([AI 실행 가이드](docs/AI_실행_가이드.md) 4.6절)
