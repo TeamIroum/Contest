@@ -18,6 +18,8 @@
 
 ## 이 PC로 서비스하기
 
+구성도·요청 흐름·장애 대처는 [ARCHITECTURE.md](ARCHITECTURE.md)에 있다.
+
 ```
 휴대폰·브라우저 ─HTTPS─▶ Tailscale Funnel ─▶ Caddy :8180(시니어 앱) / :8181(관리자 웹)
                                               └ /api ─▶ 업무 백엔드 :8080 ─▶ PostgreSQL·Redis(WSL), AI 판독 :8000 ─▶ Ollama
