@@ -1,0 +1,19 @@
+{
+  "reviewId": "b0000000-0000-4000-8000-000000000002",
+  "reviewTaskId": "80000000-0000-4000-8000-000000000002",
+  "reviewTaskStatus": "RESOLVED",
+  "decision": "FOLLOW_UP_REQUIRED",
+  "followUpType": "REPHOTO",
+  "reinspectionRequestId": "b2000000-0000-4000-8000-000000000001",
+  "decidedBy": {
+    "id": "10000000-0000-4000-8000-000000000012",
+    "name": "정○○"
+  },
+  "decidedAt": "2026-10-15T05:10:00Z",
+  "version": 2,
+  "analysisResultId": null,
+  "correctionId": null,
+  "classificationVersion": null,
+  "issueIds": [],
+  "issueResults": []
+}

@@ -1,0 +1,14 @@
+{
+  "tokenType": "Bearer",
+  "accessToken": "eyJhbGciOiJFUzI1NiJ9.example.signature",
+  "accessTokenExpiresAt": "2026-10-15T00:15:00Z",
+  "refreshTokenExpiresAt": "2026-10-22T00:00:00Z",
+  "sessionId": "c0000000-0000-4000-8000-000000000001",
+  "user": {
+    "id": "10000000-0000-4000-8000-000000000001",
+    "name": "김○○",
+    "roles": [
+      "SENIOR"
+    ]
+  }
+}

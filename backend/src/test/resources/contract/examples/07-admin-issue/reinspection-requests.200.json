@@ -1,0 +1,26 @@
+{
+  "items": [
+    {
+      "id": "b3000000-0000-4000-8000-000000000001",
+      "requestType": "REPHOTO",
+      "status": "OPEN",
+      "version": 0,
+      "source": "REPAIR_COMPLETION",
+      "issueId": "b1000000-0000-4000-8000-000000000003",
+      "reviewDecisionId": null,
+      "repairEventId": "b2000000-0000-4000-8000-000000000003",
+      "facility": {
+        "id": "f0000000-0000-4000-8000-000000000001",
+        "code": "SW-0001",
+        "type": "SIDEWALK",
+        "name": "마을회관 앞 보도블록",
+        "areaLabel": "○○동 1구역"
+      },
+      "createdAt": "2026-10-20T06:05:00Z",
+      "assignments": []
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1
+}

@@ -1,0 +1,12 @@
+{
+  "code": "STALE_VERIFICATION",
+  "message": "새 수리 확인 준비로 대체된 준비입니다. 최신 준비로 다시 판단해 주세요.",
+  "requestId": "req-superseded-preparation",
+  "fieldErrors": [],
+  "details": {
+    "issueId": "b1000000-0000-4000-8000-000000000003",
+    "currentStatus": "AWAITING_VERIFICATION",
+    "currentRequestId": "b3000000-0000-4000-8000-000000000001",
+    "currentVerificationId": "b5000000-0000-4000-8000-000000000002"
+  }
+}

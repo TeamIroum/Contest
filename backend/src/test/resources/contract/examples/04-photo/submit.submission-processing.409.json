@@ -1,0 +1,10 @@
+{
+  "code": "SUBMISSION_PROCESSING",
+  "message": "이 사진을 받고 있어요. 잠시 기다려 주세요.",
+  "requestId": "req-0104",
+  "fieldErrors": [],
+  "details": {
+    "existingInspectionId": "60000000-0000-4000-8000-000000000011",
+    "clientSubmissionId": "e0000000-0000-4000-8000-000000000101"
+  }
+}

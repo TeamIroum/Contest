@@ -1,0 +1,18 @@
+{
+  "id": "10000000-0000-4000-8000-000000000001",
+  "name": "김○○",
+  "roles": [
+    "SENIOR"
+  ],
+  "accountStatus": "ACTIVE",
+  "passwordChangeRequired": false,
+  "participantId": "20000000-0000-4000-8000-000000000001",
+  "scopes": [
+    {
+      "role": "SENIOR",
+      "organizationId": "a0000000-0000-4000-8000-000000000001",
+      "organizationName": "○○동 노인복지관",
+      "organizationType": "AGENCY"
+    }
+  ]
+}

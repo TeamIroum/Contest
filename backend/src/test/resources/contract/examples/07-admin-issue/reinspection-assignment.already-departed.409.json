@@ -1,0 +1,10 @@
+{
+  "code": "ACTIVITY_STATE_CONFLICT",
+  "message": "이미 출발한 순회의 재점검 배정은 바꿀 수 없습니다.",
+  "requestId": "req-already-departed",
+  "fieldErrors": [],
+  "details": {
+    "reason": "ALREADY_DEPARTED",
+    "activityStatus": "IN_PROGRESS"
+  }
+}

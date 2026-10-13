@@ -1,0 +1,10 @@
+{
+  "code": "SLOT_PROCESSING",
+  "message": "같이 계신 분의 사진을 처리하고 있어요. 잠시 기다려 주세요.",
+  "requestId": "req-0103",
+  "fieldErrors": [],
+  "details": {
+    "existingInspectionId": "60000000-0000-4000-8000-000000000019",
+    "captureSlotId": "50000000-0000-4000-8000-000000000002"
+  }
+}

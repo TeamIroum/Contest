@@ -1,0 +1,7 @@
+{
+  "code": "INVALID_ACTIVITY_TIME",
+  "message": "활동 시각을 확인해 주세요.",
+  "requestId": "req-photo-activity-time",
+  "fieldErrors": [],
+  "details": null
+}

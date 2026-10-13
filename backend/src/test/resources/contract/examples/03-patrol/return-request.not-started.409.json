@@ -1,0 +1,10 @@
+{
+  "code": "ACTIVITY_STATE_CONFLICT",
+  "message": "아직 활동을 시작하지 않았어요. 시작 전에는 복귀 요청을 보낼 수 없어요.",
+  "requestId": "req-0202",
+  "fieldErrors": [],
+  "details": {
+    "reason": "NOT_STARTED",
+    "activityStatus": "ASSIGNED"
+  }
+}

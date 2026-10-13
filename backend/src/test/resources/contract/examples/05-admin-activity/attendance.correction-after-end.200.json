@@ -1,0 +1,12 @@
+{
+  "patrolId": "30000000-0000-4000-8000-000000000001",
+  "participantId": "20000000-0000-4000-8000-000000000002",
+  "attendance": "PRESENT",
+  "attendanceCheckedAt": "2026-10-15T03:20:00Z",
+  "proxyAttendanceReason": "결석 오입력. 실제로 함께 활동함(현장 사진·조원 확인)",
+  "correctionReason": "결석 오입력. 실제로 함께 활동함(현장 사진·조원 확인)",
+  "version": 10,
+  "activityStatus": "ENDED",
+  "patrolRevision": 17,
+  "pendingReturnConfirmation": true
+}

@@ -1,0 +1,51 @@
+{
+  "items": [
+    {
+      "id": "b5000000-0000-4000-8000-000000000001",
+      "requestId": "b3000000-0000-4000-8000-000000000001",
+      "repairEventId": "b2000000-0000-4000-8000-000000000003",
+      "verificationMethod": "PHOTO",
+      "version": 1,
+      "comparisonStatus": null,
+      "before": [
+        {
+          "inspectionId": "60000000-0000-4000-8000-000000000001",
+          "capturedAt": "2026-10-15T01:09:40Z",
+          "media": {
+            "id": "70000000-0000-4000-8000-000000000001",
+            "mediaVersion": 1,
+            "privacyStatus": "APPROVED",
+            "contentPath": "/api/v1/media/70000000-0000-4000-8000-000000000001/content",
+            "privacyRelease": null
+          }
+        }
+      ],
+      "after": [
+        {
+          "inspectionId": "60000000-0000-4000-8000-000000000031",
+          "capturedAt": "2026-10-21T01:20:00Z",
+          "media": {
+            "id": "70000000-0000-4000-8000-000000000031",
+            "mediaVersion": 1,
+            "privacyStatus": "APPROVED",
+            "contentPath": "/api/v1/media/70000000-0000-4000-8000-000000000031/content",
+            "privacyRelease": null
+          }
+        }
+      ],
+      "notes": [],
+      "decision": "CLOSE",
+      "followUpType": null,
+      "reason": "재촬영 사진에서 꺼짐 보수 확인",
+      "decidedBy": {
+        "id": "10000000-0000-4000-8000-000000000011",
+        "name": "이○○"
+      },
+      "decidedAt": "2026-10-21T05:00:00Z",
+      "createdAt": "2026-10-21T04:50:00Z"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1
+}

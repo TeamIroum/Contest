@@ -164,6 +164,21 @@ def test_vehicle_masked_only_when_no_plate_inside(monkeypatch):
     assert abs(out[320:400, 80:140].astype(int) - img[320:400, 80:140].astype(int)).mean() < 1   # 번호판 찾은 차 몸체는 그대로
 
 
+def test_plate_box_too_big_or_not_plate_shaped_is_dropped(monkeypatch):
+    """키보드를 번호판으로 잘못 봐 사진 아래 절반을 덮던 상자(가로 전체·거의 정사각형)는 버린다."""
+    img = textured()
+    H, W = img.shape[:2]
+    keyboard = privacy.Box(0, int(H * 0.45), W, int(H * 0.55), "plate", 0.3, "fake")   # 너무 큼
+    square = privacy.Box(100, 100, 60, 60, "plate", 0.8, "fake")                        # 작아도 정사각형
+    plate = privacy.Box(400, 300, 90, 25, "plate", 0.8, "fake")                         # 진짜 번호판 모양
+    monkeypatch.setattr(privacy, "face_detector", lambda: FakeDet([]))
+    monkeypatch.setattr(privacy, "plate_detectors", lambda: (FakeDet([keyboard, square, plate]),))
+    monkeypatch.setattr(privacy, "vehicle_detector", lambda: None)
+    out, rep = privacy.mask_image(img)
+    assert rep.plates == 1
+    assert rep.masked_area_ratio < 0.02
+
+
 def test_pretrained_models_load_if_installed():
     pytest.importorskip("open_image_models")
     try:

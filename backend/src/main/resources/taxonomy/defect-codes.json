@@ -1,0 +1,32 @@
+{
+  "_source": "ai/taxonomy.json version 0.3 (origin/main c96bd57)의 시설별 문제 코드 사본. 업무 백엔드의 문제 코드 사전(업무 API 9.1·9.2절). AI가 taxonomy를 바꾸면 이 사본을 같은 출처 커밋과 함께 교체한다. 추가 시설 3종(PARK_EQUIPMENT·SNOW_REMOVAL_BIN·SHADE_STRUCTURE)은 업무 사전이 정해지지 않아 비어 있다(결정 필요).",
+  "facilities": {
+    "SIDEWALK": {
+      "lifted": "들뜸",
+      "broken": "파손",
+      "sunken": "꺼짐"
+    },
+    "DRAIN": {
+      "covered": "낙엽·쓰레기로 덮임",
+      "cover_damaged": "덮개 파손",
+      "cover_missing": "덮개 이탈"
+    },
+    "BENCH": {
+      "board_broken": "좌판·등받이 파손",
+      "part_detached": "부품 이탈"
+    },
+    "SAFETY_FENCE": {
+      "tilted": "기울어짐",
+      "broken": "파손",
+      "joint_detached": "연결부 이탈"
+    },
+    "EXERCISE_EQUIPMENT": {
+      "broken": "부품 파손",
+      "part_detached": "부품 이탈",
+      "deformed": "변형"
+    },
+    "PARK_EQUIPMENT": {},
+    "SNOW_REMOVAL_BIN": {},
+    "SHADE_STRUCTURE": {}
+  }
+}
