@@ -20,6 +20,9 @@
 			max_size 12MB
 		}
 		reverse_proxy 127.0.0.1:8080 {
+			# 브라우저가 접속한 포트(Host의 포트, 예: 10000)를 알린다. 없으면 백엔드가 http=80·https=443으로 보고
+			# 화면 주소(Origin)와 다른 출처로 판단해 403 Invalid CORS request를 낸다
+			header_up X-Forwarded-Port {http.request.port}
 			flush_interval -1
 			transport http {
 				response_header_timeout 90s
