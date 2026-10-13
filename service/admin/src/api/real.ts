@@ -614,3 +614,63 @@ export const createTeam = (t: { organizationId: string; name: string; memberIds:
   api<ApiTeam>('POST', '/admin/teams', { organizationId: t.organizationId, name: t.name, participantIds: t.memberIds, effectiveFrom: t.effectiveFrom }, { idempotent: true })
 export const updateTeam = (t: RealTeam, next: { name: string; memberIds: string[]; effectiveFrom?: string }) =>
   api<ApiTeam>('PATCH', `/admin/teams/${t.id}`, { name: next.name, participantIds: next.memberIds, effectiveFrom: next.effectiveFrom, version: t.version })
+
+/* ---------------- 코스·버전 (ACT-03, service/backend AdminRouteController) ---------------- */
+
+export type RouteSlot = { label: string; instruction?: string | null; required: boolean }
+export type RouteStopReal = { facilityId: string; facilityName: string; facilityType: string; instruction: string | null; slots: RouteSlot[] }
+export type RealRoute = {
+  id: string
+  name: string
+  status: 'ACTIVE' | 'INACTIVE'
+  organizationId: string
+  current: { id: string; versionNo: number; departureBase: { id: string; name: string }; returnBase: { id: string; name: string }; stops: RouteStopReal[] } | null
+  version: number
+}
+export type RouteOptions = { bases: { id: string; name: string }[]; facilities: { id: string; code: string; name: string; type: string; areaLabel: string | null }[] }
+export type RouteInput = { departureBaseId: string; returnBaseId: string; stops: { facilityId: string; instruction?: string; slots: RouteSlot[] }[] }
+
+export const loadRoutes = () => api<RealRoute[]>('GET', '/admin/routes?includeInactive=true')
+export const loadRouteOptions = () => api<RouteOptions>('GET', '/admin/routes/options')
+export const createRoute = (r: RouteInput & { organizationId: string; name: string }) => api<RealRoute>('POST', '/admin/routes', r, { idempotent: true })
+/** 공개 버전은 고치지 않고 새 버전으로 공개한다 (이미 배정된 순회는 그대로) */
+export const publishRouteVersion = (route: RealRoute, r: RouteInput) => api<RealRoute>('POST', `/admin/routes/${route.id}/versions`, { ...r, version: route.version })
+export const updateRoute = (route: RealRoute, next: { name?: string; status?: 'ACTIVE' | 'INACTIVE' }) =>
+  api<RealRoute>('PATCH', `/admin/routes/${route.id}`, { ...next, version: route.version })
+
+/* ---------------- 날짜별 순회 배정 (ACT-04, service/backend AdminPatrolAssignmentController) ---------------- */
+
+export type ScheduledPatrol = {
+  id: string
+  activityDate: string
+  teamId: string
+  teamName: string
+  routeId: string
+  routeName: string
+  routeVersionNo: number
+  scheduledStartAt: string
+  expectedReturnAt: string
+  activityStatus: string
+  members: string[]
+  stops: number
+  reinspectionSlots: number
+  version: number
+}
+export const hhmm = (iso: string) => kst(iso).slice(11, 16)
+/** 오늘부터 2주 순회 일정 (취소한 순회 제외) */
+export const loadSchedule = () => api<ScheduledPatrol[]>('GET', '/admin/patrol-schedule')
+/** date: YYYY-MM-DD, start·end: HH:mm (한국 시간) */
+export const assignPatrol = (p: { date: string; teamId: string; routeVersionId: string; start: string; end: string }) =>
+  api<ScheduledPatrol>(
+    'POST',
+    '/admin/patrols',
+    {
+      activityDate: p.date,
+      teamId: p.teamId,
+      routeVersionId: p.routeVersionId,
+      scheduledStartAt: new Date(`${p.date}T${p.start}:00+09:00`).toISOString(),
+      expectedReturnAt: new Date(`${p.date}T${p.end}:00+09:00`).toISOString(),
+    },
+    { idempotent: true },
+  )
+export const participantName = (id: string) => PARTICIPANTS.find((p) => p.id === id)?.name ?? '-'

@@ -28,6 +28,7 @@ import { Admins } from './Admins'
 import { Button, Pill, Toast, inputCls } from './ui'
 import { nowAt } from './util'
 import { REAL_BACKEND, ApiError, changePassword, fetchMe, login, logout, setSessionEndedHandler } from './api/client'
+import { RealAssign } from './RealAssign'
 import { applyServerDefectCodes, loadIssues, loadReviews, loadTodayPatrols, onRealChanged, onRealError, todayKst } from './api/real'
 import { ALERT_LABEL, loadAlertSettings, playAlert, saveAlertSettings, unlockAlertAudio, type AlertKind, type AlertSettings } from './alertSound'
 
@@ -64,7 +65,7 @@ const NAV: { role: Role; items: { v: View; label: string }[] }[] = [
 ]
 
 /** 실제 백엔드에 연결하지 않은 메뉴 (실제 백엔드 모드에서 예시 표시) */
-const EXAMPLE_VIEWS: View[] = ['assign', 'stats', 'admins']
+const EXAMPLE_VIEWS: View[] = ['stats', 'admins']
 const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토']
 /** 위치 표시줄의 날짜. 실제 백엔드면 오늘 */
 const TODAY_LABEL = REAL_BACKEND
@@ -258,7 +259,7 @@ export default function App() {
     setStage('login')
   }
 
-  const badge = (v: View) => (v === 'review' ? openReviewCount(reviews, issues) : v === 'today' ? pendingActivityCount(patrols) : v === 'assign' ? reqs.filter((r) => r.status === 'WAITING').length : 0)
+  const badge = (v: View) => (v === 'review' ? openReviewCount(reviews, issues) : v === 'today' ? pendingActivityCount(patrols) : v === 'assign' && !REAL_BACKEND ? reqs.filter((r) => r.status === 'WAITING').length : 0)
   /** 메뉴 숫자가 무엇을 센 것인지 (마우스를 올리면 보임) */
   const badgeTitle = (v: View) => {
     if (v === 'today') {
@@ -390,7 +391,7 @@ export default function App() {
           {view === 'teams' && <Teams teams={teams} setTeams={setTeams} participants={participants} />}
           {view === 'assign' &&
             (REAL_BACKEND ? (
-              <Assign patrols={demoPatrols} setPatrols={setDemoPatrols} teams={teams} reqs={reqs} setReqs={setReqs} />
+              <RealAssign />
             ) : (
               <Assign patrols={patrols} setPatrols={setPatrols} teams={teams} reqs={reqs} setReqs={setReqs} />
             ))}
