@@ -6,7 +6,7 @@ import * as quality from './camera/quality.js'
 import * as masking from './masking/masking.js'
 import * as outbox from './offline/outbox.js'
 import type { OutboxItem, SubmitBody } from './offline/outbox.js'
-import { ApiError, REAL_BACKEND, fetchPatrol, kstClock, sendPause, fetchTodayPatrol, memberStates, requestAttendance, requestOtp, sendOpts, startActivity, verifyOtp, type ApiPatrol, type OtpChallenge } from './api/client'
+import { ApiError, NoPatrolError, REAL_BACKEND, fetchPatrol, kstClock, sendPause, fetchTodayPatrol, memberStates, requestAttendance, requestOtp, sendOpts, startActivity, verifyOtp, type ApiPatrol, type OtpChallenge } from './api/client'
 import { playNotify, playRetake, playShutter, playSuccess, setSoundEnabled, unlockAudio } from './sounds'
 import { ABORT_REASONS, MAX_ATTEMPTS, ME, PARTNER, SKIP_REASONS, STAFF, STOPS, TEAM, applyPatrol, slotDone, stopDone, type Stop } from './data'
 
@@ -18,6 +18,11 @@ const BURST_GAP_MS = 70
 /** 그림 다음에 화면이 실제로 그려질 때까지 기다림 (가리기 계산이 화면을 1~3초 멈추게 하므로 먼저 그려 둔다) */
 // 대기함 이름 (처음 쓰기 전에 한 번). 시험용 PWA와 저장소가 섞이지 않게
 outbox.configure({ dbName: 'senior-outbox' })
+// 실제 백엔드: 담당자 이름·번호는 서버 순회에서만 받는다 (받기 전에 예시 값이 보이거나 예시 번호로 걸리지 않게)
+if (REAL_BACKEND) {
+  STAFF.name = ''
+  STAFF.phone = ''
+}
 
 const afterPaint = (ms: number) => new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(res, ms))))
 
@@ -97,6 +102,8 @@ export default function App() {
   const [next, setNext] = useState<Pick<SubmitBody, 'nextAction' | 'nextStopId'>>({})
   /** 업무 API에서 순회를 받았는지 (못 받으면 예시 데이터로 시연) */
   const [server, setServer] = useState(false)
+  /** 실제 백엔드: 오늘 순회 불러오기 상태. ok가 되기 전에는 예시 데이터를 보여 주지 않는다 */
+  const [patrolState, setPatrolState] = useState<'loading' | 'ok' | 'none' | 'error'>('loading')
   const [, setStopsVersion] = useState(0) // STOPS가 서버 순회로 바뀌면 다시 그림
   const [pending, setPending] = useState(0) // 전송 대기 사진 수
 
@@ -149,22 +156,25 @@ export default function App() {
     setDeparted(st.departed)
   }
   // 오늘 순회: 업무 API가 있으면 서버 순회로 바꾼다
+  const [patrolTry, setPatrolTry] = useState(0)
   useEffect(() => {
     if (!loggedIn0) return
+    setPatrolState('loading')
     fetchTodayPatrol().then(
       (p) => {
         showServerPatrol(p)
         setServer(true)
+        setPatrolState('ok')
         // 로그인 전에 쌓인 대기 사진을 이제 보낸다 (실제 백엔드는 로그인 토큰이 있어야 받음)
         if (REAL_BACKEND) outbox.flush(sendOpts()).catch(() => {}).finally(updatePending)
       },
       (e) => {
         setServer(false)
-        if (REAL_BACKEND) say(e, '오늘 순회를 불러오지 못했어요.')
+        setPatrolState(e instanceof NoPatrolError ? 'none' : 'error')
       },
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loggedIn0])
+  }, [loggedIn0, patrolTry])
   const refreshPatrol = () =>
     server &&
     fetchPatrol(TEAM.patrolId).then(
@@ -476,7 +486,7 @@ export default function App() {
         data-bar="light"
         className="relative mx-auto flex min-h-dvh max-w-[440px] flex-col overflow-x-clip bg-bg sm:my-6 sm:min-h-[880px] sm:overflow-hidden sm:rounded-[32px] sm:border sm:border-line sm:shadow-pop"
       >
-        {loggedIn && <TopBar bar={BAR} size={size} onSize={() => setSize(((size + 1) % 3) as 0 | 1 | 2)} sound={sound} onSound={() => setSound(!sound)} onHelp={() => setSheet('help')} />}
+        {loggedIn && <TopBar bar={BAR} showTeam={!REAL_BACKEND || patrolState === 'ok'} size={size} onSize={() => setSize(((size + 1) % 3) as 0 | 1 | 2)} sound={sound} onSound={() => setSound(!sound)} onHelp={() => setSheet('help')} />}
         {/* 화면마다 새로 그려 살짝 올라오며 나타나게 한다 (screen-in) */}
         <main key={paused ? 'paused' : screen} className="screen-in relative flex flex-1 flex-col gap-4 px-5 pt-3 pb-6">
           {paused ? (
@@ -517,7 +527,10 @@ export default function App() {
                     if (!REAL_BACKEND) return setScreen('home')
                     if (!challenge) return setScreen('phone')
                     verifyOtp(challenge.challengeId, code).then(
-                      () => setScreen('home'),
+                      (u) => {
+                        ME.name = u.name // 로그인한 실제 이름 (순회를 받기 전에도)
+                        setScreen('home')
+                      },
                       (e) => {
                         say(e, '숫자가 맞지 않아요. 다시 넣어 주세요.')
                         setCodeKey((k) => k + 1)
@@ -526,9 +539,12 @@ export default function App() {
                   }}
                 />
               )}
-              {screen === 'home' && (
-                <Home onGo={() => setScreen('ready')} pending={pending} />
-              )}
+              {screen === 'home' &&
+                (REAL_BACKEND && patrolState !== 'ok' ? (
+                  <NoPatrol state={patrolState} onRetry={() => setPatrolTry((n) => n + 1)} onHelp={() => setSheet('help')} />
+                ) : (
+                  <Home onGo={() => setScreen('ready')} pending={pending} />
+                ))}
               {screen === 'ready' && (
                 <Ready
                   myAtt={myAtt}
@@ -626,7 +642,7 @@ export default function App() {
 
 const SIZE_NAME = ['기본', '크게', '아주 크게'] as const
 
-function TopBar({ bar, size, onSize, sound, onSound, onHelp }: { bar: string; size: 0 | 1 | 2; onSize: () => void; sound: boolean; onSound: () => void; onHelp: () => void }) {
+function TopBar({ bar, showTeam, size, onSize, sound, onSound, onHelp }: { bar: string; showTeam: boolean; size: 0 | 1 | 2; onSize: () => void; sound: boolean; onSound: () => void; onHelp: () => void }) {
   return (
     // 화면이 좁거나(430px 미만) 글씨를 키우면 앱 이름이 버튼과 한 줄에 들어가지 않으므로 두 줄로 나눈다
     // 막대 색은 하늘에 맞춰 바뀐다 (반투명)
@@ -639,7 +655,7 @@ function TopBar({ bar, size, onSize, sound, onSound, onHelp }: { bar: string; si
         <div className="min-w-0 leading-tight max-[429px]:hidden big:hidden">
           <p className="m-0 truncate text-[17px] font-extrabold whitespace-nowrap text-ink">동네 점검단</p>
           <p className="m-0 truncate text-[13px] font-semibold whitespace-nowrap text-sub">
-            {TEAM.zone} · {TEAM.no}조
+            {showTeam ? `${TEAM.zone} · ${TEAM.no}조` : '점검원'}
           </p>
         </div>
       </div>
@@ -676,7 +692,7 @@ function TopBar({ bar, size, onSize, sound, onSound, onHelp }: { bar: string; si
       <p className="m-0 mt-2 hidden min-w-0 text-[15px] leading-tight whitespace-nowrap max-[429px]:flex big:flex">
         <span className="min-w-0 truncate">
           <b className="font-extrabold text-ink">동네 점검단</b>
-          <span className="font-semibold text-sub"> · {TEAM.zone} · {TEAM.no}조</span>
+          <span className="font-semibold text-sub"> · {showTeam ? `${TEAM.zone} · ${TEAM.no}조` : '점검원'}</span>
         </span>
       </p>
     </header>
@@ -713,6 +729,39 @@ function Card({ children, className = '' }: { children: ReactNode; className?: s
 }
 
 /** chip: 풍경 위에서는 설명 문장을 반투명 흰 알약 위에 올려 읽기 쉽게 한다 */
+/** 실제 백엔드: 오늘 순회를 받기 전·없을 때·못 받았을 때 (예시 데이터 대신) */
+function NoPatrol({ state, onRetry, onHelp }: { state: 'loading' | 'none' | 'error' | 'ok'; onRetry: () => void; onHelp: () => void }) {
+  const text = {
+    loading: ['오늘 순회를 불러오고 있어요', '잠시만 기다려 주세요.'],
+    none: ['오늘은 배정된 순회가 없어요', '활동하는 날 다시 열어 주세요. 궁금하면 담당 선생님께 물어보세요.'],
+    error: ['순회를 불러오지 못했어요', '인터넷 연결을 확인하고 다시 해 주세요.'],
+    ok: ['', ''],
+  }[state]
+  return (
+    <>
+      <div className="pt-2">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-surface/80 px-3 py-1 text-[0.85rem] font-bold text-g0-ink shadow-card">
+          <i className="size-2 rounded-full bg-g0" /> 점검원
+        </span>
+        <h1 className="m-0 mt-3 text-[2rem] leading-[1.2] font-extrabold tracking-[-0.04em] text-ink">{ME.name} 어르신</h1>
+      </div>
+      <Card className="mt-4 text-center" >
+        <div className="grid justify-items-center gap-3 py-4" role="status">
+          {state === 'loading' ? <Dots /> : <span className="grid size-16 place-items-center rounded-full bg-brand-50 text-brand"><CameraIcon size={30} /></span>}
+          <p className="m-0 text-[1.4rem] font-extrabold tracking-[-0.03em]">{text[0]}</p>
+          <p className="m-0 text-[1.02rem] text-sub">{text[1]}</p>
+        </div>
+      </Card>
+      {state !== 'loading' && (
+        <Bottom>
+          {state === 'error' ? <Primary onClick={onRetry}>다시 불러오기</Primary> : <Primary onClick={onRetry}>다시 확인하기</Primary>}
+          <Secondary onClick={onHelp}>담당 선생님께 연락하기</Secondary>
+        </Bottom>
+      )}
+    </>
+  )
+}
+
 function H1({ children, sub, eyebrow, chip = false }: { children: ReactNode; sub?: ReactNode; eyebrow?: ReactNode; chip?: boolean }) {
   return (
     <div className="on-sky pt-1">
@@ -1629,10 +1678,10 @@ function HelpSheet({ onClose }: { onClose: () => void }) {
   return (
     <SheetFrame title="도움이 필요하세요?" sub="누르면 바로 전화가 걸려요." onClose={onClose}>
       {STAFF.phone ? (
-        <CallRow href={`tel:${STAFF.phone}`} title={`${STAFF.name} 선생님`} sub="담당 선생님" />
+        <CallRow href={`tel:${STAFF.phone}`} title={STAFF.name ? `${STAFF.name} 선생님` : '담당 선생님'} sub="담당 선생님" />
       ) : (
         <p className="m-0 rounded-[1.4rem] bg-bg px-5 py-4 text-[1rem] text-sub">
-          <b className="block text-[1.1rem] text-ink">{STAFF.name} 선생님</b>담당 선생님 · 전화번호가 아직 등록되지 않았어요
+          <b className="block text-[1.1rem] text-ink">{STAFF.name ? `${STAFF.name} 선생님` : '담당 선생님'}</b>{STAFF.name ? '담당 선생님 · ' : ''}전화번호가 아직 등록되지 않았어요
         </p>
       )}
       <CallRow href="tel:119" title="119 긴급 전화" sub="다치거나 위급할 때" danger />

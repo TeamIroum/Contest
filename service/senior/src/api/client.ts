@@ -133,8 +133,14 @@ export const todayKst = () => new Date(Date.now() + 9 * 3600_000).toISOString().
 
 export async function fetchTodayPatrol(): Promise<ApiPatrol> {
   const list = await api<{ items?: { id: string }[] }>('GET', REAL_BACKEND ? `/me/patrols?date=${todayKst()}` : '/me/patrols')
-  if (!list.items?.length) throw new Error('오늘 배정된 순회가 없어요.')
+  if (!list.items?.length) throw new NoPatrolError()
   return api<ApiPatrol>('GET', `/patrols/${list.items[0].id}`)
+}
+/** 오늘 배정된 순회가 없음 (오류가 아니라 안내할 상태) */
+export class NoPatrolError extends Error {
+  constructor() {
+    super('오늘 배정된 순회가 없어요.')
+  }
 }
 export const fetchPatrol = (id: string) => api<ApiPatrol>('GET', `/patrols/${id}`)
 

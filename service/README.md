@@ -34,6 +34,8 @@
 
    마지막에 시니어 앱(`https://<PC>.ts.net`)과 관리자 웹(`https://<PC>.ts.net:10000`) 주소가 나온다.
 
+- `start.ps1`은 WSL(PostgreSQL·Redis)이 꺼지지 않게 숨은 WSL 프로세스를 하나 띄운다. 열린 WSL 창이 없으면 WSL이 곧 꺼져 DB·Redis가 끊긴다
+- 깃페이지 입구: https://teamiroum.github.io/service/ (바로가기 /service/senior, /service/admin). 올리기는 `web/pages/deploy_pages.py`
 - PC가 켜져 있고 인터넷이 연결되어 있어야 열린다. 다 쓰면 `stop.ps1`로 공개 주소를 닫는다
 - 시연 데이터의 순회는 2026-10-15 10:00~12:00(한국 시간) 하나다. 다른 날 시험하려면 `tools/e2e/move_demo_date.sql`
 
@@ -47,6 +49,9 @@ npm install && npm run install-browser          # 처음 한 번
 node admin.mjs https://<PC>.ts.net:10000         # 관리자 웹: 로그인·검토 목록·사건·오늘 활동 현황
 node admin-decide.mjs https://<PC>.ts.net:10000  # 관리자 웹에서 판정 저장 → 사건 생성 (LOGIN=demo-road 등으로 계정 선택)
 node senior.mjs https://<PC>.ts.net --shoot      # 시니어 앱: 로그인 → 출석 → 전체 화면 촬영 → 보내기
+node senior-tour.mjs https://<PC>.ts.net        # 시니어 앱 화면 둘러보기 (shots/tour/index.html, 데이터 안 바꿈)
+node pause-check.mjs <시니어 주소> <관리자 주소>   # 잠깐 쉬기 ↔ 관리자 화면 '쉬는 중'
+node gh-entry.mjs                                # 깃페이지 입구(teamiroum.github.io/service) → 두 앱 로그인
 ```
 
 - 시니어 앱 카메라는 Chromium 가짜 장치다. `VIDEO=<JPEG를 이어 붙인 .mjpeg>`를 주면 그 사진을 카메라에 비춘다(기본 시험 화면은 단색이라 흐림으로 나온다)

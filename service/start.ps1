@@ -57,6 +57,15 @@ if (-not $cfg['MEDIA_STORAGE_ROOT']) { $cfg['MEDIA_STORAGE_ROOT'] = Join-Path $e
 
 Write-Host '창을 엽니다:'
 
+# --- 0. WSL(PostgreSQL·Redis)을 켜 두기. 열린 WSL 창이 없으면 WSL이 곧 꺼져 DB·Redis가 끊긴다
+$wslAlive = Get-CimInstance Win32_Process -Filter "Name='wsl.exe'" | Where-Object { $_.CommandLine -like '*Ubuntu-24.04*sleep infinity*' }
+if ($wslAlive) { Write-Host '  0 WSL 유지 (이미 떠 있음)' } else {
+    $k = Start-Process wsl -ArgumentList '-d', 'Ubuntu-24.04', '--', 'sleep', 'infinity' -WindowStyle Hidden -PassThru
+    Add-Content -Path $StateFile -Value $k.Id
+    Write-Host "  0 WSL 유지 (PID $($k.Id), 숨김)"
+}
+foreach ($port in 5432, 6379) { Wait-Port $port 60 "WSL 안의 $(if ($port -eq 5432) { 'PostgreSQL' } else { 'Redis' })" }
+
 # --- 1. AI 판독 (Ollama + :8000) ---
 try { Invoke-WebRequest 'http://127.0.0.1:11434/api/version' -UseBasicParsing -TimeoutSec 2 | Out-Null } catch {
     $ollamaApp = Join-Path $env:LOCALAPPDATA 'Programs\Ollama\ollama app.exe'
