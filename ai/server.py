@@ -37,6 +37,7 @@ import jobs
 import pipeline
 import privacy
 import report
+import retention
 import storage
 from config import taxonomy
 from providers import get_provider
@@ -82,9 +83,11 @@ async def lifespan(app: FastAPI):
     if n:
         log.info("다시 판독할 대기 건 %d개를 이어서 처리합니다", n)
     jobs.retry_queue.start()
+    retention.retention_job.start()
     threading.Thread(target=_warm_up, name="ai-warmup", daemon=True).start()
     yield
     jobs.retry_queue.stop()
+    retention.retention_job.stop()
 
 
 app = FastAPI(title="시니어 동네 점검단 판독 API", version=pipeline.CONTRACT_VERSION, lifespan=lifespan)
