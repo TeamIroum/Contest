@@ -55,6 +55,19 @@ PWA_ORIGINS = ("https://teamiroum.github.io,http://localhost:5173,http://localho
 app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in os.environ.get("PWA_ORIGINS", PWA_ORIGINS).split(",") if o.strip()],
                    allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
+# 바깥(Tailscale Funnel 등 터널)에는 휴대폰 앱이 쓰는 곳만 연다: 시험용 업무 API와 PWA 화면·모델.
+# 검증 콘솔 화면·콘솔 API(가린 사진 복사본, 기록 지우기, AI 서버 대신 부르기)·자동 문서(/docs)는 이 PC에서만 열린다
+PUBLIC_PREFIXES = ("/api/v1/", "/pwa/")
+
+
+@app.middleware("http")
+async def local_only_console(request, call_next):
+    path = request.url.path
+    if not (path.startswith(PUBLIC_PREFIXES) or path == "/pwa") and business.from_outside(request):
+        return Response("검증 콘솔은 이 PC에서만 열 수 있습니다 (http://127.0.0.1:8100)", status_code=403,
+                        media_type="text/plain; charset=utf-8")
+    return await call_next(request)
+
 
 def new_id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex[:12]}"
@@ -313,8 +326,8 @@ def get_run(run_id: int):
 
 @app.delete("/api/runs")
 def clear_runs():
-    store.clear()
-    return {"ok": True}
+    dest = store.clear()   # 지우기 전에 data/backups/<시각>/에 기록과 사진 복사본을 남긴다
+    return {"ok": True, "backup": str(dest)}
 
 
 @app.put("/api/runs/{run_id}/expected")
@@ -343,15 +356,16 @@ def _refresh(run: dict, source: str) -> bool | None:
     r = ai.result(run["photo_id"])
     if r.status != 200:
         return None
+    # 계약 검사는 결과가 그대로여도 지금 규칙으로 다시 한다 (검사 규칙을 고친 뒤 예전 기록을 다시 볼 수 있게)
+    req = run.get("request") or {}
+    items = checks.check_analyze(r.body, req, ai.taxonomy()) if run["kind"] == "analyze" else \
+        checks.check_verify(r.body, req)
+    store.update_run(run["id"], checks=items)
     if _strip_volatile(r.body) == _strip_volatile(run.get("response")):
         return False
     store.add_snapshot(run["id"], source, r.body)
     if run.get("http_status") != 200:   # 콘솔이 먼저 기다리기를 포기했던 건이 나중에 결과를 받은 경우
         store.update_run(run["id"], http_status=200)
-    req = run.get("request") or {}
-    items = checks.check_analyze(r.body, req, ai.taxonomy()) if run["kind"] == "analyze" else \
-        checks.check_verify(r.body, req)
-    store.update_run(run["id"], checks=items)
     if (r.body.get("image_revision") or 0) > (run.get("image_revision") or 0):
         _copy_image(run["id"], r.body)
     return True

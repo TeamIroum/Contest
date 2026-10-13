@@ -9,8 +9,15 @@ const GRADES = ["정상", "관찰", "주의", "긴급"];
 const KIND_LABEL = { analyze: "판독", verify: "전후 비교", privacy: "개인정보", narrative: "보고 문장" };
 const STATUS_LABEL = { ok: "판독 완료", retake: "재촬영", needs_review: "담당자 확인", error: "처리 실패" };
 const LEVEL_LABEL = { pass: "통과", fail: "위반", warn: "확인", info: "참고", skip: "건너뜀" };
+// AI 처리 제안(action). 뜻은 ai/contract/API_CONTRACT.md 표
+const ACTION_LABEL = {
+  alert_now: "즉시 알림", weekly_list: "주간 목록", recheck_next: "다음 순회 재확인", record_only: "기록만",
+  human_review: "담당자 확인", human_review_urgent: "담당자 긴급 확인", retake: "재촬영",
+  close_case: "수리됨 (확정 전)", re_request: "수리 안 됨 (확정 전)", regrade: "등급 다시 매김", keep: "변화 없음",
+};
+const RUNS_PAGE = 20;   // 기록 목록을 한 번에 보여 주는 수
 
-const state = { health: null, taxonomy: null, selectedRun: null };
+const state = { health: null, taxonomy: null, selectedRun: null, runs: [], runsShown: RUNS_PAGE };
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
@@ -64,16 +71,30 @@ function issueLabel(ftype, itype) {
   const l = f && f.issues && f.issues[itype];
   return l ? `${l} (${itype})` : itype;
 }
+// 처리 제안을 한국어로. withCode면 원래 값도 작게 함께 (목록에서는 마우스를 올리면 보임)
+function actionHtml(a, withCode = false) {
+  if (!a) return "";
+  const label = ACTION_LABEL[a] || a;
+  return withCode ? `${esc(label)} <code class="dim">${esc(a)}</code>` : `<span title="${esc(a)}">${esc(label)}</span>`;
+}
 function fmtTime(s) { return s ? s.replace("T", " ").slice(5, 19) : ""; }
 function opt(value, label, sel) { return `<option value="${esc(value)}"${sel ? " selected" : ""}>${esc(label)}</option>`; }
 
 // ---------------------------------------------------------------- 탭
 function showTab(name) {
   $$("#tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  // 위쪽 경로와 쪽 제목은 고른 메뉴의 이름·설명으로
+  const btn = $(`#tabs button[data-tab="${name}"]`);
+  if (btn) {
+    $("#crumb-group").textContent = btn.dataset.group || "";
+    $("#crumb-page").textContent = $("#page-title").textContent = btn.textContent.trim();
+    $("#page-sub").textContent = btn.dataset.sub || "";
+  }
+  window.scrollTo(0, 0);
   $$(".tab").forEach(s => s.classList.toggle("active", s.id === "tab-" + name));
   ({ overview: loadOverview, verify: loadBeforeRuns, runs: loadRuns, events: loadEvents })[name]?.();
 }
-$("#tabs").addEventListener("click", e => { if (e.target.dataset.tab) showTab(e.target.dataset.tab); });
+$("#tabs").addEventListener("click", e => { const b = e.target.closest("button[data-tab]"); if (b) showTab(b.dataset.tab); });
 
 // ---------------------------------------------------------------- 상태
 async function loadHealth() {
@@ -189,7 +210,7 @@ function factsHtml(run) {
   if (run.kind === "analyze") {
     add("상태", badge(STATUS_LABEL[r.status] || r.status || "—", r.status) + ` <code>${esc(r.status)}</code>`);
     add("등급", gradeTag(r.grade) + (r.status === "needs_review" && r.grade ? ' <span class="muted small">잠정</span>' : ""));
-    add("처리 제안", `<code>${esc(r.action)}</code>`);
+    add("처리 제안", actionHtml(r.action, true));
     if (r.facility) add("시설", `${esc(facilityLabel(r.facility.type))} <span class="muted small">확신 ${esc(r.facility.certainty)}</span>`
       + (r.facility.facility_id ? ` · AI 대장 ${esc(r.facility.facility_id)}` : "")
       + (r.facility.location_tags && r.facility.location_tags.length ? ` · 태그 ${esc(r.facility.location_tags.join(", "))}` : ""));
@@ -202,7 +223,7 @@ function factsHtml(run) {
     add("상태", badge(STATUS_LABEL[r.status] || r.status || "—", r.status) + ` <code>${esc(r.status)}</code>`);
     add("모드", `<code>${esc(r.mode)}</code>`);
     add("결과", r.result && `<code>${esc(r.result)}</code>`);
-    add("처리 제안", `<code>${esc(r.action)}</code>`);
+    add("처리 제안", actionHtml(r.action, true));
     add("같은 시설", esc(r.same_facility));
     add("현재 정도", r.current_severity != null ? `${esc(r.current_severity)}/3` : null);
     add("제안 등급", r.new_grade && gradeTag(r.new_grade));
@@ -223,8 +244,17 @@ function factsHtml(run) {
   if (r.retry) add("재판독", `<code>${esc(JSON.stringify(r.retry))}</code>`);
   if ((r.notes || []).length) add("메모", r.notes.map(esc).join("<br>"));
   const priv = (r.meta || {}).privacy || r.privacy;
-  if (priv) add("개인정보", `mode <code>${esc(priv.mode)}</code> · 서버 확인 얼굴 ${esc(priv.faces)} 번호판 ${esc(priv.plates)} 차량 ${esc(priv.vehicles)}`
-    + ` · server_added <b>${esc(priv.server_added)}</b>` + (priv.leaks_fixed ? ` · AI 누락 보정 ${esc(priv.leaks_fixed)}` : ""));
+  if (priv) {
+    // 누가 무엇을 가렸는지 나눠 보여 준다: 휴대폰(앱 마스킹) → 서버가 다시 찾음 → 그중 앱이 놓쳐 서버가 더 가린 곳
+    const n = (o) => `얼굴 ${esc(o.faces ?? 0)} · 번호판 ${esc(o.plates ?? 0)} · 차량 ${esc(o.vehicles ?? 0)}`;
+    if (priv.device) add("휴대폰에서 가림", `${n(priv.device)} <span class="muted small">${esc(priv.device.app_version || "")}</span>`);
+    add("서버가 찾은 것", `${n(priv)} <span class="muted small">${esc(priv.mode || "")}</span>`);
+    if (priv.server_added !== undefined && priv.server_added !== null) {
+      add("서버가 더 가림", priv.server_added ? badge(`${priv.server_added}곳`, "warn") + ' <span class="muted small">앱이 놓쳤거나 서버가 잘못 잡은 곳. 사진에서 확인</span>'
+        : badge("0곳", "pass") + ' <span class="muted small">앱이 다 가림</span>');
+    }
+    if (priv.leaks_fixed) add("AI가 더 가림", `${esc(priv.leaks_fixed)}곳 <span class="muted small">판독 중 AI가 찾은 누락</span>`);
+  }
   const meta = r.meta || {};
   if (meta.provider) add("모델", `${esc(meta.provider)} / ${esc(meta.model)} · ${esc(meta.prompt_version || "")} · AI 처리 ${esc(meta.latency_ms)}ms${meta.replayed ? " · " + badge("재요청", "info") : ""}`);
   return `<dl class="facts">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>`;
@@ -405,21 +435,26 @@ $("#suite-run").onclick = ev => busy(ev.target, async setLabel => {
   const out = await api("/suite", { method: "POST" });
   const box = $("#suite-result");
   if (out.error) { box.innerHTML = `<p class="warn-text">${esc(out.error)}</p>`; return; }
+  // 실제 모델에서 건너뛴 mock 전용 항목은 본문에서 빼고 맨 아래에 접어 둔다
+  const mockOnly = c => c.level === "skip" && !out.is_mock && /mock/.test(c.detail || "");
+  const skipped = out.cases.filter(mockOnly);
   const groups = {};
-  out.cases.forEach(c => (groups[c.group] = groups[c.group] || []).push(c));
+  out.cases.filter(c => !mockOnly(c)).forEach(c => (groups[c.group] = groups[c.group] || []).push(c));
+  const table = cs => `<div class="table-wrap"><table class="table">
+      <tr><th>결과</th><th>항목</th><th>내용</th><th></th></tr>
+      ${cs.map(c => `<tr><td>${badge(LEVEL_LABEL[c.level], c.level)}</td><td>${esc(c.title)}</td><td class="muted small">${esc(c.detail)}</td>
+        <td>${c.run_id ? `<a href="#" data-open-run="${c.run_id}">#${c.run_id}</a>` : ""}</td></tr>`).join("")}
+    </table></div>`;
   box.innerHTML = `
     <div class="stats" style="margin-top:16px">
       <div class="stat"><div class="label">결과</div><div class="value">${out.ok ? badge("통과", "pass") : badge("실패", "fail")}</div><div class="sub">${esc(out.provider)} / ${esc(out.model)} · ${esc(out.elapsed_ms)}ms</div></div>
       <div class="stat"><div class="label">통과</div><div class="value">${out.counts.pass}</div></div>
       <div class="stat"><div class="label">실패</div><div class="value">${out.counts.fail}</div></div>
       <div class="stat"><div class="label">확인 필요</div><div class="value">${out.counts.warn}</div></div>
-      <div class="stat"><div class="label">건너뜀</div><div class="value">${out.counts.skip}</div></div>
+      <div class="stat"><div class="label">건너뜀</div><div class="value">${out.counts.skip}</div>${skipped.length ? `<div class="sub">예시 응답 비교 ${skipped.length}개 (mock 전용)</div>` : ""}</div>
     </div>
-    ${Object.entries(groups).map(([g, cs]) => `<div class="suite-group"><h3>${esc(g)}</h3><div class="table-wrap"><table class="table">
-      <tr><th>결과</th><th>항목</th><th>내용</th><th></th></tr>
-      ${cs.map(c => `<tr><td>${badge(LEVEL_LABEL[c.level], c.level)}</td><td>${esc(c.title)}</td><td class="muted small">${esc(c.detail)}</td>
-        <td>${c.run_id ? `<a href="#" data-open-run="${c.run_id}">#${c.run_id}</a>` : ""}</td></tr>`).join("")}
-    </table></div></div>`).join("")}`;
+    ${Object.entries(groups).map(([g, cs]) => `<div class="suite-group"><h3>${esc(g)}</h3>${table(cs)}</div>`).join("")}
+    ${skipped.length ? `<details class="suite-group"><summary>건너뛴 예시 응답 비교 ${skipped.length}개 보기 (AI 서버가 mock일 때만 함)</summary>${table(skipped)}</details>` : ""}`;
   toast(out.ok ? "자동 점검 통과" : `실패 ${out.counts.fail}건`, !out.ok);
 });
 $("#suite-result").addEventListener("click", e => { if (e.target.dataset.openRun) { e.preventDefault(); openRun(+e.target.dataset.openRun); } });
@@ -429,10 +464,21 @@ async function loadRuns() {
   let runs;
   try { runs = await api("/runs" + ($("#runs-kind").value ? `?kind=${$("#runs-kind").value}` : "")); } catch (e) { return toast(e.message, true); }
   if ($("#runs-hide-auto").checked) runs = runs.filter(r => !(r.label || "").startsWith("[자동]"));
+  state.runs = runs;
+  renderRunsTable();
+}
+
+// 최근 RUNS_PAGE개만 그리고 '더 보기'로 늘린다 (기록이 수백 개여도 화면이 길어지지 않게)
+function renderRunsTable() {
+  const runs = state.runs;
   const t = $("#runs-table");
-  if (!runs.length) { t.innerHTML = '<tr><td class="muted">기록이 없습니다.</td></tr>'; return; }
+  const more = $("#runs-more");
+  if (!runs.length) { t.innerHTML = '<tr><td class="muted">기록이 없습니다.</td></tr>'; more.hidden = true; return; }
+  const shown = runs.slice(0, state.runsShown);
+  more.hidden = shown.length >= runs.length;
+  more.textContent = `더 보기 (${runs.length - shown.length}개 남음)`;
   t.innerHTML = `<tr><th>#</th><th>시각</th><th>종류</th><th>사진·메모</th><th>상태</th><th>결과</th><th>처리 제안</th><th>계약 검사</th><th>정답</th><th class="num">응답</th></tr>` +
-    runs.map(r => {
+    shown.map(r => {
       const x = r.response || {};
       const s = r.summary;
       const res = r.kind === "analyze" ? gradeTag(x.grade) : r.kind === "verify" ? esc(x.result || "—") : r.kind === "narrative" ? esc(x.source) : "";
@@ -445,34 +491,72 @@ async function loadRuns() {
       return `<tr class="click${state.selectedRun === r.id ? " sel" : ""}" data-id="${r.id}"><td>${r.id}</td><td class="muted">${esc(fmtTime(r.created_at))}</td><td>${esc(KIND_LABEL[r.kind])}</td>
         <td>${esc(r.label || "")}${r.hidden ? " " + badge("보류", "fail") : ""}${r.snapshot_count > 1 ? " " + badge(`스냅샷 ${r.snapshot_count}`, "info") : ""}</td>
         <td>${x.status ? badge(STATUS_LABEL[x.status] || x.status, x.status) : r.http_status !== 200 ? badge("HTTP " + r.http_status, "fail") : ""}</td>
-        <td>${res}</td><td>${x.action ? `<code>${esc(x.action)}</code>` : ""}</td>
+        <td>${res}</td><td>${actionHtml(x.action)}</td>
         <td>${s.fail ? badge(`위반 ${s.fail}`, "fail") : badge("통과", "pass")} ${s.warn ? badge(`확인 ${s.warn}`, "warn") : ""}</td>
         <td>${exp}</td><td class="num muted">${esc(r.latency_ms)}ms</td></tr>`;
     }).join("");
 }
-$("#runs-table").addEventListener("click", e => { const tr = e.target.closest("tr[data-id]"); if (tr) openRun(+tr.dataset.id, false); });
-$("#runs-kind").onchange = loadRuns;
-$("#runs-hide-auto").onchange = loadRuns;
+$("#runs-table").addEventListener("click", e => { const tr = e.target.closest("tr[data-id]"); if (tr) openRun(+tr.dataset.id); });
+const resetRuns = () => { state.runsShown = RUNS_PAGE; loadRuns(); };
+$("#runs-kind").onchange = resetRuns;
+$("#runs-hide-auto").onchange = resetRuns;
 $("#runs-refresh").onclick = loadRuns;
+$("#runs-more").onclick = () => { state.runsShown += RUNS_PAGE; renderRunsTable(); };
 $("#runs-clear").onclick = async () => {
-  if (!confirm("검증 콘솔의 기록과 사진 복사본을 모두 지웁니다. AI 서버의 기록은 그대로입니다. 계속할까요?")) return;
-  await api("/runs", { method: "DELETE" });
-  $("#run-detail").innerHTML = "";
-  loadRuns();
-  toast("기록을 지웠습니다");
+  if (!confirm("검증 콘솔의 기록과 사진 복사본을 모두 지웁니다.\n지우기 전에 data/backups/ 폴더에 모두 백업합니다. AI 서버의 기록은 그대로입니다. 계속할까요?")) return;
+  let out;
+  try { out = await api("/runs", { method: "DELETE" }); } catch (e) { return toast(`지우지 못했습니다 (백업 실패면 지우지 않음): ${e.message}`, true); }
+  closeRun();
+  resetRuns();
+  toast(`기록을 지웠습니다. 백업: ${out.backup}`);
 };
 
-async function openRun(id, switchTab = true) {
+// 기록 자세히: 화면 오른쪽에 패널로 연다 (목록 아래로 내려가지 않게). 어느 탭에서 열어도 같은 패널
+async function openRun(id) {
   try {
     const run = await api(`/runs/${id}`);
     state.selectedRun = id;
-    if (switchTab) showTab("runs"); else $$("#runs-table tr[data-id]").forEach(tr => tr.classList.toggle("sel", +tr.dataset.id === id));
+    $$("#runs-table tr[data-id]").forEach(tr => tr.classList.toggle("sel", +tr.dataset.id === id));
     const box = $("#run-detail");
     box.innerHTML = "";
     box.appendChild(renderRun(run, { detail: true }));
-    box.scrollIntoView({ behavior: "smooth", block: "start" });
+    const pos = state.runs.findIndex(r => r.id === id);
+    $("#drawer-prev").disabled = pos <= 0;
+    $("#drawer-next").disabled = pos < 0 || pos >= state.runs.length - 1;
+    $("#drawer-title").textContent = `기록 #${id}`;
+    $("#run-drawer").hidden = $("#drawer-backdrop").hidden = false;
+    document.body.classList.add("drawer-open");
+    $("#run-drawer").scrollTop = 0;
+    history.replaceState(null, "", `#run-${id}`);
   } catch (e) { toast(e.message, true); }
 }
+
+function closeRun() {
+  $("#run-drawer").hidden = $("#drawer-backdrop").hidden = true;
+  document.body.classList.remove("drawer-open");
+  state.selectedRun = null;
+  $$("#runs-table tr.sel").forEach(tr => tr.classList.remove("sel"));
+  if (location.hash.startsWith("#run-")) history.replaceState(null, "", location.pathname);
+}
+
+// 목록에서 위·아래 기록으로 옮겨 가기 (보이지 않는 곳이면 '더 보기'를 늘림)
+function stepRun(d) {
+  const pos = state.runs.findIndex(r => r.id === state.selectedRun);
+  const next = state.runs[pos + d];
+  if (pos < 0 || !next) return;
+  if (pos + d >= state.runsShown) { state.runsShown += RUNS_PAGE; renderRunsTable(); }
+  openRun(next.id);
+}
+$("#drawer-close").onclick = closeRun;
+$("#drawer-backdrop").onclick = closeRun;
+$("#drawer-prev").onclick = () => stepRun(-1);
+$("#drawer-next").onclick = () => stepRun(1);
+document.addEventListener("keydown", e => {
+  if ($("#run-drawer").hidden || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if (e.key === "Escape") closeRun();
+  if (e.key === "ArrowUp") { e.preventDefault(); stepRun(-1); }
+  if (e.key === "ArrowDown") { e.preventDefault(); stepRun(1); }
+});
 
 // ---------------------------------------------------------------- 알림·가림 점검
 async function loadEvents() {
@@ -632,7 +716,8 @@ async function autoPoll() {
     if (!updated.length) return;
     toast(`AI 알림 반영: ${updated.map(h => h.applied).join(" / ")}`);
     const active = ($(".tab.active") || {}).id;
-    if (active === "tab-runs") { loadRuns(); if (state.selectedRun) openRun(state.selectedRun, false); }
+    if (active === "tab-runs") loadRuns();
+    if (state.selectedRun && updated.some(h => h.applied.includes(`#${state.selectedRun} `))) openRun(state.selectedRun);
     if (active === "tab-events") loadEvents();
     if (active === "tab-overview") loadOverview();
     // 판독·비교 탭에 떠 있는 결과 카드도 새 결과로 바꿈
@@ -651,7 +736,11 @@ loadHealth();
 loadTaxonomy().then(() => {
   // 주소 뒤에 #analyze, #runs, #run-12 처럼 붙이면 그 화면으로 바로 엽니다
   const h = location.hash.slice(1);
-  if (/^run-\d+$/.test(h)) openRun(+h.slice(4));
+  if (/^run-\d+$/.test(h)) { showTab("runs"); openRun(+h.slice(4)); }
   else if (h && $("#tab-" + h)) showTab(h);
   else loadOverview();
+});
+window.addEventListener("hashchange", () => {   // 화면을 연 채로 주소만 바꿔도 (#run-12) 그 기록을 연다
+  const m = location.hash.match(/^#run-(\d+)$/);
+  if (m && +m[1] !== state.selectedRun) { showTab("runs"); openRun(+m[1]); }
 });

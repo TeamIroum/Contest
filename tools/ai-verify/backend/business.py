@@ -58,13 +58,44 @@ def retakes_left(quality_failures: int) -> int:
     return max(0, min(MAX_RETAKES, MAX_RETAKES + 1 - quality_failures))
 
 
+LOCAL_HOSTS = {"127.0.0.1", "::1", "localhost"}
+# 터널(Tailscale Funnel·cloudflared)·프록시를 거친 요청에 붙는 헤더. 터널은 이 PC 안에서 넘겨주므로
+# 보낸 쪽 주소가 127.0.0.1로 보여, 주소만으로는 바깥 요청을 가릴 수 없다
+FORWARD_HEADERS = ("tailscale-funnel-request", "x-forwarded-for", "x-forwarded-host", "forwarded", "cf-connecting-ip")
+
+
+def from_outside(request: Request) -> bool:
+    """이 PC에서 직접 연 요청이 아니면 True (터널·프록시를 거쳤거나 주소가 이 PC 이름이 아님)."""
+    h = request.headers
+    if any(k in h for k in FORWARD_HEADERS):
+        return True
+    host = (h.get("host") or "").strip()
+    host = host[1:host.index("]")] if host.startswith("[") else host.rsplit(":", 1)[0]
+    return host not in LOCAL_HOSTS or request.client is None or request.client.host not in LOCAL_HOSTS
+
+
 def _err(status: int, code: str, detail: str, **extra):
     # 명세서 2장 오류 형식은 message. 시험용 PWA가 읽던 detail도 함께 둔다
     return JSONResponse({"code": code, "message": detail, "detail": detail, **extra}, status_code=status)
 
 
-def _slot(stop_id: str, slot_id: str):
-    for i, s in enumerate(TEST_STOPS):
+# 시험용: 현장 수집. AI 평가용 사진을 시설 종류별로 계속 모은다 (재촬영 상한·'이미 끝난 곳' 없음).
+# 명세서의 업무 규칙을 일부러 끈 것이라 /me/patrols에는 나오지 않고 실제 업무 API에도 없다. 시험용 PWA의 '현장 수집'만 쓴다.
+# facilityKey는 AI 분류 체계(ai/taxonomy.json) 이름. 검증 콘솔 기록의 정답 라벨(시설)에 미리 넣는다
+COLLECT_PATROL_ID = "patrol-collect"
+COLLECT_STOPS = [
+    {"id": f"collect-{key}", "order": n, "facilityType": ftype, "facilityKey": key, "name": name,
+     "instruction": "시설 전체가 화면 가운데 오게, 문제가 있으면 그 부분이 잘 보이게 찍어 주세요.",
+     "captureSlots": [{"id": f"00000000-0000-4000-8000-0000000c0{n}01", "label": "현장 사진"}]}
+    for n, (key, ftype, name) in enumerate([
+        ("sidewalk", "SIDEWALK", "보도"), ("drain", "DRAIN", "빗물받이"), ("bench", "BENCH", "벤치"),
+        ("fence", "SAFETY_FENCE", "안전 울타리"), ("exercise", "EXERCISE_EQUIPMENT", "운동기구")], start=1)
+]
+STOPS = {TEST_PATROL_ID: TEST_STOPS, COLLECT_PATROL_ID: COLLECT_STOPS}
+
+
+def _slot(stop_id: str, slot_id: str, stops=TEST_STOPS):
+    for i, s in enumerate(stops):
         if s["id"] == stop_id:
             for c in s["captureSlots"]:
                 if c["id"] == slot_id:
@@ -122,6 +153,12 @@ def create_router(run_analyze, store) -> APIRouter:
 
     @r.get("/patrols/{patrol_id}")
     def patrol(patrol_id: str):
+        if patrol_id == COLLECT_PATROL_ID:
+            return {"id": COLLECT_PATROL_ID, "date": datetime.now().date().isoformat(), "activityStatus": "IN_PROGRESS",
+                    "routeName": "현장 수집", "collect": True,
+                    "stops": [{k: v for k, v in s.items() if k != "captureSlots"} |
+                              {"captureSlots": [{**c, "required": False, "purpose": "REGULAR", "receiptStatus": "NONE",
+                                                 "captureStatus": None} for c in s["captureSlots"]]} for s in COLLECT_STOPS]}
         if patrol_id != TEST_PATROL_ID:
             return _err(404, "PATROL_NOT_FOUND", "순회를 찾을 수 없습니다")
         return _patrol()
@@ -147,8 +184,8 @@ def create_router(run_analyze, store) -> APIRouter:
 
     @r.get("/test-client-logs")
     def list_client_logs(request: Request, limit: int = 50):
-        # 기기 정보·파일 경로가 담겨 있으므로 이 PC에서만 본다. 터널(cloudflared)을 거친 요청은 Cf-Connecting-Ip가 붙음
-        if request.headers.get("cf-connecting-ip") or request.client.host not in ("127.0.0.1", "::1", "localhost"):
+        # 기기 정보·파일 경로가 담겨 있으므로 이 PC에서만 본다
+        if from_outside(request):
             raise HTTPException(403, "이 PC에서만 볼 수 있습니다")
         limit = max(1, min(limit, 500))   # 음수 LIMIT은 SQLite에서 제한 없음이 되므로 막음
         rows = store.db.execute("SELECT * FROM client_logs ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
@@ -180,9 +217,9 @@ def create_router(run_analyze, store) -> APIRouter:
         testClient: str | None = Form(None),   # 시험 앱의 처리 시간 등 (실제 업무 API에는 없음). 기록에만 남김
     ):
         # ---- 형식 검사 (저장 전) ----
-        if patrol_id != TEST_PATROL_ID:
+        if patrol_id not in STOPS:
             return _err(404, "PATROL_NOT_FOUND", "순회를 찾을 수 없습니다")
-        idx, stop, slot = _slot(stop_id, captureSlotId)
+        idx, stop, slot = _slot(stop_id, captureSlotId, STOPS[patrol_id])
         if stop is None or slot is None:
             return _err(404, "CAPTURE_SLOT_NOT_FOUND", "순회 장소나 구도를 찾을 수 없습니다")
         for name, v in (("clientSubmissionId", clientSubmissionId), ("attemptId", attemptId)):
@@ -221,6 +258,25 @@ def create_router(run_analyze, store) -> APIRouter:
             if prev["request"] != req_key:
                 return _err(409, "SUBMISSION_CONFLICT", "같은 제출 ID로 다른 사진이 왔습니다")
             return JSONResponse(prev["body"] | {"replayed": True}, status_code=prev["http"])
+
+        if patrol_id == COLLECT_PATROL_ID:
+            # 현장 수집: 구도 상태(재촬영 횟수·채택)를 보지도 바꾸지도 않고 판독만 해서 기록에 남긴다
+            try:
+                run = run_analyze(
+                    data, f"{clientSubmissionId}.{ext}", scenario=None,
+                    photo_id=f"collect-{clientSubmissionId}", participant_id="P-COLLECT", captured_at=capturedAt,
+                    tags=[], device_masked=True, device_report=report, context=None,
+                    expected={"facility": stop["facilityKey"]},   # 고른 시설 = 정답 라벨의 시설 (문제·등급은 콘솔에서 붙임)
+                    label=f"수집 {stop['name']} (masking {maskingVersion})", client=_test_client(testClient))
+                http, body = _to_collect(run)
+                if http >= 500:
+                    return JSONResponse(body, status_code=http)
+                body |= {"clientSubmissionId": clientSubmissionId, "testConsoleRunId": run["id"]}
+                _kv_set(key, {"http": http, "body": body, "request": req_key})
+                return JSONResponse(body, status_code=http)
+            finally:
+                with lock:
+                    inflight.discard(clientSubmissionId)
 
         try:
             # 같은 구도의 제출은 한 번에 하나씩: 재촬영 횟수·채택 상태를 덮어쓰지 않게 (실제 백엔드의 구도 행 잠금에 해당)
@@ -266,6 +322,26 @@ def _test_client(raw: str | None) -> dict | None:
     except ValueError:
         return None
     return v if isinstance(v, dict) else None
+
+
+def _to_collect(run: dict) -> tuple[int, dict]:
+    """현장 수집 응답: 접수 여부와 품질 결과만. 판독 결과(등급·문제)는 검증 콘솔 기록에서 본다."""
+    if run["http_status"] != 200:
+        return 503, {"code": "ANALYSIS_UNAVAILABLE", "message": "잠시 후 다시 보내 주세요", "detail": "잠시 후 다시 보내 주세요",
+                     "receiptStatus": "RETRY_REQUIRED"}
+    ai = run["response"] or {}
+    status = ai.get("status")
+    capture = {"ok": "ACCEPTED", "needs_review": "REVIEW_REQUESTED", "retake": "RETAKE_REQUIRED"}.get(status, "TECHNICAL_FAILED")
+    problems = (ai.get("quality") or {}).get("problems") or []
+    if status == "retake":
+        msg = next((RETAKE_GUIDE[p] for p in problems if p in RETAKE_GUIDE), "다시 찍어 주세요.") + " 이 사진도 기록에는 남았어요."
+    elif status == "error":
+        msg = RETRY_GUIDE
+    else:
+        msg = "받았어요. 계속 찍어 주세요." if status == "ok" else "받았어요. AI가 확신하지 못한 사진이에요. 계속 찍어 주세요."
+    return 200, {"inspectionId": f"insp-{run['id']}", "receiptStatus": "RECEIVED" if ai.get("masked_image_url") else "NO_MEDIA",
+                 "captureStatus": capture, "duplicate": False, "nextAction": "NEXT_CAPTURE", "nextStopId": None,
+                 "qualityProblems": problems, "message": msg}
 
 
 def _next_stop(stop_idx: int) -> tuple[str | None, str]:

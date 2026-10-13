@@ -3,29 +3,54 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AI 판독 검증 콘솔</title>
+<title>AI 판독 검증 콘솔 · 동네 점검단</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f6beb'/%3E%3Cpath d='M9 12.5h2.6l1.5-2.2h5.8l1.5 2.2H23a1.5 1.5 0 0 1 1.5 1.5v7.5A1.5 1.5 0 0 1 23 23H9a1.5 1.5 0 0 1-1.5-1.5V14A1.5 1.5 0 0 1 9 12.5z' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='17.3' r='3' fill='none' stroke='%23fff' stroke-width='1.8'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="top">
+<div class="app">
+<!-- 왼쪽 메뉴: 관리자 웹(frontend/admin)과 같은 모양 -->
+<aside class="side">
   <div class="brand">
-    <strong>AI 판독 검증 콘솔</strong>
-    <span class="muted">시니어 동네 점검단 · 계약 v<span id="contract-ver">2.0</span></span>
+    <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 8.5h2.6L8 6.3h8l1.4 2.2H20a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18v-8A1.5 1.5 0 0 1 4 8.5z"/><circle cx="12" cy="13.6" r="3.2"/></svg></span>
+    <span><strong>동네 점검단</strong><small>AI 판독 검증 콘솔</small></span>
   </div>
-  <div id="ai-status" class="ai-status"><span class="dot"></span><span>AI 서버 확인 중…</span></div>
+  <nav class="nav" id="tabs">
+    <p class="nav-group">상태</p>
+    <button data-tab="overview" class="active" data-group="상태" data-sub="AI 서버 상태와 계약 검사, 판독 정확도를 한눈에 봅니다.">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="9" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="5" rx="1.5"/><rect x="13.5" y="11" width="7.5" height="10" rx="1.5"/><rect x="3" y="15" width="7.5" height="6" rx="1.5"/></svg>개요</button>
+    <p class="nav-group">판독 시험</p>
+    <button data-tab="analyze" data-group="판독 시험" data-sub="사진을 넣어 AI 판독(POST /analyze)을 직접 시험합니다.">
+      <svg viewBox="0 0 24 24"><path d="M4 8.5h2.6L8 6.3h8l1.4 2.2H20a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18v-8A1.5 1.5 0 0 1 4 8.5z"/><circle cx="12" cy="13.6" r="3.2"/></svg>사진 판독</button>
+    <button data-tab="verify" data-group="판독 시험" data-sub="처음 판독한 사진과 다시 찍은 사진을 비교해 수리 여부를 봅니다.">
+      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="7.5" height="14" rx="1.5"/><rect x="13.5" y="5" width="7.5" height="14" rx="1.5"/><path d="M12 3v18"/></svg>전후 비교</button>
+    <button data-tab="suite" data-group="판독 시험" data-sub="AI 서버가 계약서대로 답하는지 프로토콜 점검을 한 번에 돌립니다.">
+      <svg viewBox="0 0 24 24"><path d="M10 6h11M10 12h11M10 18h11"/><path d="m3 6 1.5 1.5L7 5M3 12l1.5 1.5L7 11M3 18l1.5 1.5L7 17"/></svg>시나리오 자동 점검</button>
+    <p class="nav-group">기록</p>
+    <button data-tab="runs" data-group="기록" data-sub="앱과 시험에서 들어온 모든 판독 호출입니다. 줄을 누르면 오른쪽에 자세히 열립니다.">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>호출 기록</button>
+    <button data-tab="events" data-group="기록" data-sub="AI 서버의 변경 알림을 받아 처리하고, 가린 사진을 표본으로 점검합니다.">
+      <svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>알림·가림 점검</button>
+    <p class="nav-group">기타</p>
+    <button data-tab="extra" data-group="기타" data-sub="보고 문장 만들기와 판독 없는 사진의 개인정보 검사를 시험합니다.">
+      <svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg>보고 문장·개인정보</button>
+  </nav>
+  <div class="side-foot">
+    <div id="ai-status" class="ai-status"><span class="dot"></span><span>AI 서버 확인 중…</span></div>
+    <span class="muted small">AI 판독 계약 v<span id="contract-ver">2.0</span> · 시험용</span>
+  </div>
+</aside>
+
+<div class="content">
+<header class="topbar">
+  <span class="crumb"><span id="crumb-group">상태</span><span class="sep">›</span><b id="crumb-page">개요</b></span>
 </header>
 
-<nav class="tabs" id="tabs">
-  <button data-tab="overview" class="active">개요</button>
-  <button data-tab="analyze">판독 시험</button>
-  <button data-tab="verify">전후 비교</button>
-  <button data-tab="suite">시나리오 자동 점검</button>
-  <button data-tab="runs">기록</button>
-  <button data-tab="events">알림·가림 점검</button>
-  <button data-tab="extra">보고 문장·개인정보</button>
-</nav>
-
 <main>
+  <div class="page-head">
+    <h1 id="page-title">개요</h1>
+    <p id="page-sub" class="muted">AI 서버 상태와 계약 검사, 판독 정확도를 한눈에 봅니다.</p>
+  </div>
   <!-- 개요 -->
   <section id="tab-overview" class="tab active">
     <div class="grid two">
@@ -163,8 +188,14 @@
   <section id="tab-suite" class="tab">
     <div class="card">
       <h2>시나리오 자동 점검</h2>
-      <p class="muted">mock 모드에서는 <code>ai/contract/fixtures/</code>의 예시 응답을 같은 입력으로 다시 만들어 비교합니다.
-        실제 모델(ollama)에서는 시나리오 비교를 건너뛰고, 400·401·404·409·재요청·다시 가림 알림 같은 프로토콜 점검만 합니다.</p>
+      <p class="muted">AI 서버가 계약서대로 동작하는지 한 번에 확인합니다. 잘못된 요청에 400·401·404·409로 답하는지, 같은 사진을 다시 보내면 같은 결과가 오는지,
+        다시 가림 알림이 오는지 같은 <b>프로토콜 점검</b>입니다. 실제 모델(Ollama)로 그대로 돌립니다.</p>
+      <details class="note">
+        <summary>예시 응답 비교는 왜 건너뛰나요</summary>
+        <p class="muted small">AI 서버를 가짜 결과 모드(<code>AI_PROVIDER=mock</code>)로 켜면 <code>ai/contract/fixtures/</code>의 예시 응답과 글자 단위로 같은지도 비교합니다.
+          예시 응답은 업무 백엔드가 AI 없이 연동을 개발할 때 쓰는 자료라 형식이 몰래 바뀌지 않았는지 보는 용도입니다.
+          실제 모델은 같은 사진에도 답이 조금씩 달라 이 비교를 건너뛰고, 결과 맨 아래에 접어 둡니다.</p>
+      </details>
       <button class="primary" id="suite-run">점검 시작</button>
       <div id="suite-result"></div>
     </div>
@@ -185,8 +216,9 @@
         <button class="danger" id="runs-clear">기록 모두 지우기</button>
       </div>
       <div class="table-wrap"><table id="runs-table" class="table"></table></div>
+      <button class="ghost more-btn" id="runs-more" hidden>더 보기</button>
+      <p class="hint">줄을 누르면 오른쪽에 자세히 열립니다. 열린 동안 ↑↓ 키로 이전·다음 기록, Esc로 닫기.</p>
     </div>
-    <div id="run-detail"></div>
   </section>
 
   <!-- 알림·가림 점검 -->
@@ -255,6 +287,21 @@
     </div>
   </section>
 </main>
+</div>
+</div>
+
+<!-- 기록 자세히 (오른쪽 패널) -->
+<div id="drawer-backdrop" class="drawer-backdrop" hidden></div>
+<aside id="run-drawer" class="drawer" hidden aria-label="기록 자세히">
+  <div class="drawer-bar">
+    <strong id="drawer-title">기록</strong>
+    <button class="mini ghost" id="drawer-prev" title="↑">↑ 이전</button>
+    <button class="mini ghost" id="drawer-next" title="↓">다음 ↓</button>
+    <span class="spacer"></span>
+    <button class="mini" id="drawer-close" title="Esc">닫기 ✕</button>
+  </div>
+  <div id="run-detail"></div>
+</aside>
 
 <div id="toast" class="toast" hidden></div>
 <script src="app.js"></script>
