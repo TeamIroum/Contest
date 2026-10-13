@@ -16,12 +16,15 @@ export function LiveCamera({
   handle,
   onError,
   onReady,
+  fill = false,
   className = '',
 }: {
   handle: RefObject<CameraHandle | null>
   onError: (why: string) => void
   /** 화면이 실제로 나오기 시작하면 true (그 전에는 셔터를 막는다) */
   onReady: (ready: boolean) => void
+  /** 화면 전체를 채운다 (전체 화면 촬영). 영상은 잘리지 않게 contain */
+  fill?: boolean
   className?: string
 }) {
   const video = useRef<HTMLVideoElement>(null)
@@ -74,7 +77,7 @@ export function LiveCamera({
       playsInline
       muted
       onLoadedData={(e) => e.currentTarget.videoWidth && onReady(true)}
-      className={`block aspect-[4/3] w-full rounded-[10px] bg-black object-contain ${className}`}
+      className={`block bg-black object-contain ${fill ? 'h-full w-full' : 'aspect-[4/3] w-full rounded-[10px]'} ${className}`}
     />
   )
 }

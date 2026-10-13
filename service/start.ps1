@@ -96,6 +96,8 @@ foreach ($app in 'senior', 'admin') {
         Push-Location $dir
         try {
             if (-not (Test-Path node_modules)) { npm ci --no-audit --no-fund | Out-Null }
+            # 시니어 앱 사진 가리기 모델(번호판·차량)은 Git에 없으므로 처음 한 번 받는다
+            if ($app -eq 'senior' -and -not (Test-Path 'public\models\plate-t384@1.onnx')) { npm run models | Out-Null; if ($LASTEXITCODE) { throw '가림 모델 받기 실패 (npm run models)' } }
             $env:VITE_BACKEND = 'real'; $env:VITE_API_ORIGIN = ''; $env:VITE_API_PROXY = ''
             npm run build | Out-Null
             if ($LASTEXITCODE) { throw "$app 빌드 실패 (npm run build)" }

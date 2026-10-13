@@ -110,10 +110,22 @@ export type ApiPatrol = {
   stops: ApiStop[]
   // 실제 백엔드만 주는 값
   teamName?: string
+  routeName?: string
+  meetingPoint?: { id?: string; name?: string } | null
+  scheduledStartAt?: string | null
+  expectedReturnAt?: string | null
   members?: ApiMember[]
   departureConfirmedAt?: string | null
   contact?: { name?: string; phoneNumber?: string } | null
   myAssignment?: { participantId: string; assignmentRef?: string } | null
+}
+
+/** 서버 시각(ISO)을 한국 시간 '오전 10시'·'오후 12시 30분' 꼴로 */
+export function kstClock(iso: string) {
+  const d = new Date(new Date(iso).getTime() + 9 * 3600_000)
+  const h = d.getUTCHours()
+  const m = d.getUTCMinutes()
+  return `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}시${m ? ` ${m}분` : ''}`
 }
 
 /** 한국 시간 기준 오늘 (YYYY-MM-DD). 실제 백엔드는 활동일을 꼭 받는다 */

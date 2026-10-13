@@ -1,13 +1,12 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { createPortal } from 'react-dom'
 import { Photo, KIND_NAME } from './Photo'
-import { Scenery } from './Scenery'
-import { SKY_PRESETS, lookAt, nowHour, type SkyLook } from './sky'
 import { LiveCamera, type CameraHandle } from './camera/LiveCamera'
 import * as quality from './camera/quality.js'
 import * as masking from './masking/masking.js'
 import * as outbox from './offline/outbox.js'
 import type { OutboxItem, SubmitBody } from './offline/outbox.js'
-import { ApiError, REAL_BACKEND, fetchPatrol, fetchTodayPatrol, memberStates, requestAttendance, requestOtp, sendOpts, startActivity, verifyOtp, type ApiPatrol, type OtpChallenge } from './api/client'
+import { ApiError, REAL_BACKEND, fetchPatrol, kstClock, fetchTodayPatrol, memberStates, requestAttendance, requestOtp, sendOpts, startActivity, verifyOtp, type ApiPatrol, type OtpChallenge } from './api/client'
 import { playNotify, playRetake, playShutter, playSuccess, setSoundEnabled, unlockAudio } from './sounds'
 import { ABORT_REASONS, MAX_ATTEMPTS, ME, PARTNER, SKIP_REASONS, STAFF, STOPS, TEAM, applyPatrol, slotDone, stopDone, type Stop } from './data'
 
@@ -67,13 +66,8 @@ export default function App() {
   /** 효과음 켜기/끄기 (촬영음은 늘 재생) */
   const [sound, setSound] = useState(true)
 
-  /** 시연용 하늘 시각 (SKY_PRESETS 번호, 0 = 휴대폰 시계) */
-  const [skyPick, setSkyPick] = useState(0)
-  const look = lookAt(useSkyHour(SKY_PRESETS[skyPick][0]))
-  // 브라우저 위쪽 막대 색도 하늘에 맞춘다
-  useEffect(() => {
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', look.bar)
-  }, [look.bar])
+  // 위쪽 막대 색 (그림 배경 없이 앱 바탕색)
+  const BAR = '#f4f6fa'
 
   // ---------------- 실제 촬영 준비 (docs/시니어앱_촬영기능_적용요청.md)
   // https(또는 localhost)이면 실제 촬영: 가림 모델을 받아 두고, 셋 다 준비되기 전에는 찍기 버튼을 끈다.
@@ -135,6 +129,11 @@ export default function App() {
     if (p.contact?.phoneNumber) STAFF.phone = p.contact.phoneNumber
     const no = Number(p.teamName?.match(/\d+/)?.[0])
     if (no) TEAM.no = no
+    // 코스 이름·모이는 곳·예정 시각도 서버 값으로 (예시 값이 남지 않게)
+    if (p.routeName) TEAM.zone = p.routeName
+    if (p.meetingPoint?.name) TEAM.center = p.meetingPoint.name
+    if (p.scheduledStartAt) TEAM.meetAt = kstClock(p.scheduledStartAt)
+    if (p.expectedReturnAt) TEAM.backBy = kstClock(p.expectedReturnAt)
     if (st.myAtt === 'present' && myAttRef.current !== 'present') playNotify()
     if (st.departed && !departedRef.current) playNotify()
     myAttRef.current = st.myAtt
@@ -461,47 +460,19 @@ export default function App() {
     setScreen('home')
   }
 
-  // 풍경이 끝나는 위치: 화면의 첫 카드(또는 data-scene-end 표시)가 시작하는 곳 + 조금 겹침.
-  // 글씨를 키워 내용이 길어지면 풍경도 그만큼 아래로 내려가 땅 부분이 늘 첫 카드 바로 위에 온다.
-  const mainRef = useRef<HTMLElement>(null)
-  const [sceneEnd, setSceneEnd] = useState<number | null>(null)
-  useLayoutEffect(() => {
-    const main = mainRef.current
-    const frame = main?.parentElement
-    if (!main || !frame) return
-    const measure = () => {
-      const el = main.querySelector<HTMLElement>('section, [data-scene-end]')
-      setSceneEnd(el ? Math.round(el.getBoundingClientRect().top - frame.getBoundingClientRect().top + 48) : null)
-    }
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(main)
-    return () => ro.disconnect()
-  }, [screen, size, paused])
-
   const loggedIn = !['start', 'phone', 'code'].includes(screen)
   const inActivity = ['route', 'retake', 'sent'].includes(screen)
 
   return (
     <div className="min-h-dvh bg-bg">
-      {/* data-sky="dark": 해 질 녘·밤처럼 하늘이 어두우면 풍경 위 글씨를 밝게 바꾼다 (index.css) */}
       <div
-        data-sky={look.dark && !['camera', 'phone', 'code'].includes(screen) ? 'dark' : 'light'}
-        data-bar={look.dark ? 'dark' : 'light'}
+        data-sky="light"
+        data-bar="light"
         className="relative mx-auto flex min-h-dvh max-w-[440px] flex-col overflow-x-clip bg-bg sm:my-6 sm:min-h-[880px] sm:overflow-hidden sm:rounded-[32px] sm:border sm:border-line sm:shadow-pop"
       >
-        {!['camera', 'phone', 'code'].includes(screen) && (
-          <SkyBackdrop
-            look={look}
-            tall={['start', 'home', 'done'].includes(screen)}
-            end={sceneEnd}
-            ground={!(['sent', 'retake'].includes(screen) && !paused)}
-            village={!(['home', 'ready', 'route', 'return'].includes(screen) && !paused)}
-          />
-        )}
-        {loggedIn && <TopBar bar={look.bar} size={size} onSize={() => setSize(((size + 1) % 3) as 0 | 1 | 2)} sound={sound} onSound={() => setSound(!sound)} onHelp={() => setSheet('help')} />}
+        {loggedIn && <TopBar bar={BAR} size={size} onSize={() => setSize(((size + 1) % 3) as 0 | 1 | 2)} sound={sound} onSound={() => setSound(!sound)} onHelp={() => setSheet('help')} />}
         {/* 화면마다 새로 그려 살짝 올라오며 나타나게 한다 (screen-in) */}
-        <main key={paused ? 'paused' : screen} ref={mainRef} className="screen-in relative flex flex-1 flex-col gap-4 px-5 pt-3 pb-6">
+        <main key={paused ? 'paused' : screen} className="screen-in relative flex flex-1 flex-col gap-4 px-5 pt-3 pb-6">
           {paused ? (
             <Paused onResume={() => setPaused(false)} />
           ) : (
@@ -550,12 +521,7 @@ export default function App() {
                 />
               )}
               {screen === 'home' && (
-                <Home
-                  onGo={() => setScreen('ready')}
-                  skyLabel={SKY_PRESETS[skyPick][1]}
-                  onSky={() => setSkyPick((skyPick + 1) % SKY_PRESETS.length)}
-                  pending={pending}
-                />
+                <Home onGo={() => setScreen('ready')} pending={pending} />
               )}
               {screen === 'ready' && (
                 <Ready
@@ -608,8 +574,7 @@ export default function App() {
                   slot={slot}
                   attempt={attempt}
                   onShoot={shoot}
-                  onBlurDemo={() => setBlurNext(true)}
-                  blurNext={blurNext}
+                  onCancel={() => setScreen('route')}
                   live={live}
                   cam={cam}
                   models={models}
@@ -653,76 +618,6 @@ export default function App() {
 
 /* ---------------- 공용 조각 ---------------- */
 
-// 화면 위쪽의 풍경 배경 (내용 뒤에 깔림)
-// 높이는 첫 카드 위치(end)에 맞춘다. 재기 전이거나 카드가 없는 화면은 글씨 크기(rem)에 비례한 높이를 쓴다.
-// 그림은 확대하지 않고 폭에 맞춰 아래에 붙이며, 위쪽 남는 부분은 하늘 위쪽 색으로 이어 칠한다.
-// 최소 높이는 그림이 폭에 맞을 때의 높이(폭 × 320/440)라서 옆이 비지 않는다.
-// ground=false: 큰 결과 카드가 풍경을 덮어 산·구름 조각만 삐져나오는 화면은 그림 없이 하늘색만 아래로 흐리게 사라지게 한다.
-function SkyBackdrop({ tall, end, look, ground = true, village = true }: { tall: boolean; end: number | null; look: SkyLook; ground?: boolean; village?: boolean }) {
-  const fade = 'linear-gradient(#000 45%, transparent 85%)'
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-x-0 top-0 overflow-hidden"
-      style={{
-        height: `max(${end ? `${end}px` : `${tall ? 21 : 15}rem`}, calc(min(100vw, 440px) * 0.7273))`,
-        // 하늘색은 시간에 맞춰 바뀐다 (sky.ts)
-        background: `linear-gradient(${look.sky[0]} 0%, ${look.sky[1]} 32%, ${look.sky[2]} 68%, ${look.sky[3]} 100%)`,
-        ...(ground ? {} : { maskImage: fade, WebkitMaskImage: fade }),
-      }}
-    >
-      {/* 하늘 층: 위쪽 막대 바로 아래에 고정 (막대가 두 줄이 되면 그만큼 아래) */}
-      {ground && (
-        <div className="absolute inset-x-0 top-[60px] big:top-[96px] max-[429px]:top-[96px]">
-          <Scenery part="sky" look={look} className="block h-auto w-full" />
-        </div>
-      )}
-      {/* 땅 층: 첫 카드 바로 위에 고정 */}
-      {ground && <Scenery part="ground" look={look} village={village} className="absolute inset-x-0 bottom-0 block h-auto w-full" />}
-    </div>
-  )
-}
-
-/**
- * 하늘 시각: 평소에는 휴대폰 시계를 따르고(1분마다 갱신), 시연용으로 시각을 고르면 그 시각으로 바뀐다.
- * 시각이 바뀔 때는 1.2초 동안 서서히 넘어가 해·하늘색이 툭 바뀌지 않는다.
- */
-function useSkyHour(preset: number | null) {
-  const [now, setNow] = useState(nowHour)
-  useEffect(() => {
-    const t = setInterval(() => setNow(nowHour()), 60_000)
-    return () => clearInterval(t)
-  }, [])
-  const target = preset ?? now
-  const [shown, setShown] = useState(target)
-  const from = useRef(target)
-  useEffect(() => {
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    // 24시간이 이어진 원이라 가까운 쪽으로 돈다 (23시 → 1시는 2시간 앞으로)
-    let d = target - from.current
-    if (d > 12) d -= 24
-    if (d < -12) d += 24
-    if (reduce || Math.abs(d) < 0.02) {
-      from.current = target
-      setShown(target)
-      return
-    }
-    const start = from.current
-    const t0 = performance.now()
-    let raf = 0
-    const step = (t: number) => {
-      const p = Math.min(1, (t - t0) / 1200)
-      const e = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2
-      const h = (start + d * e + 24) % 24
-      from.current = h
-      setShown(h)
-      if (p < 1) raf = requestAnimationFrame(step)
-    }
-    raf = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(raf)
-  }, [target])
-  return shown
-}
 const SIZE_NAME = ['기본', '크게', '아주 크게'] as const
 
 function TopBar({ bar, size, onSize, sound, onSound, onHelp }: { bar: string; size: 0 | 1 | 2; onSize: () => void; sound: boolean; onSound: () => void; onHelp: () => void }) {
@@ -904,8 +799,7 @@ function ActivityBar({ onPause, onAbort }: { onPause: () => void; onAbort: () =>
 function Start({ onNext }: { onNext: () => void }) {
   return (
     <>
-      {/* 아이콘이 언덕 그림에 걸치지 않도록 풍경 아래, 버튼 쪽에 모아 둔다 */}
-      <div className="flex flex-1 flex-col justify-end gap-6 pt-[17rem] pb-8">
+      <div className="flex flex-1 flex-col justify-center gap-6 pt-16 pb-8">
         <div className="pop-in grid size-20 place-items-center rounded-[1.6rem] bg-brand text-white shadow-[0_10px_24px_rgba(47,107,235,0.35)]">
           <CameraIcon size={40} />
         </div>
@@ -1044,7 +938,7 @@ function CodeInput({ phone, onBack, onDone, onResend }: { phone: string; onBack:
 
 /* ---------------- 오늘 순회 ---------------- */
 
-function Home({ onGo, skyLabel, onSky, pending }: { onGo: () => void; skyLabel: string; onSky: () => void; pending: number }) {
+function Home({ onGo, pending }: { onGo: () => void; pending: number }) {
   return (
     <>
       <div className="pt-2">
@@ -1058,24 +952,11 @@ function Home({ onGo, skyLabel, onSky, pending }: { onGo: () => void; skyLabel: 
           <span className="inline-flex items-center gap-1.5 rounded-full bg-surface/80 px-3 py-1 text-[0.85rem] font-bold text-g0-ink shadow-card">
             <i className="size-2 rounded-full bg-g0" /> 점검원
           </span>
-          {/* 시연용: 누를 때마다 지금 시간 → 새벽 → 오전 → 한낮 → 오후 → 해 질 녘 → 밤 하늘로 바뀐다. 실제 서비스에서는 뺀다 */}
-          <button
-            type="button"
-            onClick={onSky}
-            aria-label={`시연용 하늘 시간 바꾸기. 지금: ${skyLabel}`}
-            className="inline-flex items-center gap-1 rounded-full border border-dashed border-ink/25 bg-surface/70 px-3 py-1 text-[0.8rem] font-semibold text-sub backdrop-blur"
-          >
-            시연용 하늘 · {skyLabel}
-            <span aria-hidden>›</span>
-          </button>
         </div>
         <div className="on-sky mt-3">
           <h1 className="m-0 text-[2rem] leading-[1.2] font-extrabold tracking-[-0.04em] text-ink">{ME.name} 어르신</h1>
           <p className="m-0 mt-2.5 inline-block rounded-2xl bg-surface/90 px-3.5 py-1.5 text-[1rem] leading-snug font-semibold tracking-[-0.01em] text-sub shadow-card backdrop-blur">오늘도 반가워요. 함께 동네를 살펴봐요!</p>
         </div>
-        <p className="m-0 mt-3 inline-flex items-center gap-2 rounded-full bg-surface/85 py-1.5 pr-4 pl-2 text-[0.98rem] font-semibold text-sub shadow-card backdrop-blur">
-          <SunIcon /> 맑음 · 낮 21도 · 겉옷을 챙기세요
-        </p>
       </div>
 
       <Card className="mt-6 big:mt-9">
@@ -1200,62 +1081,6 @@ function Ready({
   )
 }
 
-function RouteMap({ idx, toCenter = false, results }: { idx: number; toCenter?: boolean; results?: Record<string, StopResult> }) {
-  const center = { x: 30, y: 30 }
-  const pts = [center, ...STOPS]
-  let d = `M${pts[0].x} ${pts[0].y}`
-  for (let i = 1; i < pts.length; i++) d += ` H${pts[i].x} V${pts[i].y}`
-  const xs = [...new Set(pts.map((p) => p.x))]
-  const ys = [...new Set(pts.map((p) => p.y))]
-  return (
-    <div data-scene-end className="overflow-hidden rounded-[1.6rem] bg-[#EAF3EE] shadow-card big:mt-3">
-      <svg viewBox="0 0 260 160" className="block h-auto w-full" role="img" aria-label="오늘 코스 지도">
-        <rect x="120" y="66" width="76" height="40" rx="6" fill="#CBE8D5" />
-        <rect x="50" y="68" width="40" height="36" rx="6" fill="#E3E6EA" />
-        {ys.map((y) => (
-          <path key={`h${y}`} d={`M0 ${y} H260`} stroke="#fff" strokeWidth="10" />
-        ))}
-        {xs.map((x) => (
-          <path key={`v${x}`} d={`M${x} 0 V160`} stroke="#fff" strokeWidth="10" />
-        ))}
-        <path d={d} stroke="#2F6BEB" strokeWidth="3" fill="none" strokeDasharray="6 5" strokeLinecap="round" />
-        {/* 출발·복귀 장소: 집 모양 + "센터" 표지 */}
-        <g transform={`translate(${center.x - 19} ${center.y - 10})`}>
-          <rect width="38" height="20" rx="5" fill={toCenter ? '#E5484D' : '#20A464'} />
-          <path d="M5 11.5 L10 7 L15 11.5 M6.5 10.5 V15 H13.5 V10.5" stroke="#fff" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          <text x="26" y="13.6" textAnchor="middle" fontSize="8.5" fontWeight="800" fill="#fff">
-            센터
-          </text>
-        </g>
-        {STOPS.map((s, i) => {
-          // 복귀 화면: 결과가 있으면 찍은 곳 ✓, 건너뛴 곳 –, 못 간 곳은 번호만 흐리게(점선 테두리)
-          const r = results?.[s.id]
-          const missed = results ? !r || r === 'notVisited' : false
-          const done = results ? !missed : i < idx
-          const now = i === idx && !toCenter
-          const mark = r === 'skipped' ? '–' : '✓'
-          return (
-            <g key={s.id}>
-              <circle
-                cx={s.x}
-                cy={s.y}
-                r={now ? 12 : 9}
-                fill={now ? '#2F6BEB' : missed ? '#F2F4F6' : '#fff'}
-                stroke={missed ? '#B0B8C1' : done ? '#8B95A1' : '#2F6BEB'}
-                strokeWidth="2.5"
-                strokeDasharray={missed ? '3 2.5' : undefined}
-              />
-              <text x={s.x} y={s.y + 4} textAnchor="middle" fontSize="11" fontWeight="700" fill={now ? '#fff' : missed ? '#B0B8C1' : done ? '#8B95A1' : '#2F6BEB'}>
-                {done ? mark : i + 1}
-              </text>
-            </g>
-          )
-        })}
-      </svg>
-    </div>
-  )
-}
-
 function Progress({ idx }: { idx: number }) {
   const n = Math.min(idx + 1, STOPS.length)
   return (
@@ -1309,7 +1134,6 @@ function Route({
     return (
       <>
         <H1 chip sub="더 찍을 곳이 없어요. 센터로 돌아가 주세요.">오늘 순회를 모두 마쳤어요</H1>
-        <RouteMap idx={STOPS.length} toCenter />
         <Bottom>
           <Primary onClick={onFinish}>센터로 돌아가기</Primary>
         </Bottom>
@@ -1321,10 +1145,8 @@ function Route({
   return (
     <>
       <Progress idx={idx} />
-      <RouteMap idx={idx} />
       <Card>
         <div className="flex gap-4 big:flex-col">
-          <Photo kind={s.kind} bad={false} {...s.refPhoto} className="w-24 flex-none big:w-40" />
           <div className="min-w-0">
             <Tag purpose={s.purpose} />
             <p className="m-0 mt-1.5 text-[1.5rem] leading-tight font-extrabold">
@@ -1378,9 +1200,8 @@ function Camera({
   stop,
   slot,
   attempt,
-  blurNext,
   onShoot,
-  onBlurDemo,
+  onCancel,
   live,
   cam,
   models,
@@ -1392,9 +1213,9 @@ function Camera({
   stop: Stop
   slot: number
   attempt: number
-  blurNext: boolean
   onShoot: () => void
-  onBlurDemo: () => void
+  /** 촬영을 그만두고 장소 화면으로 */
+  onCancel: () => void
   /** 실제 촬영(https)인지. http 주소에서만 그림 시연 */
   live: boolean
   cam: RefObject<CameraHandle | null>
@@ -1427,67 +1248,67 @@ function Camera({
           : !camReady
             ? '카메라를 켜는 중이에요'
             : null
-  return (
-    <>
-      <div>
+  // 시험용 앱(tools/ai-verify/pwa)처럼 카메라를 화면 전체에 띄운다. 안내는 위, 취소·셔터는 아래에 겹쳐 둔다
+  const ref = recheck && overlay && (stop.refPhoto?.media || stop.refPhoto?.src) ? stop.refPhoto : null
+  // 화면 전환 애니메이션(transform) 안에서는 fixed가 화면 전체가 아니라 그 영역 기준이 되므로 body에 바로 그린다
+  return createPortal(
+    <div className="fixed inset-0 z-40 bg-[#0d1117] text-white" role="dialog" aria-label="사진 찍기">
+      <div className="absolute inset-0">
+        {live ? (
+          <LiveCamera handle={cam} onError={onLiveError} onReady={setCamReady} fill />
+        ) : (
+          <p className="m-0 grid h-full place-items-center px-8 text-center text-[1.05rem] text-white/75">카메라는 https 주소에서만 켜져요</p>
+        )}
+        {/* 재점검: 이전 사진(서버 사진)을 반투명하게 겹쳐 보기 (SEN-11) */}
+        {ref && <Photo kind={stop.kind} bad {...ref} className="pointer-events-none absolute inset-0 h-full w-full object-contain opacity-35 mix-blend-screen" />}
+      </div>
+
+      <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/75 via-black/45 to-transparent px-5 pt-[calc(16px+env(safe-area-inset-top))] pb-10">
         {many && (
-          <p className="m-0 mb-1.5 inline-block rounded-full bg-brand px-3 py-1 text-[0.9rem] font-bold text-white">
+          <p className="m-0 mb-2 inline-block rounded-full bg-brand px-3 py-1 text-[0.9rem] font-bold">
             {stop.slots.length}장 중 {slot + 1}번째 · {stop.slots[slot]}
           </p>
         )}
-        <H1 sub={recheck ? (stop.prevDate ? `${stop.prevDate}에 찍은 사진이 겹쳐 보여요.` : '지난번 사진이 겹쳐 보여요.') : stop.instruction}>
-          {recheck ? '지난번 사진에 맞춰 찍어 주세요' : `${withObj(KIND_NAME[stop.kind])} 네모 안에 맞춰 주세요`}
-        </H1>
+        <p className="m-0 text-[1.4rem] leading-snug font-extrabold tracking-[-0.02em]">
+          {recheck ? '지난번 사진에 맞춰 찍어 주세요' : `${withObj(KIND_NAME[stop.kind])} 화면에 담아 주세요`}
+        </p>
+        <p className="m-0 mt-1 text-[1rem] leading-snug text-white/85">
+          {recheck ? (stop.prevDate ? `${stop.prevDate}에 찍은 사진이 겹쳐 보여요.` : stop.instruction) : stop.instruction}
+        </p>
+        <p className="m-0 mt-2 text-[0.85rem] text-white/70">사람 얼굴과 자동차 번호판은 자동으로 가려요</p>
       </div>
-      <div className="relative grid flex-1 place-items-center overflow-hidden rounded-[1.8rem] bg-[#141a23] p-5 shadow-pop">
-        <div className="relative w-full">
-          {live ? (
-            <LiveCamera handle={cam} onError={onLiveError} onReady={setCamReady} />
-          ) : (
-            <Photo kind={stop.kind} bad={!!stop.bad} {...stop.shotPhoto} className="w-full opacity-90" />
-          )}
-          {/* 재점검: 이전 가린 사진을 반투명하게 겹쳐 보기 (SEN-11) */}
-          {recheck && overlay && <Photo kind={stop.kind} bad {...stop.refPhoto} className="pointer-events-none absolute inset-0 w-full opacity-35 mix-blend-screen" />}
-          <div className="pointer-events-none absolute inset-[8%] rounded-2xl border-[3px] border-white/90" />
+
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent px-6 pt-12 pb-[calc(22px+env(safe-area-inset-bottom))]">
+        <p className="m-0 mb-3 text-center text-[1rem] font-bold" role={wait ? 'status' : undefined}>
+          {wait ?? (retrying ? `다시 찍는 중 · ${left}번 남았어요` : '눌러서 찍기')}
+        </p>
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <button type="button" onClick={onCancel} className="min-h-12 justify-self-start rounded-full border border-white/35 bg-white/15 px-5 text-[1rem] font-bold">
+            취소
+          </button>
+          <button
+            type="button"
+            onClick={onShoot}
+            disabled={!canShoot}
+            aria-label="눌러서 사진 찍기"
+            className="size-[5.5rem] rounded-full border-[7px] border-white bg-brand shadow-[0_0_0_4px_rgba(47,107,235,0.45),0_10px_24px_rgba(47,107,235,0.45)] active:scale-95 disabled:bg-[#5b6573] disabled:shadow-none"
+          />
+          <span className="justify-self-end">
+            {recheck && (stop.refPhoto?.media || stop.refPhoto?.src) && (
+              <button type="button" onClick={() => setOverlay(!overlay)} aria-pressed={overlay} className="min-h-12 rounded-full border border-white/35 bg-white/15 px-4 text-[0.95rem] font-bold">
+                겹쳐 보기 {overlay ? '끄기' : '켜기'}
+              </button>
+            )}
+          </span>
         </div>
-        {/* 기본 글씨: 사진 틀 위 아래쪽에 / 글씨를 키우면 사진을 가리지 않게 틀 밖으로 */}
-        <p className="absolute right-3 bottom-3 left-3 m-0 rounded-full bg-black/55 px-3 py-2 text-center text-[0.82rem] font-semibold text-white big:hidden">
-          사람 얼굴과 자동차 번호판은 자동으로 가려요
-        </p>
-      </div>
-      <p className="m-0 -mt-1 hidden text-center text-[0.9rem] font-semibold text-sub big:block">사람 얼굴과 자동차 번호판은 자동으로 가려요</p>
-      {recheck && (
-        <button type="button" onClick={() => setOverlay(!overlay)} aria-pressed={overlay} className="self-center text-[0.95rem] font-semibold text-brand underline underline-offset-4">
-          지난 사진 겹쳐 보기 {overlay ? '끄기' : '켜기'}
-        </button>
-      )}
-      <div className="flex flex-col items-center gap-1 pt-1">
-        <button
-          type="button"
-          onClick={onShoot}
-          disabled={!canShoot}
-          aria-label="눌러서 사진 찍기"
-          className="size-[5.5rem] rounded-full border-[7px] border-surface bg-brand shadow-[0_0_0_3px_rgba(47,107,235,0.35),0_10px_24px_rgba(47,107,235,0.35)] active:scale-95 disabled:bg-line-strong disabled:shadow-none"
-        />
-        <p className="m-0 text-center text-[1rem] font-bold text-ink" role={wait ? 'status' : undefined}>
-          {wait ?? '눌러서 찍기'}
-        </p>
         {(camError || models === 'failed') && (
-          <button type="button" onClick={onRetry} className="min-h-11 text-[0.95rem] font-semibold text-brand underline underline-offset-4">
+          <button type="button" onClick={onRetry} className="mx-auto mt-3 block min-h-11 text-[0.95rem] font-semibold text-white underline underline-offset-4">
             다시 준비하기
           </button>
         )}
-        {retrying && !wait && <p className="m-0 text-[0.9rem] text-sub">다시 찍는 중 · {left}번 남았어요</p>}
-        {!live && (
-          <>
-            <button type="button" onClick={onBlurDemo} disabled={blurNext} className="mt-1 text-[0.8rem] text-mute underline underline-offset-2 disabled:no-underline">
-              {blurNext ? '시연용: 다음 사진은 흔들리게 찍혀요' : '시연용: 흔들린 사진으로 찍기'}
-            </button>
-            <p className="m-0 text-[0.75rem] text-mute">시연 화면 · 카메라는 https 주소에서만 켜져요</p>
-          </>
-        )}
       </div>
-    </>
+    </div>,
+    document.body,
   )
 }
 
@@ -1573,7 +1394,7 @@ function Retake({ stop, onRetry, note, shot }: { stop: Stop; attempt: number; on
       </div>
       {/* 사진과 안내를 위아래로 두어 안내 문장이 좁은 칸에서 끊기지 않게 */}
       <Card className="grid gap-4">
-        <Photo kind={stop.kind} bad={!!stop.bad} {...(shot ? { src: shot } : stop.shotPhoto)} className={`mx-auto w-full max-w-[16rem] ${shot ? '' : 'blur-[2.5px]'}`} />
+        {shot && <Photo kind={stop.kind} bad={!!stop.bad} src={shot} className="mx-auto w-full max-w-[16rem]" />}
         <ol className="m-0 grid list-none gap-2 p-0 text-[1.1rem] font-semibold">
           {['휴대폰을 잠깐 멈추고', '한 걸음 가까이 가서', '버튼을 꾹 눌러 주세요'].map((t, i) => (
             <li key={t} className="flex items-center gap-3">
@@ -1619,7 +1440,7 @@ function Sent({ stop, slot, outcome, last, onNext, message, shot }: { stop: Stop
         <p className="m-0 mt-1 text-[1.05rem] text-ink">{message || SENT_TEXT[outcome][1]}</p>
       </div>
       <Card className="flex items-center gap-4 big:flex-col big:items-start">
-        <Photo kind={stop.kind} bad={!!stop.bad} {...(shot ? { src: shot } : stop.shotPhoto)} className={`w-28 flex-none big:w-40 ${outcome === 'review' && !shot ? 'blur-[2.5px]' : ''}`} />
+        {shot && <Photo kind={stop.kind} bad={!!stop.bad} src={shot} className="w-28 flex-none big:w-40" />}
         <div>
           <p className="m-0 text-[1.1rem] font-bold">{KIND_NAME[stop.kind]}</p>
           <p className="m-0 text-[0.95rem] text-sub">{stop.place}</p>
@@ -1708,7 +1529,6 @@ function Return({ aborted, results, onBack }: { aborted: boolean; results: Recor
       <H1 chip sub={aborted ? '남은 장소는 다음에 찍어요. 천천히 센터로 와 주세요.' : `${TEAM.backBy}까지 센터로 와 주세요.`}>
         {aborted ? '오늘 활동은 여기까지 해요' : '오늘 장소를 다 돌았어요'}
       </H1>
-      <RouteMap idx={STOPS.length} toCenter results={results} />
       <Summary results={results} />
       <Bottom>
         <Primary onClick={onBack}>센터에 도착했어요</Primary>
