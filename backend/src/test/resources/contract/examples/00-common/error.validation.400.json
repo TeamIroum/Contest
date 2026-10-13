@@ -1,0 +1,18 @@
+{
+  "code": "VALIDATION_FAILED",
+  "message": "입력 내용을 확인해 주세요.",
+  "requestId": "req-0002",
+  "fieldErrors": [
+    {
+      "field": "reason",
+      "reason": "REQUIRED",
+      "message": "사유를 입력해 주세요."
+    },
+    {
+      "field": "version",
+      "reason": "INVALID_FORMAT",
+      "message": "0 이상의 정수여야 합니다."
+    }
+  ],
+  "details": null
+}

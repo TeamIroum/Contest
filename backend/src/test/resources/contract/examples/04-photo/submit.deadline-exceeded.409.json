@@ -1,0 +1,9 @@
+{
+  "code": "SYNC_DEADLINE_EXCEEDED",
+  "message": "오늘 사진 전송 기한이 지났습니다. 담당자에게 문의해 주세요.",
+  "requestId": "req-sync-deadline",
+  "fieldErrors": [],
+  "details": {
+    "syncDeadlineAt": "2026-10-15T15:00:00Z"
+  }
+}

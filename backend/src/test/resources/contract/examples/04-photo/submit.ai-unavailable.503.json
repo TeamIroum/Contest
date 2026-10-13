@@ -1,0 +1,11 @@
+{
+  "code": "ANALYSIS_UNAVAILABLE",
+  "message": "지금은 사진을 받을 수 없어요. 사진은 휴대폰에 보관하고 잠시 후 다시 보낼게요.",
+  "requestId": "req-0102",
+  "fieldErrors": [],
+  "details": {
+    "inspectionId": "60000000-0000-4000-8000-000000000018",
+    "receiptStatus": "RETRY_REQUIRED",
+    "retryAfterSeconds": 30
+  }
+}

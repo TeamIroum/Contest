@@ -1,0 +1,18 @@
+{
+  "inspectionId": "60000000-0000-4000-8000-000000000011",
+  "clientSubmissionId": "e0000000-0000-4000-8000-000000000107",
+  "attemptNo": 1,
+  "duplicate": true,
+  "receiptStatus": "RECEIVED",
+  "captureStatus": "ACCEPTED",
+  "nextAction": "NEXT_CAPTURE",
+  "retakeReason": null,
+  "retakesRemaining": 2,
+  "message": "같이 계신 분의 사진이 이미 접수됐어요. 다음 사진을 찍어 주세요.",
+  "stopId": "40000000-0000-4000-8000-000000000002",
+  "captureSlotId": "50000000-0000-4000-8000-000000000002",
+  "nextStopId": "40000000-0000-4000-8000-000000000002",
+  "nextCaptureSlotId": "50000000-0000-4000-8000-000000000003",
+  "patrolRevision": 8,
+  "qualityFailureCount": 0
+}

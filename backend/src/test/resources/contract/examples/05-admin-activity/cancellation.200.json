@@ -1,0 +1,12 @@
+{
+  "patrolId": "30000000-0000-4000-8000-000000000002",
+  "activityStatus": "CANCELLED",
+  "cancelledAt": "2026-10-15T00:58:00Z",
+  "cancelledBy": {
+    "id": "10000000-0000-4000-8000-000000000021",
+    "name": "최○○"
+  },
+  "cancellationReason": "우천으로 현장에서 활동 없이 해산",
+  "version": 3,
+  "patrolRevision": 4
+}

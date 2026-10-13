@@ -1,0 +1,14 @@
+{
+  "correctionId": "d0000000-0000-4000-8000-000000000002",
+  "patrolId": "30000000-0000-4000-8000-000000000001",
+  "participantId": "20000000-0000-4000-8000-000000000002",
+  "startedAt": "2026-10-15T01:03:00Z",
+  "startSource": "ADMIN_CORRECTION",
+  "returnedAt": "2026-10-15T02:50:00Z",
+  "returnSource": "ADMIN_CORRECTION",
+  "version": 9,
+  "activityStatus": "RETURNING",
+  "patrolRevision": 17,
+  "returned": false,
+  "returnConfirmedAt": null
+}

@@ -1,0 +1,9 @@
+{
+  "code": "VERSION_CONFLICT",
+  "message": "사진 분류가 변경되었습니다. 최신 내용을 확인해 주세요.",
+  "requestId": "req-classification-conflict",
+  "fieldErrors": [],
+  "details": {
+    "currentVersion": 2
+  }
+}

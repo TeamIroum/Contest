@@ -1,0 +1,51 @@
+{
+  "items": [
+    {
+      "id": "80000000-0000-4000-8000-000000000001",
+      "type": "INSPECTION",
+      "status": "OPEN",
+      "version": 1,
+      "triggerReason": "ISSUE_SUSPECTED",
+      "facility": {
+        "id": "f0000000-0000-4000-8000-000000000001",
+        "code": "SW-0001",
+        "type": "SIDEWALK",
+        "name": "마을회관 앞 보도블록",
+        "areaLabel": "○○동 1구역"
+      },
+      "patrolId": "30000000-0000-4000-8000-000000000001",
+      "patrolDate": "2026-10-15",
+      "stopId": "40000000-0000-4000-8000-000000000001",
+      "hasPhoto": true,
+      "inspectionCount": 1,
+      "reviewCategory": "REVIEW_REQUIRED",
+      "createdAt": "2026-10-15T01:10:13Z",
+      "claimedBy": null
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000002",
+      "type": "CAPTURE_FAILURE",
+      "status": "OPEN",
+      "version": 1,
+      "triggerReason": "QUALITY_RETRY_EXHAUSTED",
+      "facility": {
+        "id": "f0000000-0000-4000-8000-000000000002",
+        "code": "DR-0001",
+        "type": "DRAIN",
+        "name": "마을회관 옆 빗물받이",
+        "areaLabel": "○○동 1구역"
+      },
+      "patrolId": "30000000-0000-4000-8000-000000000001",
+      "patrolDate": "2026-10-15",
+      "stopId": "40000000-0000-4000-8000-000000000002",
+      "hasPhoto": false,
+      "inspectionCount": 3,
+      "reviewCategory": null,
+      "createdAt": "2026-10-15T01:36:00Z",
+      "claimedBy": null
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 2
+}

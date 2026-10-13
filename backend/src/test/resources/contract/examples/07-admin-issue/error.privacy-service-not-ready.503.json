@@ -1,0 +1,9 @@
+{
+  "code": "PRIVACY_SERVICE_NOT_READY",
+  "message": "사진 개인정보 검사를 지금 할 수 없습니다. 잠시 후 다시 올려 주세요.",
+  "requestId": "req-privacy-not-ready",
+  "fieldErrors": [],
+  "details": {
+    "retryAfterSeconds": 30
+  }
+}
