@@ -725,8 +725,32 @@ function ReplaceModal({ patrols, participants, onClose, onPick }: { patrols: Pat
 
 /* ---------------- 조 편성 ---------------- */
 
-export function Teams({ teams, setTeams, participants }: { teams: Team[]; setTeams: Dispatch<SetStateAction<Team[]>>; participants: Participant[] }) {
+export function Teams({ teams: example, setTeams, participants: exampleP }: { teams: Team[]; setTeams: Dispatch<SetStateAction<Team[]>>; participants: Participant[] }) {
   const [edit, setEdit] = useState<Team | 'new' | null>(null)
+  // 실제 모드: 서버의 평소 조(오늘 기준 조원)와 관할 참여자. 저장(run) 뒤에도 다시 받는다
+  const [rows, setRows] = useState<real.RealTeam[]>([])
+  const [people, setPeople] = useState<real.RealParticipant[]>([])
+  useEffect(() => {
+    if (!REAL_BACKEND) return
+    let alive = true
+    const load = () =>
+      Promise.all([real.loadParticipants(), real.loadTeams()])
+        .then(([p, t]) => {
+          if (!alive) return
+          setPeople(p)
+          setRows(t)
+        })
+        .catch(() => undefined)
+    load()
+    const off = real.onRealChanged(load)
+    return () => {
+      alive = false
+      off()
+    }
+  }, [])
+  const teams: Team[] = REAL_BACKEND ? rows : example
+  const participants: Participant[] = REAL_BACKEND ? people : exampleP
+  const nameOf = (id: string) => participants.find((p) => p.id === id)?.name ?? pName(id)
   return (
     <>
       <PageHead
@@ -747,7 +771,8 @@ export function Teams({ teams, setTeams, participants }: { teams: Team[]; setTea
                 <p className="m-0 text-base font-bold">
                   {t.name} <span className="text-sm font-normal text-mute">· {t.memberIds.length}명</span>
                 </p>
-                <p className="m-0 mt-1 text-sm">{t.memberIds.map(pName).join(', ')}</p>
+                <p className="m-0 mt-1 text-sm">{t.memberIds.map(nameOf).join(', ')}</p>
+                {REAL_BACKEND && (t as real.RealTeam).since && <p className="m-0 mt-0.5 text-xs text-mute">{real.md((t as real.RealTeam).since!)}부터 이 구성</p>}
               </div>
               <Button size="sm" onClick={() => setEdit(t)}>
                 편집
@@ -762,8 +787,17 @@ export function Teams({ teams, setTeams, participants }: { teams: Team[]; setTea
           teams={teams}
           participants={participants}
           onClose={() => setEdit(null)}
-          onSave={(t) => {
-            setTeams((l) => (l.some((x) => x.id === t.id) ? l.map((x) => (x.id === t.id ? t : x)) : [...l, t]))
+          onSave={async (t, effectiveFrom) => {
+            if (REAL_BACKEND) {
+              const before = rows.find((x) => x.id === t.id)
+              const orgId = people.find((p) => p.id === t.memberIds[0])?.orgId ?? ''
+              const ok = await real.run(() =>
+                before
+                  ? real.updateTeam(before, { name: t.name, memberIds: t.memberIds, effectiveFrom })
+                  : real.createTeam({ organizationId: orgId, name: t.name, memberIds: t.memberIds, effectiveFrom }),
+              )
+              if (!ok) return
+            } else setTeams((l) => (l.some((x) => x.id === t.id) ? l.map((x) => (x.id === t.id ? t : x)) : [...l, t]))
             setEdit(null)
           }}
         />
@@ -772,9 +806,23 @@ export function Teams({ teams, setTeams, participants }: { teams: Team[]; setTea
   )
 }
 
-function TeamModal({ team, teams, participants, onClose, onSave }: { team: Team | null; teams: Team[]; participants: Participant[]; onClose: () => void; onSave: (t: Team) => void }) {
+function TeamModal({
+  team,
+  teams,
+  participants,
+  onClose,
+  onSave,
+}: {
+  team: Team | null
+  teams: Team[]
+  participants: Participant[]
+  onClose: () => void
+  onSave: (t: Team, effectiveFrom?: string) => void
+}) {
   const [name, setName] = useState(team?.name ?? `${teams.length + 1}조`)
   const [ids, setIds] = useState<string[]>(team?.memberIds ?? [])
+  // 실제 모드: 바뀐 조원이 언제부터 적용되는지 (오늘 이후). 이미 배정된 순회 조원은 그대로
+  const [from, setFrom] = useState(real.todayKst())
   const other = (id: string) => teams.find((t) => t.id !== team?.id && t.memberIds.includes(id))?.name
   const active = participants.filter((p) => p.status === 'ACTIVE')
   const ok = name.trim() && ids.length >= 2 && ids.length <= 3
@@ -785,7 +833,7 @@ function TeamModal({ team, teams, participants, onClose, onSave }: { team: Team 
       footer={
         <>
           <Button onClick={onClose}>취소</Button>
-          <Button variant="primary" disabled={!ok} onClick={() => onSave({ id: team?.id ?? `t${Date.now()}`, name: name.trim(), memberIds: ids })}>
+          <Button variant="primary" disabled={!ok} onClick={() => onSave({ id: team?.id ?? `t${Date.now()}`, name: name.trim(), memberIds: ids }, REAL_BACKEND ? from : undefined)}>
             저장
           </Button>
         </>
@@ -794,6 +842,11 @@ function TeamModal({ team, teams, participants, onClose, onSave }: { team: Team 
       <Field label="조 이름" required>
         <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
       </Field>
+      {REAL_BACKEND && (
+        <Field label="적용 시작일" required hint="이날부터 이 구성으로 순회에 배정합니다. 이미 배정된 순회의 조원은 바뀌지 않아요.">
+          <input type="date" value={from} min={real.todayKst()} onChange={(e) => setFrom(e.target.value)} className={inputCls} />
+        </Field>
+      )}
       <fieldset className="m-0 grid gap-1.5 border-0 p-0">
         <legend className="mb-1.5 text-sm font-semibold">
           조원 선택 <span className="font-normal text-mute">({ids.length}/3명, 최소 2명)</span>
@@ -825,7 +878,7 @@ function TeamModal({ team, teams, participants, onClose, onSave }: { team: Team 
                       className="size-5 flex-none accent-[var(--color-brand)]"
                     />
                     <span className="flex-1">
-                      <b className="font-bold">{p.name}</b> <span className="text-sm text-mute">· 활동 {p.days.join('·')}</span>
+                      <b className="font-bold">{p.name}</b> {p.days.length > 0 && <span className="text-sm text-mute">· 활동 {p.days.join('·')}</span>}
                     </span>
                     {other(p.id) && <span className="rounded-full bg-bg px-2 py-0.5 text-xs font-semibold text-sub">현재 {other(p.id)}</span>}
                   </label>
@@ -1248,9 +1301,27 @@ function NewPatrolModal({ teams, onClose, onSave }: { teams: Team[]; onClose: ()
 
 const STATUS_NAME: Record<Participant['status'], string> = { ACTIVE: '활동 중', SUSPENDED: '일시 중지', ENDED: '종료' }
 
-export function Participants({ participants, setParticipants }: { participants: Participant[]; setParticipants: Dispatch<SetStateAction<Participant[]>> }) {
+export function Participants({ participants: example, setParticipants }: { participants: Participant[]; setParticipants: Dispatch<SetStateAction<Participant[]>> }) {
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Participant | null>(null)
+  // 실제 모드: 서버의 관할 참여자 목록. 저장(run) 뒤에도 다시 받는다
+  const [rows, setRows] = useState<real.RealParticipant[]>([])
+  useEffect(() => {
+    if (!REAL_BACKEND) return
+    let alive = true
+    const load = () =>
+      real
+        .loadParticipants()
+        .then((l) => alive && setRows(l))
+        .catch(() => undefined)
+    load()
+    const off = real.onRealChanged(load)
+    return () => {
+      alive = false
+      off()
+    }
+  }, [])
+  const participants: Participant[] = REAL_BACKEND ? rows : example
   return (
     <>
       <PageHead
@@ -1282,7 +1353,7 @@ export function Participants({ participants, setParticipants }: { participants: 
                   <td className="px-4 py-2.5 font-semibold">{p.name}</td>
                   <td className="px-4 py-2.5 tabular-nums">{maskPhone(p.phone)}</td>
                   <td className="px-4 py-2.5">{p.org}</td>
-                  <td className="px-4 py-2.5">{p.days.join(' · ')}</td>
+                  <td className="px-4 py-2.5">{p.days.join(' · ') || '—'}</td>
                   <td className="px-4 py-2.5">
                     <Pill tone={STATUS_TONE_P[p.status]}>{STATUS_NAME[p.status]}</Pill>
                   </td>
@@ -1307,7 +1378,7 @@ export function Participants({ participants, setParticipants }: { participants: 
                 </p>
                 <p className="m-0 mt-0.5 text-sm text-sub tabular-nums">{maskPhone(p.phone)}</p>
                 <p className="m-0 text-xs text-mute">
-                  {p.org} · 활동 {p.days.join('·')}
+                  {p.org} · 활동 {p.days.join('·') || '—'}
                 </p>
               </div>
               <Button size="sm" onClick={() => setEditing(p)}>
@@ -1321,8 +1392,10 @@ export function Participants({ participants, setParticipants }: { participants: 
       {open && (
         <NewParticipant
           onClose={() => setOpen(false)}
-          onSave={(p) => {
-            setParticipants((l) => [...l, p])
+          onSave={async (p, orgId) => {
+            if (REAL_BACKEND) {
+              if (!(await real.run(() => real.createParticipant({ organizationId: orgId!, name: p.name, phoneNumber: p.phone, days: p.days })))) return
+            } else setParticipants((l) => [...l, p])
             setOpen(false)
           }}
         />
@@ -1331,8 +1404,10 @@ export function Participants({ participants, setParticipants }: { participants: 
         <StatusModal
           participant={editing}
           onClose={() => setEditing(null)}
-          onSave={(s) => {
-            setParticipants((l) => l.map((x) => (x.id === editing.id ? { ...x, status: s } : x)))
+          onSave={async (s, reason) => {
+            if (REAL_BACKEND) {
+              if (!(await real.run(() => real.changeParticipantStatus(editing as real.RealParticipant, s, reason)))) return
+            } else setParticipants((l) => l.map((x) => (x.id === editing.id ? { ...x, status: s } : x)))
             setEditing(null)
           }}
         />
@@ -1349,8 +1424,11 @@ const STATUS_HINT: Record<Participant['status'], string> = {
 }
 
 // 상태는 평소엔 배지로만 보이고, 바꿀 때만 이 창을 연다 (스크롤 중 실수 방지)
-function StatusModal({ participant, onClose, onSave }: { participant: Participant; onClose: () => void; onSave: (s: Participant['status']) => void }) {
+function StatusModal({ participant, onClose, onSave }: { participant: Participant; onClose: () => void; onSave: (s: Participant['status'], reason: string) => void }) {
   const [s, setS] = useState<Participant['status']>(participant.status)
+  const [reason, setReason] = useState('')
+  // 실제 모드는 바꾼 사유를 감사 기록에 남긴다. 참여를 마친 분은 다시 바꿀 수 없다(새로 등록)
+  const ended = REAL_BACKEND && participant.status === 'ENDED'
   return (
     <Modal
       title={`${participant.name} 상태 변경`}
@@ -1358,7 +1436,11 @@ function StatusModal({ participant, onClose, onSave }: { participant: Participan
       footer={
         <>
           <Button onClick={onClose}>취소</Button>
-          <Button variant={s === 'ACTIVE' ? 'primary' : 'danger'} disabled={s === participant.status} onClick={() => onSave(s)}>
+          <Button
+            variant={s === 'ACTIVE' ? 'primary' : 'danger'}
+            disabled={s === participant.status || ended || (REAL_BACKEND && !reason.trim())}
+            onClick={() => onSave(s, reason.trim())}
+          >
             {STATUS_NAME[s]}(으)로 변경
           </Button>
         </>
@@ -1378,15 +1460,36 @@ function StatusModal({ participant, onClose, onSave }: { participant: Participan
           </label>
         ))}
       </div>
+      {ended && <p className="m-0 mt-3 text-sm text-sub">참여를 마친 분은 상태를 다시 바꿀 수 없어요. 다시 참여하면 새로 등록해 주세요.</p>}
+      {REAL_BACKEND && !ended && (
+        <div className="mt-3">
+          <Field label="바꾸는 이유" required hint="처리 기록에 남습니다">
+            <input value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls} placeholder="예: 병원 진료로 2주 쉼" maxLength={500} />
+          </Field>
+        </div>
+      )}
     </Modal>
   )
 }
 
-function NewParticipant({ onClose, onSave }: { onClose: () => void; onSave: (p: Participant) => void }) {
+function NewParticipant({ onClose, onSave }: { onClose: () => void; onSave: (p: Participant, orgId?: string) => void }) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [days, setDays] = useState<string[]>([])
-  const ok = name.trim() && /^010-\d{4}-\d{4}$/.test(phone) && days.length > 0
+  // 실제 모드: 담당자 관할 기관(수행기관·집결 거점) 중에서 고른다
+  const [orgs, setOrgs] = useState<{ id: string; name: string }[]>([])
+  const [orgId, setOrgId] = useState('')
+  useEffect(() => {
+    if (!REAL_BACKEND) return
+    real
+      .loadParticipantOrgs()
+      .then((l) => {
+        setOrgs(l)
+        setOrgId((v) => v || l[0]?.id || '')
+      })
+      .catch(() => undefined)
+  }, [])
+  const ok = name.trim() && /^010-\d{4}-\d{4}$/.test(phone) && days.length > 0 && (!REAL_BACKEND || orgId)
   return (
     <Modal
       title="참여자 등록"
@@ -1394,7 +1497,7 @@ function NewParticipant({ onClose, onSave }: { onClose: () => void; onSave: (p: 
       footer={
         <>
           <Button onClick={onClose}>취소</Button>
-          <Button variant="primary" disabled={!ok} onClick={() => onSave({ id: `u${Date.now()}`, name: name.trim(), phone, org: '양주시니어클럽', days, status: 'ACTIVE' })}>
+          <Button variant="primary" disabled={!ok} onClick={() => onSave({ id: `u${Date.now()}`, name: name.trim(), phone, org: '양주시니어클럽', days, status: 'ACTIVE' }, orgId)}>
             등록
           </Button>
         </>
@@ -1405,9 +1508,20 @@ function NewParticipant({ onClose, onSave }: { onClose: () => void; onSave: (p: 
           <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
         </Field>
         <Field label="휴대폰" required hint="010-0000-0000 형식">
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputCls} placeholder="010-0000-0000" />
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputCls} placeholder="010-0000-0000" inputMode="tel" />
         </Field>
       </div>
+      {REAL_BACKEND && orgs.length > 1 && (
+        <Field label="소속 기관" required>
+          <select value={orgId} onChange={(e) => setOrgId(e.target.value)} className={inputCls}>
+            {orgs.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
       <fieldset className="m-0 border-0 p-0">
         <legend className="mb-1.5 text-sm font-semibold">활동 가능 요일</legend>
         {/* 누르면 파랗게 채워지는 요일 버튼 (다른 창의 선택 버튼과 같은 모양) */}

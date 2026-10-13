@@ -13,14 +13,21 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param seniors 시연 시니어 계정과 가상 번호(010-0000-000x)
  * @param admins 시연 관리자 계정과 로그인 ID
  * @param adminTemporaryPassword 시연 관리자 임시 비밀번호(D-22 규칙). 첫 로그인에 바꾼다(D-23)
+ * @param registeredSeniors service/: 관리자 웹에서 새로 등록한 어르신(ACT-01)도 고정 시연 코드로 로그인하게 한다.
+ *        문자 발송 공급자가 없는 시연 PC 전용이며 기본값은 false다
  */
 @ConfigurationProperties("inspection.demo")
 public record DemoProperties(boolean enabled, String otpCode, List<Senior> seniors, List<Admin> admins,
-        String adminTemporaryPassword) {
+        String adminTemporaryPassword, boolean registeredSeniors) {
 
+    @org.springframework.boot.context.properties.bind.ConstructorBinding
     public DemoProperties {
         seniors = seniors == null ? List.of() : List.copyOf(seniors);
         admins = admins == null ? List.of() : List.copyOf(admins);
+    }
+
+    public DemoProperties(boolean enabled, String otpCode, List<Senior> seniors, List<Admin> admins, String adminTemporaryPassword) {
+        this(enabled, otpCode, seniors, admins, adminTemporaryPassword, false);
     }
 
     public record Senior(UUID userId, String phone) {
@@ -34,6 +41,6 @@ public record DemoProperties(boolean enabled, String otpCode, List<Senior> senio
     }
 
     public boolean isDemoSenior(UUID userId) {
-        return seniors.stream().anyMatch(s -> s.userId().equals(userId));
+        return registeredSeniors || seniors.stream().anyMatch(s -> s.userId().equals(userId));
     }
 }

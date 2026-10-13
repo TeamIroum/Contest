@@ -8,7 +8,7 @@
 #   2. 업무 백엔드만 끈다
 #   3. DB(public 스키마)·Redis(로그인 세션)·사진 저장소를 비운다
 #   4. WSL 안에서 AI 동기화 위치 복원을 기다리게 걸어 두고, start.ps1로 백엔드를 다시 켠다 (시작할 때 시연 데이터를 새로 넣음)
-#   5. 시연 관리자 3개 계정의 첫 로그인 비밀번호 변경을 마쳐 둔다 (ADMIN_PASSWORD)
+#   5. 시연 관리자 6개 계정의 첫 로그인 비밀번호 변경을 마쳐 둔다 (ADMIN_PASSWORD)
 #   6. 결과를 확인해 보여 준다
 $ErrorActionPreference = 'Stop'
 $Service = $PSScriptRoot
@@ -94,7 +94,7 @@ $env:PYTHONIOENCODING = 'utf-8'
 & python (Join-Path $Service 'scripts\prepare_admins.py') | Out-Null
 if ($LASTEXITCODE) { throw '관리자 비밀번호 준비 실패 (scripts\prepare_admins.py)' }
 Remove-Item env:DEMO_ADMIN_TEMP_PASSWORD, env:ADMIN_PASSWORD, env:BACKEND_URL -ErrorAction SilentlyContinue
-Write-Host '  5 관리자 계정 3개 비밀번호 준비 (service\.env의 ADMIN_PASSWORD)'
+Write-Host '  5 관리자 계정 6개 비밀번호 준비 (service\.env의 ADMIN_PASSWORD)'
 
 # --- 6. 확인 ---
 $check = Invoke-Psql @"

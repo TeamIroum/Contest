@@ -22,10 +22,12 @@ import {
   type IssueStatus,
   type Log,
   type Member,
+  type Participant,
   type Patrol,
   type PatrolStatus,
   type Repair,
   type ReviewTask,
+  type Team,
   type TriggerReason,
 } from '../data'
 import { ApiError, api } from './client'
@@ -544,3 +546,235 @@ export async function verifySiteVisit(i: Issue, v: VerifyInput) {
 
 /** 짧게 보여 줄 문제 번호 (UUID 앞 8자리) */
 export const shortId = (id: string) => (/^[0-9a-f]{8}-/.test(id) ? id.slice(0, 8) : id)
+
+/* ---------------- 참여자 계정 (ACT-01, service/backend AdminParticipantController) ---------------- */
+
+type ApiParticipant = {
+  id: string
+  name: string
+  phoneMasked: string | null
+  organization: { id: string; name: string }
+  availableDays: string[]
+  status: 'ACTIVE' | 'SUSPENDED' | 'ENDED'
+  version: number
+}
+const DAY_NAME: Record<string, string> = { MON: '월', TUE: '화', WED: '수', THU: '목', FRI: '금', SAT: '토', SUN: '일' }
+const DAY_CODE = Object.fromEntries(Object.entries(DAY_NAME).map(([k, v]) => [v, k]))
+export type RealParticipant = Participant & { version: number; orgId: string }
+const toParticipant = (p: ApiParticipant): RealParticipant => ({
+  id: p.id,
+  name: p.name,
+  phone: p.phoneMasked ?? '',
+  org: p.organization.name,
+  orgId: p.organization.id,
+  days: p.availableDays.map((d) => DAY_NAME[d] ?? d),
+  status: p.status,
+  version: p.version,
+})
+
+export async function loadParticipants(): Promise<RealParticipant[]> {
+  const r = await api<{ items: ApiParticipant[] }>('GET', '/admin/participants?size=100')
+  const list = r.items.map(toParticipant)
+  list.forEach((p) => upsert(PARTICIPANTS, p)) // 다른 화면(조 편성 등)의 이름 찾기용
+  return list
+}
+export const loadParticipantOrgs = () => api<{ id: string; name: string }[]>('GET', '/admin/participants/organizations')
+export const createParticipant = (p: { organizationId: string; name: string; phoneNumber: string; days: string[] }) =>
+  api<ApiParticipant>(
+    'POST',
+    '/admin/participants',
+    { organizationId: p.organizationId, name: p.name, phoneNumber: p.phoneNumber, availableDays: p.days.map((d) => DAY_CODE[d]) },
+    { idempotent: true },
+  )
+export const changeParticipantStatus = (p: RealParticipant, status: Participant['status'], reason: string) =>
+  api<ApiParticipant>('POST', `/admin/participants/${p.id}/status-changes`, { status, reason, version: p.version }, { idempotent: true })
+
+/* ---------------- 평소 조 편성 (ACT-02, service/backend AdminTeamController) ---------------- */
+
+type ApiTeam = {
+  id: string
+  name: string
+  organizationId: string
+  members: { participantId: string; name: string; seatNo: number; status: string }[]
+  effectiveFrom: string | null
+  version: number
+}
+export type RealTeam = Team & { version: number; orgId: string; since: string | null }
+const toTeam = (t: ApiTeam): RealTeam => ({
+  id: t.id,
+  name: t.name,
+  memberIds: t.members.map((m) => m.participantId),
+  version: t.version,
+  orgId: t.organizationId,
+  since: t.effectiveFrom,
+})
+export const loadTeams = async () => (await api<ApiTeam[]>('GET', '/admin/teams')).map(toTeam)
+/** 조원은 effectiveFrom(기본 오늘)부터 바뀐다. 이미 배정된 순회의 조원은 그대로 */
+export const createTeam = (t: { organizationId: string; name: string; memberIds: string[]; effectiveFrom?: string }) =>
+  api<ApiTeam>('POST', '/admin/teams', { organizationId: t.organizationId, name: t.name, participantIds: t.memberIds, effectiveFrom: t.effectiveFrom }, { idempotent: true })
+export const updateTeam = (t: RealTeam, next: { name: string; memberIds: string[]; effectiveFrom?: string }) =>
+  api<ApiTeam>('PATCH', `/admin/teams/${t.id}`, { name: next.name, participantIds: next.memberIds, effectiveFrom: next.effectiveFrom, version: t.version })
+
+/* ---------------- 코스·버전 (ACT-03, service/backend AdminRouteController) ---------------- */
+
+export type RouteSlot = { label: string; instruction?: string | null; required: boolean }
+export type RouteStopReal = { facilityId: string; facilityName: string; facilityType: string; instruction: string | null; slots: RouteSlot[] }
+export type RealRoute = {
+  id: string
+  name: string
+  status: 'ACTIVE' | 'INACTIVE'
+  organizationId: string
+  current: { id: string; versionNo: number; departureBase: { id: string; name: string }; returnBase: { id: string; name: string }; stops: RouteStopReal[] } | null
+  version: number
+}
+export type RouteOptions = { bases: { id: string; name: string }[]; facilities: { id: string; code: string; name: string; type: string; areaLabel: string | null }[] }
+export type RouteInput = { departureBaseId: string; returnBaseId: string; stops: { facilityId: string; instruction?: string; slots: RouteSlot[] }[] }
+
+export const loadRoutes = () => api<RealRoute[]>('GET', '/admin/routes?includeInactive=true')
+export const loadRouteOptions = () => api<RouteOptions>('GET', '/admin/routes/options')
+export const createRoute = (r: RouteInput & { organizationId: string; name: string }) => api<RealRoute>('POST', '/admin/routes', r, { idempotent: true })
+/** 공개 버전은 고치지 않고 새 버전으로 공개한다 (이미 배정된 순회는 그대로) */
+export const publishRouteVersion = (route: RealRoute, r: RouteInput) => api<RealRoute>('POST', `/admin/routes/${route.id}/versions`, { ...r, version: route.version })
+export const updateRoute = (route: RealRoute, next: { name?: string; status?: 'ACTIVE' | 'INACTIVE' }) =>
+  api<RealRoute>('PATCH', `/admin/routes/${route.id}`, { ...next, version: route.version })
+
+/* ---------------- 날짜별 순회 배정 (ACT-04, service/backend AdminPatrolAssignmentController) ---------------- */
+
+export type ScheduledPatrol = {
+  id: string
+  activityDate: string
+  teamId: string
+  teamName: string
+  routeId: string
+  routeName: string
+  routeVersionNo: number
+  scheduledStartAt: string
+  expectedReturnAt: string
+  activityStatus: string
+  members: string[]
+  stops: number
+  reinspectionSlots: number
+  version: number
+}
+export const hhmm = (iso: string) => kst(iso).slice(11, 16)
+/** 오늘부터 2주 순회 일정 (취소한 순회 제외) */
+export const loadSchedule = () => api<ScheduledPatrol[]>('GET', '/admin/patrol-schedule')
+/** date: YYYY-MM-DD, start·end: HH:mm (한국 시간) */
+export const assignPatrol = (p: { date: string; teamId: string; routeVersionId: string; start: string; end: string }) =>
+  api<ScheduledPatrol>(
+    'POST',
+    '/admin/patrols',
+    {
+      activityDate: p.date,
+      teamId: p.teamId,
+      routeVersionId: p.routeVersionId,
+      scheduledStartAt: new Date(`${p.date}T${p.start}:00+09:00`).toISOString(),
+      expectedReturnAt: new Date(`${p.date}T${p.end}:00+09:00`).toISOString(),
+    },
+    { idempotent: true },
+  )
+export const participantName = (id: string) => PARTICIPANTS.find((p) => p.id === id)?.name ?? '-'
+
+/* ---------------- 재점검 요청 배정 (ACT-10, 원본 AdminReinspectionController + service/backend 구도 추가·후보) ---------------- */
+
+export type ReinspectionItem = {
+  id: string
+  requestType: string
+  status: 'OPEN' | 'CLOSED'
+  version: number
+  source: 'REPAIR_COMPLETION' | 'REVIEW_FOLLOW_UP'
+  issueId: string | null
+  facility: { id: string; facilityCode: string; type: string; name: string; areaLabel: string }
+  createdAt: string
+  assignments: { id: string; captureSlotId: string; patrolId: string; patrolDate: string; assignedAt: string; cancelledAt: string | null; completedAt: string | null }[]
+}
+export type ReinspectionCandidate = {
+  patrolId: string
+  activityDate: string
+  teamName: string
+  routeName: string
+  scheduledStartAt: string
+  stopId: string
+  stopSequence: number
+  stopName: string
+  patrolVersion: number
+  freeSlotId: string | null
+}
+/** 처리 중(OPEN)인 재점검 요청 */
+export const loadReinspections = async () => (await api<{ items: ReinspectionItem[] }>('GET', '/admin/reinspection-requests?status=OPEN&size=100')).items
+export const activeAssignment = (r: ReinspectionItem) => r.assignments.find((a) => !a.cancelledAt && !a.completedAt)
+export const loadReinspectionCandidates = (r: ReinspectionItem) => api<ReinspectionCandidate[]>('GET', `/admin/reinspection-requests/${r.id}/candidates`)
+/** 출발 전 순회 장소에 재점검 구도를 만들고(빈 구도가 있으면 그대로 쓴다) 요청을 배정한다 */
+export async function assignReinspection(r: ReinspectionItem, c: ReinspectionCandidate, label: string, instruction: string) {
+  let slotId = c.freeSlotId
+  let patrolVersion = c.patrolVersion
+  if (!slotId) {
+    const s = await api<{ captureSlotId: string; patrolVersion: number }>(
+      'POST',
+      `/admin/patrols/${c.patrolId}/stops/${c.stopId}/capture-slots`,
+      { purpose: 'REINSPECTION', label, instruction: instruction || undefined, required: true, version: c.patrolVersion },
+      { idempotent: true },
+    )
+    slotId = s.captureSlotId
+    patrolVersion = s.patrolVersion
+  }
+  return api('POST', `/admin/reinspection-requests/${r.id}/assignments`, { captureSlotId: slotId, version: r.version, patrolVersion }, { idempotent: true })
+}
+export const cancelReinspection = (r: ReinspectionItem, assignmentId: string, patrolVersion: number, reason: string) =>
+  api('POST', `/admin/reinspection-assignments/${assignmentId}/cancellations`, { reason, version: r.version, patrolVersion }, { idempotent: true })
+
+/* ---------------- 공무원 계정 (OPS-07·08, service/backend AdminOfficerAccountController) ---------------- */
+
+export type OfficerRole = { role: string; organizationId: string; organizationName: string }
+export type OfficerAccount = {
+  id: string
+  name: string
+  loginId: string
+  status: 'ACTIVE' | 'SUSPENDED'
+  passwordChangeRequired: boolean
+  locked: boolean
+  lockedUntil: string | null
+  roles: OfficerRole[]
+  version: number
+}
+/** 임시 비밀번호는 이 응답에만 온다. 화면에 한 번 보여 주고 버린다 */
+export type Issued = { account: OfficerAccount; temporaryPassword: string }
+export type RoleInput = { role: string; organizationId: string }
+
+export const loadOfficers = () => api<OfficerAccount[]>('GET', '/admin/accounts')
+export const loadOfficerOrgs = () => api<{ id: string; name: string; type: string }[]>('GET', '/admin/accounts/organizations')
+export const issueOfficer = (a: { name: string; loginId: string; roles: RoleInput[] }) => api<Issued>('POST', '/admin/accounts', a)
+export const changeOfficerRoles = (a: OfficerAccount, roles: RoleInput[]) => api<OfficerAccount>('PUT', `/admin/accounts/${a.id}/roles`, { roles, version: a.version })
+export const resetOfficerPassword = (a: OfficerAccount, reason: string) => api<Issued>('POST', `/admin/accounts/${a.id}/password-resets`, { reason })
+export const unlockOfficer = (a: OfficerAccount, reason: string) => api<OfficerAccount>('POST', `/admin/accounts/${a.id}/unlocks`, { reason })
+export const changeOfficerStatus = (a: OfficerAccount, status: 'ACTIVE' | 'SUSPENDED', reason: string) =>
+  api<OfficerAccount>('POST', `/admin/accounts/${a.id}/status-changes`, { status, reason, version: a.version })
+
+/* ---------------- 통계·보고 (OPS-03, service/backend AdminStatsController) ---------------- */
+
+export type StatsReport = {
+  from: string
+  to: string
+  summary: {
+    patrols: number
+    aborted: number
+    participantDays: number
+    photos: number
+    facilitiesChecked: number
+    skipped: number
+    notVisited: number
+    reviews: number
+    reviewsResolved: number
+    reviewsConfirmed: number
+    issuesNew: number
+    repairsDone: number
+    issuesClosed: number
+    repairAgain: number
+  }
+  byDepartment: { department: string; open: number; closed: number; repairAgain: number }[]
+  byFacilityType: { facilityType: string; issues: number }[]
+  activities: { date: string; team: string; route: string; members: string[]; aborted: boolean; facilitiesChecked: number; skipped: number; notVisited: number }[]
+  issues: { id: string; facilityType: string; facilityName: string; summary: string; status: IssueStatus | string; department: string; openedAt: string; repairs: number; closedAt: string | null }[]
+}
+/** from·to: YYYY-MM-DD (한국 시간). 비우면 오늘까지 최근 14일 */
+export const loadStats = (from?: string, to?: string) => api<StatsReport>('GET', `/admin/stats?${new URLSearchParams({ ...(from ? { from } : {}), ...(to ? { to } : {}) })}`)
