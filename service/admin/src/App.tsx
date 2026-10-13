@@ -28,6 +28,7 @@ import { Admins } from './Admins'
 import { Button, Pill, Toast, inputCls } from './ui'
 import { nowAt } from './util'
 import { REAL_BACKEND, ApiError, changePassword, fetchMe, login, logout, setSessionEndedHandler } from './api/client'
+import { RealAdmins } from './RealAdmins'
 import { RealAssign } from './RealAssign'
 import { applyServerDefectCodes, loadIssues, loadReviews, loadTodayPatrols, onRealChanged, onRealError, todayKst } from './api/real'
 import { ALERT_LABEL, loadAlertSettings, playAlert, saveAlertSettings, unlockAlertAudio, type AlertKind, type AlertSettings } from './alertSound'
@@ -65,7 +66,7 @@ const NAV: { role: Role; items: { v: View; label: string }[] }[] = [
 ]
 
 /** 실제 백엔드에 연결하지 않은 메뉴 (실제 백엔드 모드에서 예시 표시) */
-const EXAMPLE_VIEWS: View[] = ['stats', 'admins']
+const EXAMPLE_VIEWS: View[] = ['stats']
 const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토']
 /** 위치 표시줄의 날짜. 실제 백엔드면 오늘 */
 const TODAY_LABEL = REAL_BACKEND
@@ -413,7 +414,7 @@ export default function App() {
           )}
           {view === 'issues' && <Issues issues={issues} setIssues={setIssues} reqs={reqs} setReqs={setReqs} patrols={patrols} selected={selIssue} onSelect={setSelIssue} onGoAssign={() => go('assign')} />}
           {view === 'stats' && (REAL_BACKEND ? <Stats reviews={REVIEWS} issues={ISSUES} patrols={PATROLS} teams={teams} /> : <Stats reviews={reviews} issues={issues} patrols={patrols} teams={teams} />)}
-          {view === 'admins' && <Admins />}
+          {view === 'admins' && (REAL_BACKEND ? <RealAdmins me={ME.loginId} /> : <Admins />)}
           <p className="mt-8 text-center text-xs text-mute">
             {REAL_BACKEND
               ? '업무 서버에 연결되어 있습니다. AI 판독 결과는 판단 지원이며 판정은 담당자가 확정합니다.'

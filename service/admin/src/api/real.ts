@@ -722,3 +722,30 @@ export async function assignReinspection(r: ReinspectionItem, c: ReinspectionCan
 }
 export const cancelReinspection = (r: ReinspectionItem, assignmentId: string, patrolVersion: number, reason: string) =>
   api('POST', `/admin/reinspection-assignments/${assignmentId}/cancellations`, { reason, version: r.version, patrolVersion }, { idempotent: true })
+
+/* ---------------- 공무원 계정 (OPS-07·08, service/backend AdminOfficerAccountController) ---------------- */
+
+export type OfficerRole = { role: string; organizationId: string; organizationName: string }
+export type OfficerAccount = {
+  id: string
+  name: string
+  loginId: string
+  status: 'ACTIVE' | 'SUSPENDED'
+  passwordChangeRequired: boolean
+  locked: boolean
+  lockedUntil: string | null
+  roles: OfficerRole[]
+  version: number
+}
+/** 임시 비밀번호는 이 응답에만 온다. 화면에 한 번 보여 주고 버린다 */
+export type Issued = { account: OfficerAccount; temporaryPassword: string }
+export type RoleInput = { role: string; organizationId: string }
+
+export const loadOfficers = () => api<OfficerAccount[]>('GET', '/admin/accounts')
+export const loadOfficerOrgs = () => api<{ id: string; name: string; type: string }[]>('GET', '/admin/accounts/organizations')
+export const issueOfficer = (a: { name: string; loginId: string; roles: RoleInput[] }) => api<Issued>('POST', '/admin/accounts', a)
+export const changeOfficerRoles = (a: OfficerAccount, roles: RoleInput[]) => api<OfficerAccount>('PUT', `/admin/accounts/${a.id}/roles`, { roles, version: a.version })
+export const resetOfficerPassword = (a: OfficerAccount, reason: string) => api<Issued>('POST', `/admin/accounts/${a.id}/password-resets`, { reason })
+export const unlockOfficer = (a: OfficerAccount, reason: string) => api<OfficerAccount>('POST', `/admin/accounts/${a.id}/unlocks`, { reason })
+export const changeOfficerStatus = (a: OfficerAccount, status: 'ACTIVE' | 'SUSPENDED', reason: string) =>
+  api<OfficerAccount>('POST', `/admin/accounts/${a.id}/status-changes`, { status, reason, version: a.version })
