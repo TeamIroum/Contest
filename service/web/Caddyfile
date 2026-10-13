@@ -49,13 +49,16 @@
 	}
 }
 
-http://127.0.0.1:8180 {
+http://:8180 {
+	# Funnel이 공개 주소(Host)를 그대로 넘기므로 주소 이름으로 거르지 않고, 이 PC 안에서만 받는다
+	bind 127.0.0.1
 	import api
 	root * ../senior/dist
 	import spa
 }
 
-http://127.0.0.1:8181 {
+http://:8181 {
+	bind 127.0.0.1
 	import api
 	root * ../admin/dist
 	import spa

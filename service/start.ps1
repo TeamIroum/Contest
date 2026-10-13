@@ -19,12 +19,17 @@ function Test-Port([int]$Port) {
 }
 function Wait-Port([int]$Port, [int]$Seconds, [string]$Name) {
     for ($i = 0; $i -lt $Seconds; $i++) { if (Test-Port $Port) { return }; Start-Sleep -Seconds 1 }
-    throw "$Name(:$Port)이 $Seconds초 안에 뜨지 않았습니다. 해당 창의 오류를 확인하세요."
+    throw "$Name(:$Port)이 ${Seconds}초 안에 뜨지 않았습니다. 해당 창이나 $RunDir 의 로그를 확인하세요."
 }
 function Read-EnvFile([string]$Path) {
     $vars = [ordered]@{}
     foreach ($line in Get-Content $Path -Encoding UTF8) {
-        if ($line -match '^\s*([A-Z0-9_]+)\s*=(.*)$') { $vars[$Matches[1]] = ($Matches[2] -replace '\s+#.*$', '').Trim() }
+        if ($line -match '^\s*(?:export\s+)?([A-Z0-9_]+)\s*=(.*)$') {
+            $k = $Matches[1]; $v = $Matches[2].Trim()
+            # '값' 또는 "값"이면 따옴표만 벗기고(값 안의 #도 그대로), 아니면 뒤 주석을 지운다
+            if ($v -match "^'(.*)'$" -or $v -match '^"(.*)"$') { $v = $Matches[1] } else { $v = ($v -replace '\s+#.*$', '').Trim() }
+            $vars[$k] = $v
+        }
     }
     $vars
 }
@@ -78,7 +83,7 @@ if (Test-Port 8080) { Write-Host '  2 업무 백엔드 :8080 (이미 떠 있음.
     foreach ($k in $cfg.Keys) { Set-Item "env:$k" $cfg[$k] }
     $env:SERVER_FORWARD_HEADERS_STRATEGY = 'native'
     $env:TZ = 'Asia/Seoul'
-    Start-Window '2 업무 백엔드 :8080' "$Service\backend" "& '$java' -Duser.timezone=Asia/Seoul -jar '$($jar.FullName)' --spring.profiles.active=local --server.address=127.0.0.1"
+    Start-Window '2 업무 백엔드 :8080' "$Service\backend" "& '$java' '-Duser.timezone=Asia/Seoul' -jar '$($jar.FullName)' --spring.profiles.active=local --server.address=127.0.0.1 2>&1 | Tee-Object -FilePath '$RunDir\backend.log'"
     foreach ($k in @($cfg.Keys) + 'SERVER_FORWARD_HEADERS_STRATEGY') { Remove-Item "env:$k" -ErrorAction SilentlyContinue }
     Wait-Port 8080 120 '업무 백엔드'
 }
