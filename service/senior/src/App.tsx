@@ -6,7 +6,7 @@ import * as quality from './camera/quality.js'
 import * as masking from './masking/masking.js'
 import * as outbox from './offline/outbox.js'
 import type { OutboxItem, SubmitBody } from './offline/outbox.js'
-import { ApiError, REAL_BACKEND, fetchPatrol, kstClock, fetchTodayPatrol, memberStates, requestAttendance, requestOtp, sendOpts, startActivity, verifyOtp, type ApiPatrol, type OtpChallenge } from './api/client'
+import { ApiError, REAL_BACKEND, fetchPatrol, kstClock, sendPause, fetchTodayPatrol, memberStates, requestAttendance, requestOtp, sendOpts, startActivity, verifyOtp, type ApiPatrol, type OtpChallenge } from './api/client'
 import { playNotify, playRetake, playShutter, playSuccess, setSoundEnabled, unlockAudio } from './sounds'
 import { ABORT_REASONS, MAX_ATTEMPTS, ME, PARTNER, SKIP_REASONS, STAFF, STOPS, TEAM, applyPatrol, slotDone, stopDone, type Stop } from './data'
 
@@ -51,6 +51,11 @@ export default function App() {
     const t = setTimeout(() => setNotice(''), 6000)
     return () => clearTimeout(t)
   }, [notice])
+  /** 잠깐 쉬기: 화면을 먼저 바꾸고 서버에 알린다 (알리지 못해도 쉬기는 이어 감) */
+  const pause = (on: boolean) => {
+    setPaused(on)
+    if (REAL_BACKEND) sendPause(TEAM.patrolId, patrol, on).catch((e) => say(e, on ? '쉬는 중을 선생님께 알리지 못했어요.' : '다시 시작을 알리지 못했어요.'))
+  }
   const say = (e: unknown, fallback: string) => setNotice(e instanceof ApiError ? e.serverMessage || fallback : '연결이 안 돼요. 잠시 뒤 다시 해 주세요.')
 
   const [idx, setIdx] = useState(0)
@@ -126,7 +131,7 @@ export default function App() {
     if (st.me) ME.name = st.me.name
     if (st.partner) PARTNER.name = st.partner.name
     if (p.contact?.name) STAFF.name = p.contact.name
-    if (p.contact?.phoneNumber) STAFF.phone = p.contact.phoneNumber
+    STAFF.phone = p.contact?.phoneNumber ?? '' // 예시 번호로 전화가 걸리지 않게 서버 값만 쓴다
     const no = Number(p.teamName?.match(/\d+/)?.[0])
     if (no) TEAM.no = no
     // 코스 이름·모이는 곳·예정 시각도 서버 값으로 (예시 값이 남지 않게)
@@ -139,6 +144,7 @@ export default function App() {
     myAttRef.current = st.myAtt
     departedRef.current = st.departed
     setMyAtt(st.myAtt)
+    if (st.me?.paused !== undefined) setPaused(st.me.paused)
     setPartnerAtt(st.partnerAtt)
     setDeparted(st.departed)
   }
@@ -474,7 +480,7 @@ export default function App() {
         {/* 화면마다 새로 그려 살짝 올라오며 나타나게 한다 (screen-in) */}
         <main key={paused ? 'paused' : screen} className="screen-in relative flex flex-1 flex-col gap-4 px-5 pt-3 pb-6">
           {paused ? (
-            <Paused onResume={() => setPaused(false)} />
+            <Paused onResume={() => pause(false)} />
           ) : (
             <>
               {screen === 'start' && <Start onNext={() => setScreen('phone')} />}
@@ -597,7 +603,7 @@ export default function App() {
             </>
           )}
         </main>
-        {inActivity && !paused && <ActivityBar onPause={() => setPaused(true)} onAbort={() => setSheet('abort')} />}
+        {inActivity && !paused && <ActivityBar onPause={() => pause(true)} onAbort={() => setSheet('abort')} />}
         {/* 셔터를 누른 순간 화면이 하얗게 한 번 번쩍인다 (소리와 함께 찍혔다는 것을 눈으로도 알림) */}
         {flash > 0 && <div key={flash} className="shutter-flash pointer-events-none fixed inset-0 z-50 bg-white" aria-hidden />}
       </div>
@@ -1622,7 +1628,13 @@ function CallRow({ href, title, sub, danger }: { href: string; title: string; su
 function HelpSheet({ onClose }: { onClose: () => void }) {
   return (
     <SheetFrame title="도움이 필요하세요?" sub="누르면 바로 전화가 걸려요." onClose={onClose}>
-      <CallRow href={`tel:${STAFF.phone}`} title={`${STAFF.name} 선생님`} sub={`${STAFF.org} 담당자`} />
+      {STAFF.phone ? (
+        <CallRow href={`tel:${STAFF.phone}`} title={`${STAFF.name} 선생님`} sub="담당 선생님" />
+      ) : (
+        <p className="m-0 rounded-[1.4rem] bg-bg px-5 py-4 text-[1rem] text-sub">
+          <b className="block text-[1.1rem] text-ink">{STAFF.name} 선생님</b>담당 선생님 · 전화번호가 아직 등록되지 않았어요
+        </p>
+      )}
       <CallRow href="tel:119" title="119 긴급 전화" sub="다치거나 위급할 때" danger />
       <Secondary onClick={onClose}>닫기</Secondary>
     </SheetFrame>

@@ -104,7 +104,7 @@ export async function verifyOtp(challengeId: string, code: string): Promise<Logi
 // ---------------- 오늘 순회 (응답 JSON 명세 7절: GET /me/patrols, GET /patrols/{id})
 export type ApiSlot = { id: string; label: string; instruction?: string; captureStatus?: string | null; retakesRemaining?: number; purpose?: 'REGULAR' | 'REINSPECTION' }
 export type ApiStop = { id: string; order?: number; name: string; facilityType: string; instruction?: string; captureSlots: ApiSlot[] }
-export type ApiMember = { participantId: string; name: string; attendance?: 'UNCHECKED' | 'PRESENT' | 'ABSENT'; attendanceRequestedAt?: string | null; startedAt?: string | null }
+export type ApiMember = { participantId: string; name: string; attendance?: 'UNCHECKED' | 'PRESENT' | 'ABSENT'; attendanceRequestedAt?: string | null; startedAt?: string | null; paused?: boolean }
 export type ApiPatrol = {
   id: string
   stops: ApiStop[]
@@ -151,3 +151,6 @@ export function memberStates(p: ApiPatrol) {
 const event = (p: ApiPatrol | null) => ({ clientEventId: crypto.randomUUID(), occurredAt: new Date().toISOString(), assignmentRef: p?.myAssignment?.assignmentRef })
 export const requestAttendance = (patrolId: string, p: ApiPatrol | null) => api('POST', `/patrols/${patrolId}/attendance-requests`, event(p))
 export const startActivity = (patrolId: string, p: ApiPatrol | null) => api('POST', `/patrols/${patrolId}/activity-starts`, event(p))
+/** 잠깐 쉬기 시작·끝. 담당자 화면(오늘 활동 현황)에 '쉬는 중'으로 보인다 */
+export const sendPause = (patrolId: string, p: ApiPatrol | null, on: boolean) =>
+  api('POST', `/patrols/${patrolId}/pause-events`, { ...event(p), type: on ? 'PAUSE_STARTED' : 'PAUSE_ENDED' })

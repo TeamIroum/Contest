@@ -600,6 +600,8 @@ export type Member = {
   returnSource?: 'MANAGER_CONFIRMATION' | 'ADMIN_CORRECTION'
   /** 담당자 복귀 확인 여부 (returnedAt 유무로 계산하지 않음) */
   returned: boolean
+  /** 어르신이 앱에서 '잠깐 쉬기'를 누른 상태 */
+  paused?: boolean
 }
 
 export type Patrol = {

@@ -85,6 +85,7 @@ function MemberSteps({ mb, warnNoStart }: { mb: Member; warnNoStart: boolean }) 
       {mb.startedAt ? chip('done', `시작 ${mb.startedAt}${fix(mb.startSource)}`) : chip(warnNoStart ? 'wait' : 'none', '시작 기록 없음')}
       {mb.returnedAt && chip(mb.returned ? 'done' : 'wait', `복귀 ${mb.returnedAt}${fix(mb.returnSource)}${mb.returned ? ' ✓' : ' · 확인 전'}`)}
       {mb.returned && !mb.returnedAt && chip('done', '복귀 확인 ✓')}
+      {mb.paused && !mb.returned && chip('wait', '쉬는 중')}
     </>
   )
 }

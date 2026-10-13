@@ -195,6 +195,7 @@ function toPatrol(p: ApiAdminPatrol): Patrol {
     returnedAt: hm(m.returnedAt),
     returnSource: m.returnSource === 'ADMIN_CORRECTION' ? 'ADMIN_CORRECTION' : m.returnedAt ? 'MANAGER_CONFIRMATION' : undefined,
     returned: m.returned,
+    paused: !!m.paused,
   }))
   return {
     id: p.id,
