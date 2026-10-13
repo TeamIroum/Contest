@@ -48,7 +48,7 @@ Write-Host '― 1. 건너뛰기·그만하기·복귀 (출발 확인 전 시작 
 Reset-Today
 Run 'skip-return' @('skip-return.mjs', $senior, $admin)
 
-Write-Host '― 2. 촬영 · 화면 둘러보기 · 쉬기 · 관리자 화면 · 판정 · 개인정보 검토 · 참여자 계정 · 조 편성 · 코스·순회 배정 · 재점검 배정 · 공무원 계정'
+Write-Host '― 2. 촬영 · 화면 둘러보기 · 쉬기 · 관리자 화면 · 판정 · 개인정보 검토 · 참여자 계정 · 조 편성 · 코스·순회 배정 · 재점검 배정 · 통계 · 공무원 계정'
 Reset-Today
 if (Test-Path $video) { $env:VIDEO = $video }
 Run 'senior (촬영)' @('senior.mjs', $senior, '--shoot')
@@ -61,6 +61,9 @@ $env:LOGIN = 'demo-road'
 Run 'admin-decide' @('admin-decide.mjs', $admin)
 Run 'admin-privacy' @('admin-privacy.mjs', $admin)
 Run 'admin-reinspect' @('admin-reinspect.mjs', $admin)
+$env:EXPECT_DATA = '1'
+Run 'admin-stats' @('admin-stats.mjs', $admin)
+Remove-Item env:EXPECT_DATA -ErrorAction SilentlyContinue
 Remove-Item env:LOGIN -ErrorAction SilentlyContinue
 Run 'admin-participants' @('admin-participants.mjs', $admin, $senior)
 Run 'admin-teams' @('admin-teams.mjs', $admin)

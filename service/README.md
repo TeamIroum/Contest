@@ -25,6 +25,7 @@
 - 날짜별 순회 배정 API 추가(기능정의서 ACT-04, `schedule/`): `POST /admin/patrols`(activityDate, teamId, routeVersionId, scheduledStartAt, expectedReturnAt), `GET /admin/patrol-schedule?from=&to=`(기본 오늘부터 2주). 그날의 실제 조원(평소 조·활동 중)과 코스 버전의 장소·구도를 순회에 복사하고, 같은 참여자의 시간 겹침·지난 날짜·닫은 코스·조원 2명 미만은 거절한다
 - 재점검 구도·배정 후보 API 추가(기능정의서 ACT-10, `schedule/ReinspectionSlotService`): `POST /admin/patrols/{id}/stops/{stopId}/capture-slots`(출발 전 순회 장소에 재점검 구도 추가, 순회 version·revision 올림), `GET /admin/reinspection-requests/{id}/candidates`(같은 시설이 든 출발 전 담당 순회 장소, 다시 쓸 빈 재점검 구도). 원본에는 구도 추가 API가 없어 재점검 요청을 배정할 구도를 만들 수 없었다. 배정·취소는 원본 API(업무 API 10절)를 그대로 쓴다
 - 공무원 계정 API 추가(기능정의서 OPS-07·08, `officer/`, 시스템 관리자만): `GET·POST /admin/accounts`, `GET /admin/accounts/organizations`, `PUT /admin/accounts/{id}/roles`, `POST /admin/accounts/{id}/password-resets`·`unlocks`·`status-changes`. 발급·초기화 때 임시 비밀번호(12자)를 응답에 한 번만 담고 해시로만 저장한다(멱등 결과·감사 기록에도 남기지 않으므로 이 API들은 멱등 키를 받지 않는다). 초기화·사용 중지는 인증 버전을 올리고 로그인 세션을 끊는다. 본인 계정의 초기화·사용 중지·시스템 관리자 역할 빼기는 거절한다. 잠금 기준은 로그인 쪽 그대로(5회 실패 10분)
+- 기간 집계 API 추가(기능정의서 OPS-03, `stats/`, 사업 총괄만): `GET /admin/stats?from=&to=`(기본 오늘까지 14일, 한국 시간). 끝난 순회·출석 확인 연인원·사진·점검 장소·건너뜀·미방문·검토·사건·보수·종결·재보수를 따로 세고, 사진 수로 활동 시간을 계산하지 않는다. 부서별·시설별 사건과 엑셀용 활동·사건 목록도 함께 준다
 - 시연 관리자 계정 3개 추가(시드 `R__dev_seed_demo_scenario.sql`, `application-local.yml`): `demo-park`(공원녹지과 시설 담당자, 벤치 검토), `demo-program`(사업 총괄, 통계·보고), `demo-admin`(시스템 관리자, 공무원 계정). 원본 시드에는 벤치를 관리하는 공원녹지과 담당자가 없어 벤치 사진을 볼 사람이 없었다. 초기화 때 6개 모두 비밀번호를 준비한다
 - 시연(local 프로필): 관리자 웹에서 새로 등록한 어르신도 고정 시연 인증번호로 로그인한다(`inspection.demo.registered-seniors: true`, 기본값 false). 문자 발송 공급자가 없어서
 
@@ -69,7 +70,7 @@
 ```bash
 cd service/ui-test
 npm install && npm run install-browser          # 처음 한 번
-powershell -ExecutionPolicy Bypass -File run-all.ps1   # 전체: 초기화 → 순회를 오늘로 → 시험 13개 → 다시 초기화 (약 3분, 실제 데이터를 바꿈)
+powershell -ExecutionPolicy Bypass -File run-all.ps1   # 전체: 초기화 → 순회를 오늘로 → 시험 14개 → 다시 초기화 (약 3분, 실제 데이터를 바꿈)
 node admin.mjs https://<PC>.ts.net:10000         # 관리자 웹: 로그인·검토 목록·사건·오늘 활동 현황
 node admin-accounts.mjs <관리자 주소>              # 시연 관리자 6개 계정 로그인·역할별 메뉴 (데이터 안 바꿈)
 node admin-decide.mjs https://<PC>.ts.net:10000  # 관리자 웹에서 판정 저장 → 사건 생성 (LOGIN=demo-road 등으로 계정 선택)
@@ -81,6 +82,7 @@ node admin-teams.mjs <관리자 주소>                 # 조 만들기 → 1명
 node admin-assign.mjs <관리자 주소>                # 코스 만들기 → 순회 배정 → 시간 겹침 거절 → 코스 v2 공개, 배정된 순회는 v1
 node admin-reinspect.mjs <관리자 주소>             # 보수 완료 → 재점검 요청을 내일 순회에 배정 → 취소 → 다시 배정 (admin-decide 뒤)
 node admin-officers.mjs <관리자 주소>              # 계정 발급 → 첫 로그인 변경 → 잠김·해제 → 비밀번호 초기화 → 사용 중지
+node admin-stats.mjs <관리자 주소>                 # 통계·보고: 보고 문장·기간 전환·엑셀 (데이터 안 바꿈)
 node gh-entry.mjs                                # 깃페이지 입구(teamiroum.github.io/service) → 두 앱 로그인
 ```
 

@@ -749,3 +749,32 @@ export const resetOfficerPassword = (a: OfficerAccount, reason: string) => api<I
 export const unlockOfficer = (a: OfficerAccount, reason: string) => api<OfficerAccount>('POST', `/admin/accounts/${a.id}/unlocks`, { reason })
 export const changeOfficerStatus = (a: OfficerAccount, status: 'ACTIVE' | 'SUSPENDED', reason: string) =>
   api<OfficerAccount>('POST', `/admin/accounts/${a.id}/status-changes`, { status, reason, version: a.version })
+
+/* ---------------- 통계·보고 (OPS-03, service/backend AdminStatsController) ---------------- */
+
+export type StatsReport = {
+  from: string
+  to: string
+  summary: {
+    patrols: number
+    aborted: number
+    participantDays: number
+    photos: number
+    facilitiesChecked: number
+    skipped: number
+    notVisited: number
+    reviews: number
+    reviewsResolved: number
+    reviewsConfirmed: number
+    issuesNew: number
+    repairsDone: number
+    issuesClosed: number
+    repairAgain: number
+  }
+  byDepartment: { department: string; open: number; closed: number; repairAgain: number }[]
+  byFacilityType: { facilityType: string; issues: number }[]
+  activities: { date: string; team: string; route: string; members: string[]; aborted: boolean; facilitiesChecked: number; skipped: number; notVisited: number }[]
+  issues: { id: string; facilityType: string; facilityName: string; summary: string; status: IssueStatus | string; department: string; openedAt: string; repairs: number; closedAt: string | null }[]
+}
+/** from·to: YYYY-MM-DD (한국 시간). 비우면 오늘까지 최근 14일 */
+export const loadStats = (from?: string, to?: string) => api<StatsReport>('GET', `/admin/stats?${new URLSearchParams({ ...(from ? { from } : {}), ...(to ? { to } : {}) })}`)
