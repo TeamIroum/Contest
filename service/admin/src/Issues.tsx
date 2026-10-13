@@ -327,14 +327,9 @@ function IssueDetail({
             </div>
           </Action>
         )}
-        {issue.status === 'AWAITING_VERIFICATION' &&
-          (issue.real ? (
-            <Action title="수리 확인 대기">
-              <p className="m-0 text-sm text-sub">재점검 요청이 만들어졌습니다. 다음 정기 순회 사진이 들어오면 수리 여부를 판정합니다. (수리 확인 판정 화면은 아직 실제 업무 서버에 연결하지 않았습니다.)</p>
-            </Action>
-          ) : (
-            <Verify issue={issue} req={req} patrols={patrols} setIssues={setIssues} setReqs={setReqs} onGoAssign={onGoAssign} />
-          ))}
+        {issue.status === 'AWAITING_VERIFICATION' && (
+          <Verify issue={issue} req={req} patrols={patrols} setIssues={setIssues} setReqs={setReqs} onGoAssign={onGoAssign} />
+        )}
         {issue.status === 'CLOSED' && issue.verification.after && (
           <section className="grid grid-cols-2 gap-3 text-center text-xs text-mute">
             <div>
@@ -400,11 +395,28 @@ function Verify({
   const [followUp, setFollowUp] = useState<FollowUp>('REPHOTO')
   const [reason, setReason] = useState('')
 
+  const [saving, setSaving] = useState(false)
   const evidenceOk = method === 'PHOTO' ? !!after : fieldNote.trim().length > 0
-  const ok = decision !== null && evidenceOk && (decision === 'CLOSE' || reason.trim().length > 0)
+  // 실제 업무 서버는 종결할 때도 사유를 받는다 (검토 판정과 같음)
+  const needReason = decision !== null && (decision !== 'CLOSE' || !!issue.real)
+  const ok = decision !== null && evidenceOk && (!needReason || reason.trim().length > 0) && !saving
 
   function submit() {
     if (!decision) return
+    if (issue.real) {
+      // 실제 업무 서버: 현장 확인으로 준비 → 판정 (재점검 사진 판정은 재점검 촬영 칸 배정이 연결되면)
+      setSaving(true)
+      real
+        .run(() => real.verifySiteVisit(issue, { decision, followUp, fieldNote: fieldNote.trim(), reason: reason.trim() }))
+        .then((done) => {
+          setSaving(false)
+          if (!done) return
+          setDecision(null)
+          setReason('')
+          setFieldNote('')
+        })
+      return
+    }
     const at = nowAt()
     const how = method === 'PHOTO' ? '사진 확인' : `현장 확인(${fieldNote.trim()})`
     const text = `수리 확인 · ${how} → ${VERIFY_NAME[decision]}${decision === 'FOLLOW_UP_REQUIRED' ? ` (${FOLLOW_UP_NAME[followUp]})` : ''}${reason ? ` · ${reason}` : ''}`
@@ -447,7 +459,15 @@ function Verify({
             </>
           ) : (
             <div className="grid aspect-[4/3] place-items-center rounded-[10px] border border-dashed border-line-strong bg-surface p-2 text-[14px] text-sub">
-              {req?.status === 'ASSIGNED' ? (
+              {issue.real ? (
+                <span>
+                  재점검 촬영 배정은
+                  <br />
+                  아직 준비 중이에요
+                  <br />
+                  <span className="text-xs text-mute">현장 확인으로 판정해 주세요</span>
+                </span>
+              ) : req?.status === 'ASSIGNED' ? (
                 <span>
                   {patrolLabel(patrols, req.patrolId)}에 배정됨
                   <br />
@@ -514,7 +534,7 @@ function Verify({
           ))}
         </div>
       )}
-      {decision && decision !== 'CLOSE' && (
+      {needReason && (
         <label className="grid gap-1 text-sm">
           <span className="font-semibold">
             사유 <span className="text-g3">*</span>

@@ -13,6 +13,7 @@ import {
   TRIGGER_NAME,
   DECISION_NAME,
   FOLLOW_UP_NAME,
+  VERIFY_NAME,
   type Analysis,
   type Attendance,
   type Decision,
@@ -420,12 +421,25 @@ type ApiIssue = {
   openedAt: string
   closedAt?: string | null
   inspections: { inspectionId: string; capturedAt?: string | null; media?: ApiMedia | null; unlinkedAt?: string | null }[]
-  repairEvents: { type: string; actor?: { name: string } | null; department?: { name: string } | null; description?: string | null; occurredAt: string; evidenceMedia?: ApiMedia[] | null }[]
+  currentReinspectionRequestId?: string | null
+  reinspectionRequests?: { id: string; status: string; version: number; repairEventId?: string | null }[]
+  repairEvents: { id?: string; type: string; actor?: { name: string } | null; department?: { name: string } | null; description?: string | null; occurredAt: string; evidenceMedia?: ApiMedia[] | null }[]
 }
 
 const REPAIR_EVENT_NAME: Record<string, string> = { REQUESTED: '보수 요청', STARTED: '보수 시작', COMPLETED: '보수 완료' }
 
-function toIssue(i: ApiIssue): Issue {
+/** 수리 확인 기록 (GET /admin/issues/{id}/verifications). 판정까지 된 것만 처리 이력에 넣는다 */
+type ApiVerification = {
+  verificationMethod: 'PHOTO' | 'SITE_VISIT'
+  notes?: { note: string }[]
+  decision?: 'CLOSE' | 'REPAIR_AGAIN' | 'FOLLOW_UP_REQUIRED' | null
+  followUpType?: 'REPHOTO' | 'SITE_VISIT' | null
+  reason?: string | null
+  decidedBy?: { name: string } | null
+  decidedAt?: string | null
+}
+
+function toIssue(i: ApiIssue, verifications: ApiVerification[] = []): Issue {
   putFacility(i.facility)
   const kind = kindOf(i.facility.type)
   const label = ISSUE_TYPES[kind].find((t) => t.code === i.defectCode)?.label
@@ -444,7 +458,16 @@ function toIssue(i: ApiIssue): Issue {
   const logs: Log[] = [{ at: mdhm(i.openedAt), who: '시스템', text: '이상 확인 → 문제 등록' }]
   for (const e of i.repairEvents)
     logs.push({ at: mdhm(e.occurredAt), who: e.actor?.name ?? e.department?.name ?? '-', text: `${REPAIR_EVENT_NAME[e.type] ?? e.type}${e.department?.name ? ` (${e.department.name})` : ''}${e.description ? ` · ${e.description}` : ''}` })
-  if (i.closedAt) logs.push({ at: mdhm(i.closedAt), who: '-', text: '종결' })
+  const decided = verifications.filter((v) => v.decision && v.decidedAt)
+  for (const v of decided) {
+    const how = v.verificationMethod === 'SITE_VISIT' ? `현장 확인${v.notes?.[0]?.note ? `(${v.notes[0].note})` : ''}` : '사진 확인'
+    const fu = v.decision === 'FOLLOW_UP_REQUIRED' && v.followUpType ? ` (${FOLLOW_UP_NAME[v.followUpType]})` : ''
+    logs.push({ at: mdhm(v.decidedAt!), who: v.decidedBy?.name ?? '-', text: `수리 확인 · ${how} → ${VERIFY_NAME[v.decision!]}${fu}${v.reason ? ` · ${v.reason}` : ''}` })
+  }
+  // 종결은 수리 확인 판정이 있으면 그 기록으로 충분하다
+  if (i.closedAt && !decided.some((v) => v.decision === 'CLOSE')) logs.push({ at: mdhm(i.closedAt), who: '-', text: '종결' })
+  logs.sort((x, y) => x.at.localeCompare(y.at))
+  const cur = i.reinspectionRequests?.find((r) => r.id === i.currentReinspectionRequestId)
   return {
     id: i.id,
     facilityId: i.facility.id,
@@ -458,14 +481,25 @@ function toIssue(i: ApiIssue): Issue {
     beforePhoto: before?.media ? { media: before.media } : undefined,
     closedAt: i.closedAt ? mdhm(i.closedAt) : undefined,
     logs,
-    real: { version: i.version, deptId: i.assignedDepartment?.id ?? i.facility.managingDepartment?.id ?? null, deptName: i.assignedDepartment?.name ?? i.facility.managingDepartment?.name ?? null },
+    real: {
+      version: i.version,
+      deptId: i.assignedDepartment?.id ?? i.facility.managingDepartment?.id ?? null,
+      deptName: i.assignedDepartment?.name ?? i.facility.managingDepartment?.name ?? null,
+      reqId: cur?.id ?? null,
+      reqVersion: cur?.version,
+      repairEventId: cur?.repairEventId ?? null,
+    },
   }
 }
 
 export async function loadIssues(): Promise<Issue[]> {
   const list = await api<{ items: { id: string }[] }>('GET', '/admin/issues?size=100')
   const details = await Promise.all(list.items.map((x) => api<ApiIssue>('GET', `/admin/issues/${x.id}`)))
-  return details.map(toIssue)
+  // 재점검 요청이 생긴 사건(보수 완료 뒤)만 수리 확인 기록을 함께 받는다
+  const verifs = await Promise.all(
+    details.map((d) => (d.reinspectionRequests?.length ? api<{ items: ApiVerification[] }>('GET', `/admin/issues/${d.id}/verifications?size=50`).then((r) => r.items, () => []) : Promise.resolve([]))),
+  )
+  return details.map((d, k) => toIssue(d, verifs[k]))
 }
 
 export const requestRepair = (i: Issue, memo: string) =>
@@ -473,6 +507,28 @@ export const requestRepair = (i: Issue, memo: string) =>
 export const startRepair = (i: Issue) => api('POST', `/admin/issues/${i.id}/repair-starts`, { version: i.real!.version }, { idempotent: true })
 export const completeRepair = (i: Issue, description: string) =>
   api('POST', `/admin/issues/${i.id}/repair-completions`, { description, completedAt: new Date().toISOString(), evidenceMediaIds: [], version: i.real!.version }, { idempotent: true })
+
+/** 수리 확인(현장 확인): 준비(SITE_VISIT, 확인 내용) → 판정. 재점검 사진 판정은 재점검 촬영 칸 API가 생기면 연결 */
+export type VerifyInput = { decision: 'CLOSE' | 'REPAIR_AGAIN' | 'FOLLOW_UP_REQUIRED'; followUp?: 'REPHOTO' | 'SITE_VISIT'; fieldNote: string; reason: string }
+export async function verifySiteVisit(i: Issue, v: VerifyInput) {
+  const r = i.real!
+  if (!r.reqId || !r.repairEventId || r.reqVersion === undefined) throw new ApiError(409, 'NO_REQUEST', '수리 확인할 재점검 요청이 없습니다. 목록을 새로 불러와 주세요.')
+  const prep = await api<{ verificationId: string; verificationVersion: number; requestVersion: number; issueVersion: number }>(
+    'POST',
+    `/admin/issues/${i.id}/verification-preparations`,
+    { requestId: r.reqId, repairEventId: r.repairEventId, verificationMethod: 'SITE_VISIT', beforeInspectionIds: [], afterInspectionIds: [], fieldNote: v.fieldNote, version: r.version, requestVersion: r.reqVersion },
+    { idempotent: true },
+  )
+  return api('POST', `/admin/issues/${i.id}/verification-decisions`, {
+    verificationId: prep.verificationId,
+    decision: v.decision,
+    followUpType: v.decision === 'FOLLOW_UP_REQUIRED' ? (v.followUp ?? 'SITE_VISIT') : null,
+    reason: v.reason || null,
+    version: prep.issueVersion,
+    requestVersion: prep.requestVersion,
+    verificationVersion: prep.verificationVersion,
+  }, { idempotent: true })
+}
 
 /** 짧게 보여 줄 문제 번호 (UUID 앞 8자리) */
 export const shortId = (id: string) => (/^[0-9a-f]{8}-/.test(id) ? id.slice(0, 8) : id)

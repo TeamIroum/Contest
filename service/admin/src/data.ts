@@ -389,7 +389,15 @@ export type Issue = {
   closedAt?: string
   logs: Log[]
   /** 실제 백엔드 문제일 때만: 상태 변경에 보낼 version, 보수 담당 부서 */
-  real?: { version: number; deptId: string | null; deptName: string | null }
+  real?: {
+    version: number
+    deptId: string | null
+    deptName: string | null
+    /** 현재 재점검 요청(보수 완료 때 생김)과 그 버전·보수 회차. 수리 확인 준비에 쓴다 */
+    reqId?: string | null
+    reqVersion?: number
+    repairEventId?: string | null
+  }
 }
 
 export const ISSUES: Issue[] = [
