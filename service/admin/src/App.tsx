@@ -286,7 +286,7 @@ export default function App() {
         <div className="flex items-center gap-2.5 px-5 py-4 lg:py-5">
           <Logo />
           <div className="flex-1 leading-tight">
-            <p className="m-0 text-[17px] font-extrabold">동네 점검단</p>
+            <p className="m-0 text-[17px] font-extrabold">시니어 동네 점검단</p>
             <p className="m-0 text-xs text-mute">관리자 화면</p>
           </div>
           <MenuButton onClick={() => setMenuOpen(true)} />
@@ -550,7 +550,7 @@ function Shell({ children }: { children: ReactNode }) {
         <div className="mb-6 flex items-center gap-2.5">
           <Logo size={10} />
           <div className="leading-tight">
-            <p className="m-0 text-lg font-bold">동네 점검단</p>
+            <p className="m-0 text-lg font-bold">시니어 동네 점검단</p>
             <p className="m-0 text-sm text-mute">관리자 화면</p>
           </div>
         </div>

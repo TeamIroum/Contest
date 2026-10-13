@@ -810,7 +810,7 @@ function Start({ onNext }: { onNext: () => void }) {
           <CameraIcon size={40} />
         </div>
         <div>
-          <h1 className="m-0 text-[2.2rem] leading-tight font-extrabold tracking-tight">동네 점검단</h1>
+          <h1 className="m-0 text-[2.2rem] leading-tight font-extrabold tracking-tight">시니어 동네 점검단</h1>
           <p className="m-0 mt-2 text-[1.15rem] leading-relaxed font-medium text-sub">
             우리 동네 시설을 사진으로 살피는
             <br />
