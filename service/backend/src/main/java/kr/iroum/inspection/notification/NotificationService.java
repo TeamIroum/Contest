@@ -23,7 +23,8 @@ import kr.iroum.inspection.common.error.ErrorCode;
  * 관리자 알림 조회·읽음(기능정의서 OPS-05, 업무 API GET /admin/notifications, PUT /admin/notifications/{id}/read).
  * <ul>
  * <li>주기적으로(기본 15초) 최근 하루 안의 새 일을 찾아 담당 범위의 관리자에게 알림 행을 만든다. 같은 사람·종류·대상은 한 번만.
- * 검토 요청 → 그 시설 관리 부서의 시설 담당자, 출석·복귀 요청과 재점검 요청 → 그 순회·시설을 맡은 활동 담당자.</li>
+ * 검토 요청 → 그 시설 관리 부서의 시설 담당자, 출석·복귀 요청과 재점검 요청 → 그 순회·시설을 맡은 활동 담당자,
+ * '시설이 없어졌어요' 건너뛰기(SEN-07) → 그 시설 관리 부서의 시설 담당자.</li>
  * <li>화면 안 알림만 한다. 즉시 문자·푸시·긴급 대응 채널은 별도 합의(기능정의서 OPS-05).</li>
  * <li>알림 문구에는 전화번호를 넣지 않는다.</li>
  * </ul>
@@ -109,6 +110,17 @@ public class NotificationService {
                     WHERE r.created_at >= ? AND r.status = 'OPEN'
                       AND NOT EXISTS (SELECT 1 FROM notifications x WHERE x.user_id = s.user_id AND x.type = 'REINSPECTION_REQUESTED' AND x.resource_id = r.id)""",
                     since);
+            // 시설이 없어졌어요(SEN-07, 건너뛰기 사유 FACILITY_REMOVED) → 그 시설을 관리하는 부서의 시설 담당자 (시설 대장 확인)
+            n += jdbc.update("""
+                    INSERT INTO notifications (user_id, type, resource_type, resource_id, message)
+                    SELECT DISTINCT s.user_id, 'FACILITY_REMOVED', 'FACILITY', f.id, '시설이 없어졌다는 현장 기록: ' || f.name || ' (시설 대장을 확인해 주세요)'
+                    FROM patrol_events e JOIN patrol_stops ps ON ps.id = e.patrol_stop_id JOIN facilities f ON f.id = ps.facility_id
+                    JOIN user_role_scopes s ON s.program_id = f.program_id AND s.organization_id = f.managing_department_id
+                         AND s.role = 'FACILITY_MANAGER' AND s.revoked_at IS NULL
+                    WHERE e.type = 'STOP_SKIPPED' AND e.reason_code = 'FACILITY_REMOVED' AND e.received_at >= ?
+                      AND NOT EXISTS (SELECT 1 FROM notifications x WHERE x.user_id = s.user_id AND x.type = 'FACILITY_REMOVED' AND x.resource_id = f.id
+                                      AND x.created_at >= ?)""",
+                    since, since);
             if (n > 0) {
                 log.info("알림 {}건 만듦", n);
             }

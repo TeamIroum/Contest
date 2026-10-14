@@ -545,6 +545,9 @@ function ReturnModal({ patrol, memberId, onClose, onSave }: { patrol: Patrol; me
   const [reason, setReason] = useState<'NORMAL' | 'ABORT'>(fixed ?? 'NORMAL')
   const [abort, setAbort] = useState<'HEALTH' | 'DEVICE' | 'OTHER'>(patrol.abortReason ?? 'HEALTH')
   const [time, setTime] = useState(nowAt().slice(6))
+  // 시각을 고르지 않았으면 누른 순간의 시각을 보낸다. 창을 연 분(예: 14:03)을 그대로 보내면 그사이 분이 바뀌었을 때
+  // 같은 분에 시작한 조원의 복귀가 '복귀 시각이 시작 시각보다 빨라요'(422)로 거절된다
+  const [picked, setPicked] = useState(false)
   return (
     <Modal
       title={`${pName(memberId)} 복귀 확인`}
@@ -552,7 +555,7 @@ function ReturnModal({ patrol, memberId, onClose, onSave }: { patrol: Patrol; me
       footer={
         <>
           <Button onClick={onClose}>취소</Button>
-          <Button variant="primary" onClick={() => onSave({ returnedAt: time, reason, abort: reason === 'ABORT' ? abort : undefined })}>
+          <Button variant="primary" onClick={() => onSave({ returnedAt: picked ? time : nowAt().slice(6), reason, abort: reason === 'ABORT' ? abort : undefined })}>
             복귀 확인
           </Button>
         </>
@@ -591,7 +594,7 @@ function ReturnModal({ patrol, memberId, onClose, onSave }: { patrol: Patrol; me
         </>
       )}
       <Field label="복귀 시각">
-        <select value={time} onChange={(e) => setTime(e.target.value)} className={inputCls}>
+        <select value={time} onChange={(e) => (setTime(e.target.value), setPicked(true))} className={inputCls}>
           {[...new Set([time, ...MINUTES])].sort().map((t) => (
             <option key={t}>{t}</option>
           ))}

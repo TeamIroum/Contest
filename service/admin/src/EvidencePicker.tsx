@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as masking from '../../senior/src/masking/masking.js'
 import type { Issue } from './data'
-import { Button } from './ui'
+import { Button, Modal } from './ui'
 import * as real from './api/real'
 
 export type Evidence = { mediaId: string; preview: string }
@@ -14,6 +14,7 @@ export function EvidencePicker({ issue, value, onChange, disabled }: { issue: Is
   const [state, setState] = useState<'대기' | '준비 중' | '준비' | '실패'>('대기')
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
+  const [zoom, setZoom] = useState<string | null>(null) // 크게 보기: 가린 결과를 올리기 전에 확인
   const input = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -59,7 +60,9 @@ export function EvidencePicker({ issue, value, onChange, disabled }: { issue: Is
         <div className="flex flex-wrap gap-2">
           {value.map((v) => (
             <span key={v.mediaId} className="relative">
-              <img src={v.preview} alt="보수 증빙 사진(가린 사진)" className="h-20 w-28 rounded-lg border border-line object-cover" />
+              <button type="button" onClick={() => setZoom(v.preview)} aria-label="보수 증빙 사진 크게 보기" className="block cursor-zoom-in">
+                <img src={v.preview} alt="보수 증빙 사진(가린 사진)" className="h-20 w-28 rounded-lg border border-line object-cover" />
+              </button>
               <button
                 type="button"
                 className="absolute -top-2 -right-2 grid size-6 place-items-center rounded-full bg-ink text-xs text-white"
@@ -86,6 +89,11 @@ export function EvidencePicker({ issue, value, onChange, disabled }: { issue: Is
       </div>
       {error && <p className="m-0 text-xs text-g3-ink">{error}</p>}
       <p className="m-0 text-xs text-mute">개인정보 검사를 거친 사진만 저장되며 판독 실적에는 넣지 않습니다.</p>
+      {zoom && (
+        <Modal title="보수 증빙 사진 · 얼굴·번호판 가린 결과" onClose={() => setZoom(null)} width="max-w-4xl">
+          <img src={zoom} alt="보수 증빙 사진 크게(가린 사진)" className="mx-auto max-h-[70vh] w-auto rounded-lg" />
+        </Modal>
+      )}
     </div>
   )
 }

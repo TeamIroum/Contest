@@ -119,7 +119,8 @@ public class StartDepartureService {
                         // 조 전체 시작: 출석이 확정되고 아직 시작·복귀하지 않은 조원 모두를 같은 시각으로 시작한다 (누른 사람은 순회 이벤트에 남음)
                         jdbc.update("""
                                 UPDATE patrol_members SET started_at = ?, start_received_at = ?, start_source = 'SELF', updated_at = now()
-                                WHERE patrol_id = ? AND assignment_active AND attendance = 'PRESENT' AND started_at IS NULL AND returned_at IS NULL""",
+                                WHERE patrol_id = ? AND assignment_active AND attendance = 'PRESENT' AND started_at IS NULL AND returned_at IS NULL
+                                  AND participant_id IN (SELECT id FROM participants WHERE status = 'ACTIVE')""",
                                 Timestamp.from(occurredAt), Timestamp.from(received), patrolId);
                     } else {
                         // 원본 개인 시작(D-02): 누른 사람만

@@ -31,6 +31,8 @@ try {
     await d.getByLabel('휴대폰').fill(PHONE)
     await d.getByRole('button', { name: '월', exact: true }).click()
     await d.getByRole('button', { name: '수', exact: true }).click()
+    // 시연 어르신과 같은 수행기관으로 (목록 첫 항목은 앞선 시험이 만든 기관일 수 있다)
+    if (await d.getByLabel('소속 기관').count()) await d.getByLabel('소속 기관').selectOption({ label: '옥정동 노인복지관' })
     await shot('참여자-등록창')
     await d.getByRole('button', { name: '등록', exact: true }).click()
     await page.waitForLoadState('networkidle')

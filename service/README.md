@@ -35,6 +35,12 @@
   - 감사 이력(`audit/`, 사업 총괄·시스템 관리자): `GET /admin/audit-events`, `/admin/audit-events/actions`. 전화번호·토큰·비밀번호·주소로 보이는 칸은 가림
   - 알림(`notification/`): `GET /admin/notifications`, `PUT /admin/notifications/{id}/read`, `/read`(모두). 15초마다 최근 하루의 검토 요청·출석/복귀 요청·재점검 요청을 찾아 담당 범위 관리자에게 화면 안 알림을 만든다(문자·푸시 없음)
   - 역할·관할(OPS-02)은 공무원 계정의 역할 변경(`PUT /admin/accounts/{id}/roles`)으로 처리한다
+- 시설 대장 API 추가(기능정의서 FAC-01, `facility/`, 시설 담당자): `GET·POST /admin/facilities`, `PATCH /admin/facilities/{id}`, `GET /admin/facilities/departments`. 자기 부서 시설만, 코드·종류는 바꾸지 않음, 관리 부서 넘기기는 사유 필요, AI 추정 부서로 덮어쓰지 않음
+- 사진 연결 해제 API 추가(FAC-06, `issue/IssueLinkService`): `DELETE /admin/issues/{id}/inspection-links/{inspectionId}`(본문 reason·version). 이력 보존, 사건의 마지막 사진은 거절
+- 재점검 참고 사진(SEN-11): 재점검 구도를 만들 때 같은 시설의 승인 사진(사건에 연결된 사진 먼저)을 reference_media_id로 붙여 시니어 앱이 반투명하게 겹쳐 보여 준다
+- 알림에 '시설이 없어졌어요' 건너뛰기(SEN-07) → 그 시설 관리 부서 시설 담당자 추가
+- 시연 활동 담당자(최○○)에게 가상 연락처 010-0000-0021(SEN-08, 시니어 앱 도움 화면 전화. 시니어 역할이 없어 이 번호로 로그인 불가)
+- 출발 확인 때 출석 확정 조원 중 참여가 중지·종료된 사람이 있으면 거절(ACC-02, `PatrolCommandSupport.requirePresentPair`, team-start일 때), 조 전체 시작에서도 빼고 시작. 시험 `TeamStartIntegrationTest`
 - 시연 관리자 계정 3개 추가(시드 `R__dev_seed_demo_scenario.sql`, `application-local.yml`): `demo-park`(공원녹지과 시설 담당자, 벤치 검토), `demo-program`(사업 총괄, 통계·보고), `demo-admin`(시스템 관리자, 공무원 계정). 원본 시드에는 벤치를 관리하는 공원녹지과 담당자가 없어 벤치 사진을 볼 사람이 없었다. 초기화 때 6개 모두 비밀번호를 준비한다
 - 시연(local 프로필): 관리자 웹에서 새로 등록한 어르신도 고정 시연 인증번호로 로그인한다(`inspection.demo.registered-seniors: true`, 기본값 false). 문자 발송 공급자가 없어서
 
@@ -80,7 +86,7 @@ WSL(Ubuntu-24.04)의 Docker로 원본 통합 시험(Testcontainers)을 돌린다
 wsl -d Ubuntu-24.04 -- bash /mnt/c/Contest/service/scripts/backend-it.sh      # 전체 약 2~4분 (처음은 내려받기로 더 걸림)
 ```
 
-2026-10-14 결과: 254개 중 253개 통과. `AbsoluteExpiryIntegrationTest`(세션 절대 만료)는 화면 시험과 동시에 돌릴 때 한 번 실패했고 단독으로는 세 번 모두 통과(시간에 민감한 시험)
+2026-10-14 결과: 255개 모두 통과 (참여 중지 조원 출발 거절 시험 포함). `AbsoluteExpiryIntegrationTest`(세션 절대 만료)는 PC가 바쁠 때 WSL 시계가 뒤로 다시 맞춰지면 한 번 잠든 것만으로 만료가 안 지나 실패할 수 있어, 실제로 만료가 지날 때까지 다시 확인하며 기다리게 고쳤다(시험 코드만)
 
 ## 화면 시험 (`ui-test/`)
 
@@ -89,7 +95,7 @@ wsl -d Ubuntu-24.04 -- bash /mnt/c/Contest/service/scripts/backend-it.sh      # 
 ```bash
 cd service/ui-test
 npm install && npm run install-browser          # 처음 한 번
-powershell -ExecutionPolicy Bypass -File run-all.ps1   # 전체: 초기화 → 순회를 오늘로 → 시험 17개 → 다시 초기화 (약 3분, 실제 데이터를 바꿈)
+powershell -ExecutionPolicy Bypass -File run-all.ps1   # 전체: 초기화 → 순회를 오늘로 → 시험 20개 → 다시 초기화 (약 3분, 실제 데이터를 바꿈)
 node admin.mjs https://<PC>.ts.net:10000         # 관리자 웹: 로그인·검토 목록·사건·오늘 활동 현황
 node admin-accounts.mjs <관리자 주소>              # 시연 관리자 6개 계정 로그인·역할별 메뉴 (데이터 안 바꿈)
 node admin-reload.mjs <관리자 주소>               # 로그인 화면에 시연 계정 목록 없음, 새로 고침해도 로그인 유지 (데이터 안 바꿈)
@@ -98,6 +104,8 @@ node admin-decide.mjs https://<PC>.ts.net:10000  # 관리자 웹에서 판정 �
 node senior.mjs https://<PC>.ts.net --shoot      # 시니어 앱: 로그인 → 출석 → 전체 화면 촬영 → 보내기
 node senior-tour.mjs https://<PC>.ts.net        # 시니어 앱 화면 둘러보기 (shots/tour/index.html, 데이터 안 바꿈)
 node pause-check.mjs <시니어 주소> <관리자 주소>   # 잠깐 쉬기 ↔ 관리자 화면 '쉬는 중'
+node senior-normal-end.mjs <시니어 주소> <관리자 주소>  # 장소를 모두 건너뛰고 정상 종료 → 통계에 순회 1회 · 중도 종료 0회
+node senior-offline.mjs <시니어 주소> <관리자 주소>     # 연결 끊고 촬영·건너뛰기 → 전송 대기 → 재연결 자동 전송, 연결 없이 새로 고침해도 앱 열림 (VIDEO 필요)
 node admin-participants.mjs <관리자 주소> <시니어 주소>  # 참여자 등록 → 같은 번호 거절 → 일시 중지 → 그 번호로 로그인 안 됨
 node admin-teams.mjs <관리자 주소>                 # 조 만들기 → 1명 남는 편성 거절 → 배정된 순회 조원은 그대로
 node admin-assign.mjs <관리자 주소>                # 코스 만들기 → 순회 배정 → 시간 겹침 거절 → 출발 전 바꾸기(코스·조원) → 코스 v2 공개
@@ -105,6 +113,7 @@ node admin-reinspect.mjs <관리자 주소>             # 보수 완료 → 재�
 node admin-officers.mjs <관리자 주소>              # 계정 발급 → 첫 로그인 변경 → 잠김·해제 → 비밀번호 초기화 → 사용 중지
 node admin-stats.mjs <관리자 주소>                 # 통계·보고: 보고 문장·기간 전환·엑셀 (데이터 안 바꿈)
 node admin-ops.mjs <관리자 주소>                   # 알림 → 기관·거점 추가 → AI 보고 문장 → 엑셀 → 감사 이력
+node admin-facilities.mjs <관리자 주소>            # 시설 대장: 등록 → 같은 코드 거절 → 사용 중지
 node gh-entry.mjs                                # 깃페이지 입구(teamiroum.github.io/service) → 두 앱 로그인
 ```
 

@@ -23,7 +23,7 @@ export interface OutboxItem {
   testInfo?: Record<string, unknown>;
   /** 마지막 실패 사유 (대기함이 적음) */
   lastError?: string;
-  /** 4xx 형식 오류: 자동으로 다시 보내지 않음 */
+  /** 예전 방식의 거절 표시 (지금은 거절되면 바로 지움). prune이 지운다 */
   permanent?: boolean;
   tries?: number;
 }
@@ -53,6 +53,8 @@ export interface SendResult {
   body?: SubmissionResponse;
   /** 연결이 없어 못 보냄. 대기함에 남아 있다 */
   offline?: boolean;
+  /** 서버가 최종 거절함 (4xx). 대기함에서 지웠다 */
+  rejected?: boolean;
 }
 
 export interface SendOptions {
@@ -90,6 +92,14 @@ export interface SentRecord {
   at: string;
 }
 export declare function results(): Promise<SentRecord[]>;
+
+/** 휴대폰 자료 정리 (SYN-06): 활동 시각(ISO)의 자료를 둘 수 있는 마지막 시각(ms) = 활동일(KST) +2일 00:00 KST */
+export declare function keepUntil(iso: string): number;
+export declare const SENT_RECORD_DAYS: number;
+/** 다시 보내면 되는 실패인지 (연결 끊김·401·408·429·5xx·처리 중) */
+export declare function retryable(status: number | undefined, code?: string): boolean;
+/** 보관 기한이 지난 대기 사진·7일 지난 보낸 기록을 지운다. 지운 수를 돌려준다 */
+export declare function prune(now?: number): Promise<number>;
 export declare function clearResults(): Promise<undefined>;
 
 // 시니어 앱(frontend/senior)이 먼저 쓰던 이름

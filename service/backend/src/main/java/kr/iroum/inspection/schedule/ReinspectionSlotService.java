@@ -26,6 +26,7 @@ import kr.iroum.inspection.common.idempotency.IdempotencyService;
  * <ul>
  * <li>출발 전 순회의 장소에 재점검 구도(purpose=REINSPECTION)를 더한다. 순회 version·revision을 올려 시니어 앱 동기화에 반영한다.</li>
  * <li>후보: 요청 시설이 들어 있는 담당 범위의 출발 전 순회(오늘 이후). 배정 자체는 원본 ReinspectionService(업무 API 10절)가 한다.</li>
+ * <li>참고 사진(SEN-11 재점검 구도 맞추기): 후보와 함께 같은 시설의 승인 사진을 알려 주고, 구도를 만들 때 붙인다. 시니어 앱이 반투명하게 겹쳐 보여 준다.</li>
  * <li>배정을 취소해도 구도는 이력(취소된 배정)이 가리키므로 지우지 않는다. 대신 후보에 빈 재점검 구도(freeSlotId)를 알려 다음 배정에 다시 쓴다.</li>
  * </ul>
  * service/: 원본에는 구도 추가 API가 없어 재점검 요청을 순회에 배정할 구도를 만들 수 없었다(B-2).
@@ -34,7 +35,7 @@ import kr.iroum.inspection.common.idempotency.IdempotencyService;
 public class ReinspectionSlotService {
 
     public record Candidate(UUID patrolId, LocalDate activityDate, String teamName, String routeName, Instant scheduledStartAt, UUID stopId,
-            int stopSequence, String stopName, long patrolVersion, UUID freeSlotId) {
+            int stopSequence, String stopName, long patrolVersion, UUID freeSlotId, UUID referenceMediaId) {
     }
 
     public record SlotResult(UUID captureSlotId, UUID patrolId, UUID stopId, long patrolVersion) {
@@ -63,6 +64,7 @@ public class ReinspectionSlotService {
             throw notFound();
         }
         LocalDate today = LocalDate.now(clock.withZone(TimeConfig.ACTIVITY_ZONE));
+        UUID reference = referenceFor(requestId, (UUID) req.get(0).get("facility_id"));
         return jdbc.query(AccessPolicy.scopedOrganizationsCte() + """
                 SELECT p.id, p.activity_date, p.team_name_snapshot, p.route_name_snapshot, p.scheduled_start_at, s.id AS stop_id, s.sequence_no,
                        s.name_snapshot, p.version,
@@ -76,14 +78,29 @@ public class ReinspectionSlotService {
                 ORDER BY p.activity_date, p.scheduled_start_at, s.sequence_no""",
                 (rs, i) -> new Candidate(rs.getObject("id", UUID.class), rs.getDate("activity_date").toLocalDate(), rs.getString("team_name_snapshot"),
                         rs.getString("route_name_snapshot"), rs.getTimestamp("scheduled_start_at").toInstant(), rs.getObject("stop_id", UUID.class),
-                        rs.getInt("sequence_no"), rs.getString("name_snapshot"), rs.getLong("version"), rs.getObject("free_slot_id", UUID.class)),
+                        rs.getInt("sequence_no"), rs.getString("name_snapshot"), rs.getLong("version"), rs.getObject("free_slot_id", UUID.class), reference),
                 user.userId(), AccessPolicy.ACTIVITY_MANAGER, req.get(0).get("facility_id"), req.get(0).get("program_id"), java.sql.Date.valueOf(today));
     }
 
-    /** 출발 전 순회 장소에 재점검 구도를 더한다. version은 순회 version. */
+    /**
+     * 재점검 구도 맞추기(기능정의서 SEN-11)용 참고 사진: 같은 시설에서 찍혀 개인정보 검사를 통과한(APPROVED) 사진 중
+     * 요청의 사건에 연결된 사진을 먼저, 없으면 가장 최근 사진. 없으면 null(시니어 앱은 그림으로 대신한다).
+     */
+    UUID referenceFor(UUID requestId, UUID facilityId) {
+        return jdbc.queryForList("""
+                SELECT i.approved_media_id FROM inspections i
+                JOIN capture_slots c ON c.id = i.capture_slot_id JOIN patrol_stops ps ON ps.id = c.patrol_stop_id
+                JOIN media m ON m.id = i.approved_media_id AND m.privacy_status = 'APPROVED'
+                WHERE ps.facility_id = ?
+                ORDER BY EXISTS (SELECT 1 FROM issue_inspections ii JOIN reinspection_requests r ON r.issue_id = ii.issue_id
+                                 WHERE r.id = ? AND ii.inspection_id = i.id AND ii.unlinked_at IS NULL) DESC, i.captured_at DESC
+                LIMIT 1""", UUID.class, facilityId, requestId).stream().findFirst().orElse(null);
+    }
+
+    /** 출발 전 순회 장소에 재점검 구도를 더한다. version은 순회 version. referenceMediaId는 같은 시설의 승인 사진만. */
     @Transactional
     public IdempotencyService.Outcome<SlotResult> addSlot(AuthenticatedUser user, UUID patrolId, UUID stopId, String purpose, String label,
-            String instruction, boolean required, long version, UUID key) {
+            String instruction, boolean required, UUID referenceMediaId, long version, UUID key) {
         UUID programId = access.requireManagedPatrol(user, patrolId);
         if (!"REINSPECTION".equals(purpose)) {
             throw invalid("purpose", "INVALID", "출발 전에 더할 수 있는 구도는 재점검(REINSPECTION)뿐이에요.");
@@ -97,7 +114,8 @@ public class ReinspectionSlotService {
             throw invalid("instruction", "TOO_LONG", "안내는 500자 이내로 넣어 주세요.");
         }
         Map<String, Object> identity = Map.of("patrolId", patrolId, "stopId", stopId, "label", cleanLabel, "instruction",
-                cleanInstruction == null ? "" : cleanInstruction, "required", required, "version", version);
+                cleanInstruction == null ? "" : cleanInstruction, "required", required, "version", version, "reference",
+                referenceMediaId == null ? "" : referenceMediaId.toString());
         return idempotency.execute(user.userId(), "POST /admin/patrols/{id}/stops/{stopId}/capture-slots", key, identity, SlotResult.class, 201, () -> {
             Map<String, Object> p = jdbc.queryForMap(
                     "SELECT version, activity_status, departed_at, departure_confirmed_at FROM patrols WHERE id = ? FOR UPDATE", patrolId);
@@ -117,10 +135,20 @@ public class ReinspectionSlotService {
             if (!Boolean.TRUE.equals(ownStop)) {
                 throw notFound();
             }
+            if (referenceMediaId != null) {
+                Boolean sameFacility = jdbc.queryForObject("""
+                        SELECT EXISTS (SELECT 1 FROM inspections i JOIN capture_slots c ON c.id = i.capture_slot_id
+                            JOIN patrol_stops ps ON ps.id = c.patrol_stop_id JOIN media m ON m.id = i.approved_media_id
+                            WHERE i.approved_media_id = ? AND m.privacy_status = 'APPROVED'
+                              AND ps.facility_id = (SELECT facility_id FROM patrol_stops WHERE id = ?))""", Boolean.class, referenceMediaId, stopId);
+                if (!Boolean.TRUE.equals(sameFacility)) {
+                    throw invalid("referenceMediaId", "INVALID", "참고 사진은 같은 시설의 승인된 사진만 쓸 수 있어요.");
+                }
+            }
             UUID slotId = jdbc.queryForObject("""
-                    INSERT INTO capture_slots (program_id, patrol_stop_id, sequence_no, label, instruction, required, purpose)
-                    VALUES (?, ?, (SELECT coalesce(max(sequence_no), 0) + 1 FROM capture_slots WHERE patrol_stop_id = ?), ?, ?, ?, 'REINSPECTION')
-                    RETURNING id""", UUID.class, programId, stopId, stopId, cleanLabel, cleanInstruction, required);
+                    INSERT INTO capture_slots (program_id, patrol_stop_id, sequence_no, label, instruction, required, purpose, reference_media_id)
+                    VALUES (?, ?, (SELECT coalesce(max(sequence_no), 0) + 1 FROM capture_slots WHERE patrol_stop_id = ?), ?, ?, ?, 'REINSPECTION', ?)
+                    RETURNING id""", UUID.class, programId, stopId, stopId, cleanLabel, cleanInstruction, required, referenceMediaId);
             Instant now = clock.instant();
             long next = jdbc.queryForObject(
                     "UPDATE patrols SET version = version + 1, revision = revision + 1, updated_at = ? WHERE id = ? RETURNING version", Long.class,

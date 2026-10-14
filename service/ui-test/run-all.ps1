@@ -48,6 +48,19 @@ Write-Host '― 1. 건너뛰기·그만하기·복귀 (출발 확인 전 시작 
 Reset-Today
 Run 'skip-return' @('skip-return.mjs', $senior, $admin)
 
+Write-Host '― 1-2. 장소를 모두 건너뛰고 정상 종료 → 통계에 순회 1회 · 중도 종료 0회'
+Reset-Today
+Run 'senior-normal-end' @('senior-normal-end.mjs', $senior, $admin)
+
+Write-Host '― 1-3. 연결이 끊긴 채 촬영 → 전송 대기 → 재연결 자동 전송 (ACC-06)'
+Reset-Today
+if (Test-Path $video) { $env:VIDEO = $video }
+Run 'senior-offline' @('senior-offline.mjs', $senior, $admin)
+Remove-Item env:VIDEO -ErrorAction SilentlyContinue
+
+Write-Host '― 1-4. 휴대폰 자료 정리: 보관 기한 지난 대기 자료·7일 지난 보낸 기록 삭제 (SYN-06, 서버 데이터 안 바꿈)'
+Run 'senior-cleanup' @('senior-cleanup.mjs', $senior)
+
 Write-Host '― 2. 촬영 · 화면 둘러보기 · 쉬기 · 관리자 화면 · 판정 · 개인정보 검토 · 참여자 계정 · 조 편성 · 코스·순회 배정 · 재점검 배정 · 통계 · 운영(알림·기관·감사) · 공무원 계정'
 Reset-Today
 if (Test-Path $video) { $env:VIDEO = $video }
@@ -61,8 +74,9 @@ Run 'admin-reload' @('admin-reload.mjs', $admin)
 Run 'admin' @('admin.mjs', $admin)
 $env:LOGIN = 'demo-road'
 Run 'admin-decide' @('admin-decide.mjs', $admin)
-Run 'admin-privacy' @('admin-privacy.mjs', $admin)
+# 재점검(참고 사진 = 승인된 사진)은 개인정보 검토(사진을 잠시 보류)보다 먼저
 Run 'admin-reinspect' @('admin-reinspect.mjs', $admin)
+Run 'admin-privacy' @('admin-privacy.mjs', $admin)
 $env:EXPECT_DATA = '1'
 Run 'admin-stats' @('admin-stats.mjs', $admin)
 Run 'admin-ops' @('admin-ops.mjs', $admin)
@@ -72,6 +86,7 @@ Run 'admin-participants' @('admin-participants.mjs', $admin, $senior)
 Run 'admin-teams' @('admin-teams.mjs', $admin)
 Run 'admin-assign' @('admin-assign.mjs', $admin)
 Run 'admin-officers' @('admin-officers.mjs', $admin)
+Run 'admin-facilities' @('admin-facilities.mjs', $admin)
 
 Write-Host '― 3. 시연 데이터 초기화'
 & powershell -ExecutionPolicy Bypass -File (Join-Path $Service 'reset-demo.ps1') | Out-Null

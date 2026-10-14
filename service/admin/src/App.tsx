@@ -29,7 +29,7 @@ import { Button, Pill, Toast, inputCls } from './ui'
 import { nowAt } from './util'
 import { REAL_BACKEND, ApiError, changePassword, fetchMe, login, logout, markSignedIn, restoreSession, setSessionEndedHandler } from './api/client'
 import { RealAdmins } from './RealAdmins'
-import { NotificationMenu, RealAudit, RealOrgs } from './RealOps'
+import { NotificationMenu, RealAudit, RealFacilities, RealOrgs } from './RealOps'
 import { RealAssign } from './RealAssign'
 import { RealStats } from './RealStats'
 import { applyServerDefectCodes, loadIssues, loadReviews, loadTodayPatrols, onRealChanged, onRealError, todayKst } from './api/real'
@@ -37,7 +37,7 @@ import { ALERT_LABEL, loadAlertSettings, playAlert, saveAlertSettings, unlockAle
 
 // 시니어 동네 점검단 · 관리자 웹
 // 시연: 관리자 계정 하나에 세 역할(활동 담당자 · 시설 담당자 · 사업 총괄). 역할별로 메뉴를 나눈다.
-type View = 'today' | 'teams' | 'assign' | 'participants' | 'review' | 'issues' | 'stats' | 'orgs' | 'audit' | 'admins'
+type View = 'today' | 'teams' | 'assign' | 'participants' | 'review' | 'issues' | 'facilities' | 'stats' | 'orgs' | 'audit' | 'admins'
 
 const NAV: { role: Role; items: { v: View; label: string }[] }[] = [
   {
@@ -54,6 +54,7 @@ const NAV: { role: Role; items: { v: View; label: string }[] }[] = [
     items: [
       { v: 'review', label: '검토 목록' },
       { v: 'issues', label: '사건·보수' },
+      { v: 'facilities', label: '시설 대장' },
     ],
   },
   {
@@ -265,6 +266,12 @@ export default function App() {
     return () => clearTimeout(t)
   }, [p3?.status, p3Done]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // (훅은 아래 이른 반환보다 앞에 둔다)
+  // 로그인(또는 되살림)한 계정의 메뉴에 없는 화면이면 그 계정의 첫 메뉴로 연다 (예: 시설 담당자는 검토 목록)
+  const allowed = NAV.filter((g) => ME.roles.includes(g.role)).flatMap((g) => g.items.map((it) => it.v))
+  useEffect(() => {
+    if (stage === 'in' && allowed.length && !allowed.includes(view)) setView(allowed[0])
+  }, [stage, view, allowed.join()]) // eslint-disable-line react-hooks/exhaustive-deps
   if (stage === 'checking')
     return (
       <Shell>
@@ -449,6 +456,7 @@ export default function App() {
           {view === 'issues' && <Issues issues={issues} setIssues={setIssues} reqs={reqs} setReqs={setReqs} patrols={patrols} selected={selIssue} onSelect={setSelIssue} onGoAssign={() => go('assign')} />}
           {view === 'stats' && (REAL_BACKEND ? <RealStats /> : <Stats reviews={reviews} issues={issues} patrols={patrols} teams={teams} />)}
           {view === 'admins' && (REAL_BACKEND ? <RealAdmins me={ME.loginId} /> : <Admins />)}
+          {view === 'facilities' && (REAL_BACKEND ? <RealFacilities /> : <p className="m-0 text-sm text-sub">시설 대장은 실제 업무 서버에 연결했을 때만 씁니다.</p>)}
           {view === 'orgs' && (REAL_BACKEND ? <RealOrgs /> : <p className="m-0 text-sm text-sub">기관·거점 관리는 실제 업무 서버에 연결했을 때만 씁니다.</p>)}
           {view === 'audit' && (REAL_BACKEND ? <RealAudit /> : <p className="m-0 text-sm text-sub">감사 이력은 실제 업무 서버에 연결했을 때만 볼 수 있습니다.</p>)}
           <p className="mt-8 text-center text-xs text-mute">
@@ -501,6 +509,7 @@ const ICON: Record<View, string> = {
   stats: 'M5 20V10M12 20V4M19 20v-7',
   admins: 'M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6Z',
   orgs: 'M4 20V8l8-4 8 4v12M9 20v-6h6v6',
+  facilities: 'M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11Zm0-8.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z',
   audit: 'M7 4h10v16H7ZM10 8h4M10 12h4M10 16h2',
 }
 

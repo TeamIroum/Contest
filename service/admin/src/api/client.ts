@@ -32,8 +32,15 @@ async function ensureCsrf() {
   csrf = b.csrfToken
 }
 
+/** 갱신은 한 번에 하나만: 같은 갱신 쿠키로 두 번 요청하면 서버가 '재사용'(쿠키 도난)으로 보고 세션을 끊는다.
+ * 동시에 여러 요청이 401을 받아도 진행 중인 갱신 하나를 함께 기다린다 */
+let refreshing: Promise<boolean> | null = null
+function refreshSession(): Promise<boolean> {
+  if (!refreshing) refreshing = refreshOnce().finally(() => (refreshing = null))
+  return refreshing
+}
 /** 액세스 토큰(15분)이 끝나면 갱신 쿠키로 새로 받는다. 성공하면 true */
-async function refreshSession(): Promise<boolean> {
+async function refreshOnce(): Promise<boolean> {
   try {
     await ensureCsrf()
     const r = await fetch(`${API_BASE}/auth/token/refresh`, { method: 'POST', cache: 'no-store', credentials: 'include', headers: authHeaders() })
@@ -91,6 +98,8 @@ export async function api<T>(method: Method, path: string, body?: unknown, opts:
   }
   const b = await r.json().catch(() => ({}))
   if (!r.ok) throw new ApiError(r.status, b.code, b.message)
+  // 로그인한 채로 요청이 성공하면 '이 브라우저에서 로그인 중' 표시를 남긴다 (고치기 전에 로그인해 둔 탭도 새로 고침 때 되살리게)
+  if (token) markSignedIn(true)
   return b as T
 }
 

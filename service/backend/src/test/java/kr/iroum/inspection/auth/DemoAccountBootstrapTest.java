@@ -42,7 +42,8 @@ class DemoAccountBootstrapTest {
         assertThat(jdbc.queryForList("SELECT login_id FROM users WHERE password_change_required ORDER BY login_id", String.class))
                 // service/: 공원녹지과(demo-park)·사업 총괄(demo-program)·시스템 관리자(demo-admin)를 더했다
                 .containsExactly("demo-activity", "demo-admin", "demo-park", "demo-program", "demo-road", "demo-sewer");
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM users WHERE phone_lookup_hmac IS NOT NULL", Long.class)).isEqualTo(2);
+        // service/: 시니어 2명 + 활동 담당자 연락처(가상 번호) 1명
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM users WHERE phone_lookup_hmac IS NOT NULL", Long.class)).isEqualTo(3);
 
         AuthTestSupport.Csrf csrf = AuthTestSupport.csrf(mvc);
         mvc.perform(csrf.apply(post("/api/v1/auth/admin/sessions")).contentType("application/json").content("""

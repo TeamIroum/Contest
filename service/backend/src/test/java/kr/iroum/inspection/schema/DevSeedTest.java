@@ -43,7 +43,8 @@ class DevSeedTest {
         // seed SQL에는 비밀번호·전화 정보가 없다. 시연 설정이 시연 시니어 2명에게만 가상 번호를 암호화해 넣는다.
         assertThat(count("SELECT count(*) FROM users WHERE password_hash IS NOT NULL")).isZero();
         assertThat(jdbc.queryForList("SELECT id FROM users WHERE phone_ciphertext IS NOT NULL ORDER BY id", UUID.class))
-                .containsExactly(KIM_USER, UUID.fromString("10000000-0000-4000-8000-000000000002"));
+                // service/: 활동 담당자(최○○)에게도 담당 선생님 연락처용 가상 번호를 넣는다(SEN-08)
+                .containsExactly(KIM_USER, UUID.fromString("10000000-0000-4000-8000-000000000002"), UUID.fromString("10000000-0000-4000-8000-000000000021"));
         // 시설별 관리 부서가 서로 다르다(시설 담당자 관할 확인용)
         assertThat(count("SELECT count(DISTINCT managing_department_id) FROM facilities WHERE facility_code IN ('SW-0001','DR-0001','BN-0001')"))
                 .isEqualTo(3);
