@@ -10,6 +10,7 @@ const NOTICE_VIEW: Record<string, string> = {
   ATTENDANCE_REQUESTED: 'today',
   RETURN_REQUESTED: 'today',
   REINSPECTION_REQUESTED: 'assign',
+  FACILITY_REMOVED: 'facilities',
 }
 
 /** 화면 안 알림. 20초마다 새로 받는다. 누르면 읽음으로 바꾸고 그 화면으로 간다 */
@@ -105,6 +106,9 @@ const ACTION_NAME: Record<string, string> = {
   OFFICER_STATUS_CHANGED: '계정 상태 변경',
   ORGANIZATION_CREATED: '기관 만들기',
   ORGANIZATION_UPDATED: '기관 수정',
+  FACILITY_CREATED: '시설 등록',
+  FACILITY_UPDATED: '시설 수정',
+  ISSUE_INSPECTION_UNLINKED: '사진 연결 해제',
   REPORT_GENERATED: '보고 문장 생성',
   EXPORT_DOWNLOADED: '엑셀 내려받기',
 }
@@ -348,6 +352,214 @@ function OrgModal({ org, list, onClose }: { org: real.Org | null; list: real.Org
           </Field>
         )}
       </div>
+    </Modal>
+  )
+}
+
+/* ---------------- 시설 대장 (FAC-01) ---------------- */
+
+const FACILITY_TYPES: [string, string][] = [
+  ['SIDEWALK', '보도블록'],
+  ['DRAIN', '빗물받이'],
+  ['BENCH', '벤치'],
+  ['SAFETY_FENCE', '안전 펜스'],
+  ['EXERCISE_EQUIPMENT', '운동기구'],
+  ['PARK_EQUIPMENT', '공원 시설'],
+  ['SNOW_REMOVAL_BIN', '제설함'],
+  ['SHADE_STRUCTURE', '그늘막'],
+]
+const facilityTypeName = (t: string) => FACILITY_TYPES.find(([k]) => k === t)?.[1] ?? t
+
+export function RealFacilities() {
+  const [list, setList] = useState<real.RealFacility[]>([])
+  const [depts, setDepts] = useState<{ id: string; name: string; mine: boolean }[]>([])
+  const [edit, setEdit] = useState<real.RealFacility | 'new' | null>(null)
+  const load = () =>
+    real
+      .loadFacilities()
+      .then(setList)
+      .catch(() => undefined)
+  useEffect(() => {
+    load()
+    real
+      .loadFacilityDepartments()
+      .then(setDepts)
+      .catch(() => undefined)
+    return real.onRealChanged(load)
+  }, [])
+  return (
+    <>
+      <PageHead
+        title="시설 대장"
+        sub="우리 부서가 관리하는 시설을 등록하고 고칩니다."
+        help="어르신이 '시설이 없어졌어요'로 기록하면 알림이 옵니다. 현장을 확인하고 사용 중지하거나 위치를 고쳐 주세요. 관리 부서를 다른 부서로 넘기면 그 뒤 검토·사건은 새 부서가 봅니다. AI가 추정한 부서로 대장이 바뀌지는 않습니다."
+        right={
+          <Button variant="primary" onClick={() => setEdit('new')}>
+            + 시설 등록
+          </Button>
+        }
+      />
+      <Card>
+        {list.length === 0 ? (
+          <Empty>등록된 시설이 없습니다.</Empty>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[820px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-line bg-bg/60 text-left text-[14px] text-mute">
+                  {['코드', '종류', '이름', '구역', '좌표', '진행 중 사건', '상태', ''].map((h) => (
+                    <th key={h} scope="col" className="px-4 py-2.5 font-semibold">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {list.map((f) => (
+                  <tr key={f.id} className="border-b border-line last:border-0">
+                    <td className="px-4 py-2.5 tabular-nums">{f.code}</td>
+                    <td className="px-4 py-2.5">{facilityTypeName(f.type)}</td>
+                    <td className="px-4 py-2.5 font-semibold">{f.name}</td>
+                    <td className="px-4 py-2.5 text-sub">{f.areaLabel ?? '-'}</td>
+                    <td className="px-4 py-2.5 text-xs text-mute tabular-nums">{f.latitude != null ? `${f.latitude}, ${f.longitude}` : '-'}</td>
+                    <td className="px-4 py-2.5 tabular-nums">{f.openIssues}건</td>
+                    <td className="px-4 py-2.5">
+                      <Pill tone={f.status === 'ACTIVE' ? 'green' : 'gray'}>{f.status === 'ACTIVE' ? '사용 중' : '사용 중지'}</Pill>
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <Button size="sm" onClick={() => setEdit(f)}>
+                        고치기
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+      {edit && <FacilityModal facility={edit === 'new' ? null : edit} depts={depts} onClose={() => setEdit(null)} />}
+    </>
+  )
+}
+
+function FacilityModal({ facility, depts, onClose }: { facility: real.RealFacility | null; depts: { id: string; name: string; mine: boolean }[]; onClose: () => void }) {
+  const mine = depts.filter((d) => d.mine)
+  const [code, setCode] = useState('')
+  const [type, setType] = useState('SIDEWALK')
+  const [name, setName] = useState(facility?.name ?? '')
+  const [area, setArea] = useState(facility?.areaLabel ?? '')
+  const [lat, setLat] = useState(facility?.latitude != null ? String(facility.latitude) : '')
+  const [lng, setLng] = useState(facility?.longitude != null ? String(facility.longitude) : '')
+  const [status, setStatus] = useState<real.RealFacility['status']>(facility?.status ?? 'ACTIVE')
+  const [dept, setDept] = useState(facility?.departmentId ?? mine[0]?.id ?? '')
+  const [reason, setReason] = useState('')
+  useEffect(() => {
+    if (!dept && mine[0]) setDept(mine[0].id)
+  }, [dept, mine])
+  const moving = !!facility && dept !== facility.departmentId
+  const coordsOk = (lat === '' && lng === '') || (lat !== '' && lng !== '' && !isNaN(Number(lat)) && !isNaN(Number(lng)))
+  const ok = name.trim() && dept && coordsOk && (facility || /^[A-Za-z0-9-]{2,30}$/.test(code.trim())) && (!moving || reason.trim())
+  async function save() {
+    const latitude = lat === '' ? null : Number(lat)
+    const longitude = lng === '' ? null : Number(lng)
+    const done = await real.run(() =>
+      facility
+        ? real.updateFacility(facility, {
+            name: name.trim(),
+            areaLabel: area,
+            status,
+            latitude,
+            longitude,
+            changeCoordinates: latitude !== facility.latitude || longitude !== facility.longitude,
+            ...(moving ? { managingDepartmentId: dept, reason: reason.trim() } : {}),
+          })
+        : real.createFacility({
+            facilityCode: code.trim().toUpperCase(),
+            type,
+            name: name.trim(),
+            areaLabel: area || undefined,
+            managingDepartmentId: dept,
+            ...(latitude != null && longitude != null ? { latitude, longitude } : {}),
+          }),
+    )
+    if (done) onClose()
+  }
+  return (
+    <Modal
+      title={facility ? `${facility.name} 고치기` : '시설 등록'}
+      onClose={onClose}
+      footer={
+        <>
+          <Button onClick={onClose}>취소</Button>
+          <Button variant="primary" disabled={!ok} onClick={save}>
+            저장
+          </Button>
+        </>
+      }
+    >
+      <div className="grid grid-cols-2 gap-3">
+        {facility ? (
+          <>
+            <Field label="시설 코드">
+              <input value={facility.code} disabled className={inputCls} />
+            </Field>
+            <Field label="종류">
+              <input value={facilityTypeName(facility.type)} disabled className={inputCls} />
+            </Field>
+          </>
+        ) : (
+          <>
+            <Field label="시설 코드" required hint="예: SW-0002 (바꿀 수 없음)">
+              <input value={code} onChange={(e) => setCode(e.target.value)} className={inputCls} maxLength={30} />
+            </Field>
+            <Field label="종류" required>
+              <select value={type} onChange={(e) => setType(e.target.value)} className={inputCls}>
+                {FACILITY_TYPES.map(([k, l]) => (
+                  <option key={k} value={k}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </>
+        )}
+        <Field label="이름" required>
+          <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} maxLength={100} placeholder="예: 시장 앞 보도블록" />
+        </Field>
+        <Field label="구역">
+          <input value={area} onChange={(e) => setArea(e.target.value)} className={inputCls} maxLength={100} placeholder="예: ○○동 1구역" />
+        </Field>
+        <Field label="위도">
+          <input value={lat} onChange={(e) => setLat(e.target.value)} className={inputCls} inputMode="decimal" placeholder="37.000100" />
+        </Field>
+        <Field label="경도">
+          <input value={lng} onChange={(e) => setLng(e.target.value)} className={inputCls} inputMode="decimal" placeholder="127.000100" />
+        </Field>
+        <Field label="관리 부서" required>
+          <select value={dept} onChange={(e) => setDept(e.target.value)} className={inputCls}>
+            {(facility ? depts : mine).map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+                {d.mine ? '' : ' (다른 부서로 넘기기)'}
+              </option>
+            ))}
+          </select>
+        </Field>
+        {facility && (
+          <Field label="상태">
+            <select value={status} onChange={(e) => setStatus(e.target.value as real.RealFacility['status'])} className={inputCls}>
+              <option value="ACTIVE">사용 중</option>
+              <option value="INACTIVE">사용 중지 (새 코스에 넣지 않음)</option>
+            </select>
+          </Field>
+        )}
+      </div>
+      {moving && (
+        <Field label="넘기는 이유" required hint="처리 기록에 남습니다. 넘긴 뒤에는 이 목록에서 빠집니다">
+          <input value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls} maxLength={500} placeholder="예: 관리 주체 변경" />
+        </Field>
+      )}
     </Modal>
   )
 }

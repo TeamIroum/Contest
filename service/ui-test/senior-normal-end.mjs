@@ -1,5 +1,6 @@
 // 정상 종료: 시니어 앱에서 장소를 모두 건너뛰고 "센터에 도착했어요" → 담당자가 두 분 복귀 확인 → 순회가 중도 종료가 아닌 정상 종료인지,
 // 통계(demo-program)에 "순회 1회 · 중도 종료 0회"로 잡히는지. 실제 데이터를 바꾼다 (오늘 순회 필요, 끝나면 초기화)
+// 함께 확인: 도움 화면의 담당 선생님 전화(SEN-08), 첫 장소를 '시설이 없어졌어요'로 건너뛰면 도로 담당자에게 알림(SEN-07)
 //   node senior-normal-end.mjs [시니어 주소] [관리자 주소]
 import { chromium } from 'playwright'
 import path from 'node:path'
@@ -25,11 +26,18 @@ try {
   await confirmAttendanceAndDeparture(browser, ADMIN)
   await s.getByRole('button', { name: '활동 시작하기' }).waitFor({ timeout: 20000 })
   await tap('활동 시작하기')
+  console.log('▶ 도움 화면: 담당 선생님 전화번호')
+  await s.getByRole('button', { name: /^도움/ }).first().click()
+  const tel = await s.locator('a[href^="tel:"]').first().getAttribute('href')
+  console.log(`  첫 전화 버튼: ${tel}`)
+  if (!tel || !/010-?0000-?0021/.test(tel)) problems.push(`도움 화면에 담당 선생님 번호가 없음 (${tel})`)
+  await s.mouse.click(195, 40)
+  await s.waitForTimeout(500)
   console.log('▶ 장소 3곳 모두 건너뛰기')
   for (let i = 0; i < 3; i++) {
     await s.getByRole('button', { name: '이곳은 찍을 수 없어요' }).first().waitFor({ timeout: 10000 })
     await tap('이곳은 찍을 수 없어요')
-    await s.getByRole('button', { name: '위험해서 못 찍겠어요' }).click()
+    await s.getByRole('button', { name: i === 0 ? '시설이 없어졌어요' : '위험해서 못 찍겠어요' }).click()
     await s.waitForTimeout(1200)
   }
   await s.getByRole('button', { name: '센터에 도착했어요' }).waitFor({ timeout: 10000 })
@@ -54,6 +62,23 @@ try {
     console.log(`  ${name} 복귀 확인`)
   }
   await s.getByText('복귀를 확인하면 끝나요').waitFor({ state: 'detached', timeout: 15000 }).catch(() => problems.push('시니어 앱이 끝 화면으로 넘어가지 않음'))
+  console.log('▶ 도로 담당자 알림: 시설이 없어졌다는 현장 기록 (알림은 15초마다 만들어짐)')
+  const r = await (await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'ko-KR' })).newPage()
+  await r.goto(ADMIN, { waitUntil: 'load' })
+  await r.getByLabel('아이디').fill('demo-road')
+  await r.getByLabel('비밀번호').fill(env.ADMIN_PASSWORD)
+  await r.getByRole('button', { name: '로그인', exact: true }).click()
+  await r.getByRole('navigation', { name: '주 메뉴' }).waitFor({ timeout: 15000 })
+  let found = false
+  for (let i = 0; i < 4 && !found; i++) {
+    await r.waitForTimeout(6000)
+    await r.getByRole('button', { name: /^알림 \d+건$/ }).click()
+    found = (await r.getByText(/시설이 없어졌다는 현장 기록/).count()) > 0
+    await r.keyboard.press('Escape').catch(() => {})
+    await r.mouse.click(10, 10)
+  }
+  console.log(`  알림 받음: ${found ? '예' : '아니오'}`)
+  if (!found) problems.push("'시설이 없어졌어요' 알림이 도로 담당자에게 오지 않음")
   console.log('▶ 통계 (demo-program)')
   const p = await (await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'ko-KR' })).newPage()
   await p.goto(ADMIN, { waitUntil: 'load' })

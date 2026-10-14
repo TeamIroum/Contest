@@ -65,8 +65,9 @@ Run 'admin-reload' @('admin-reload.mjs', $admin)
 Run 'admin' @('admin.mjs', $admin)
 $env:LOGIN = 'demo-road'
 Run 'admin-decide' @('admin-decide.mjs', $admin)
-Run 'admin-privacy' @('admin-privacy.mjs', $admin)
+# 재점검(참고 사진 = 승인된 사진)은 개인정보 검토(사진을 잠시 보류)보다 먼저
 Run 'admin-reinspect' @('admin-reinspect.mjs', $admin)
+Run 'admin-privacy' @('admin-privacy.mjs', $admin)
 $env:EXPECT_DATA = '1'
 Run 'admin-stats' @('admin-stats.mjs', $admin)
 Run 'admin-ops' @('admin-ops.mjs', $admin)
@@ -76,6 +77,7 @@ Run 'admin-participants' @('admin-participants.mjs', $admin, $senior)
 Run 'admin-teams' @('admin-teams.mjs', $admin)
 Run 'admin-assign' @('admin-assign.mjs', $admin)
 Run 'admin-officers' @('admin-officers.mjs', $admin)
+Run 'admin-facilities' @('admin-facilities.mjs', $admin)
 
 Write-Host '― 3. 시연 데이터 초기화'
 & powershell -ExecutionPolicy Bypass -File (Join-Path $Service 'reset-demo.ps1') | Out-Null

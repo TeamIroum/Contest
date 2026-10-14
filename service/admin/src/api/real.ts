@@ -828,3 +828,29 @@ export type AppNotification = { id: string; type: string; resourceType: string; 
 export const loadNotifications = () => api<{ items: AppNotification[]; unread: number }>('GET', '/admin/notifications')
 export const readNotification = (id: string) => api('PUT', `/admin/notifications/${id}/read`)
 export const readAllNotifications = () => api('PUT', '/admin/notifications/read')
+
+/* ---------------- 시설 대장 (FAC-01, service/backend AdminFacilityController) ---------------- */
+
+export type RealFacility = {
+  id: string
+  code: string
+  type: string
+  name: string
+  latitude: number | null
+  longitude: number | null
+  areaLabel: string | null
+  departmentId: string
+  departmentName: string
+  publicManaged: boolean
+  status: 'ACTIVE' | 'INACTIVE'
+  openIssues: number
+  version: number
+}
+export const loadFacilities = () => api<RealFacility[]>('GET', '/admin/facilities')
+export const loadFacilityDepartments = () => api<{ id: string; name: string; mine: boolean }[]>('GET', '/admin/facilities/departments')
+export const createFacility = (f: { facilityCode: string; type: string; name: string; latitude?: number; longitude?: number; areaLabel?: string; managingDepartmentId: string }) =>
+  api<RealFacility>('POST', '/admin/facilities', f)
+export const updateFacility = (
+  f: RealFacility,
+  next: { name?: string; latitude?: number | null; longitude?: number | null; changeCoordinates?: boolean; areaLabel?: string; status?: RealFacility['status']; managingDepartmentId?: string; reason?: string },
+) => api<RealFacility>('PATCH', `/admin/facilities/${f.id}`, { ...next, version: f.version })

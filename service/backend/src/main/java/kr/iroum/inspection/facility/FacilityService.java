@@ -59,7 +59,7 @@ public class FacilityService {
     @Transactional(readOnly = true)
     public List<Facility> list(AuthenticatedUser user) {
         access.requireAnyRole(user, AccessPolicy.FACILITY_MANAGER);
-        return jdbc.query(AccessPolicy.scopedOrganizationsCte() + SELECT + """
+        return jdbc.query(AccessPolicy.scopedOrganizationsCte() + SELECT + " " + """
                  WHERE EXISTS (SELECT 1 FROM scoped sc WHERE sc.program_id = f.program_id AND sc.id = f.managing_department_id)
                  ORDER BY f.status, f.area_label NULLS LAST, f.facility_code""", this::map, user.userId(), AccessPolicy.FACILITY_MANAGER);
     }
