@@ -21,7 +21,7 @@ import {
   type Reinspection,
   type VerifyDecision,
 } from './data'
-import { Button, Card, DetailPane, Empty, PickHint, PageHead, Pill, StatusBadge, Tabs, inputCls } from './ui'
+import { Button, Card, DetailPane, Empty, Field, Modal, PickHint, PageHead, Pill, StatusBadge, Tabs, inputCls } from './ui'
 import { nowAt } from './util'
 import * as real from './api/real'
 import { EvidencePicker, type Evidence } from './EvidencePicker'
@@ -244,6 +244,8 @@ function IssueDetail({
             </>
           )}
         </dl>
+
+        {issue.real?.links && issue.real.links.length > 0 && <LinkedPhotos issue={issue} />}
 
         {issue.repairs.length > 0 && (
           <section>
@@ -563,6 +565,63 @@ function Verify({
           판정 저장
         </Button>
       </div>
+    </section>
+  )
+}
+
+/** 연결된 점검 사진과 연결 해제 (FAC-06). 사건의 마지막 사진은 해제하지 않는다 */
+function LinkedPhotos({ issue }: { issue: Issue }) {
+  const [target, setTarget] = useState<string | null>(null)
+  const [reason, setReason] = useState('')
+  const links = issue.real!.links!
+  const f = fac(issue.facilityId)
+  return (
+    <section>
+      <p className="m-0 mb-1.5 text-sm font-bold">
+        연결된 사진 <span className="font-normal text-mute">{links.length}장</span>
+      </p>
+      <div className="grid max-w-md grid-cols-3 gap-2">
+        {links.map((l) => (
+          <div key={l.inspectionId} className="grid gap-1 text-xs">
+            <Photo kind={f.kind} bad={false} media={l.media} className="aspect-[4/3] rounded-lg" />
+            <span className="text-mute">{l.capturedAt}</span>
+            {links.length > 1 && (
+              <button type="button" className="justify-self-start font-semibold text-brand underline underline-offset-2" onClick={() => setTarget(l.inspectionId)}>
+                연결 해제
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+      {links.length === 1 && <p className="m-0 mt-1 text-xs text-mute">사건의 마지막 사진은 해제할 수 없습니다.</p>}
+      {target && (
+        <Modal
+          title="사진 연결 해제"
+          onClose={() => setTarget(null)}
+          footer={
+            <>
+              <Button onClick={() => setTarget(null)}>취소</Button>
+              <Button
+                variant="danger"
+                disabled={!reason.trim()}
+                onClick={async () => {
+                  if (await real.run(() => real.unlinkInspection(issue, target, reason.trim()))) {
+                    setTarget(null)
+                    setReason('')
+                  }
+                }}
+              >
+                연결 해제
+              </Button>
+            </>
+          }
+        >
+          <p className="m-0 text-sm text-sub">이 사진을 사건 근거에서 뺍니다. 기록은 지우지 않고 해제 이력으로 남습니다.</p>
+          <Field label="해제 사유" required hint="처리 기록에 남습니다">
+            <input value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls} maxLength={500} placeholder="예: 다른 시설 사진이 잘못 연결됨" />
+          </Field>
+        </Modal>
+      )}
     </section>
   )
 }

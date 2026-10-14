@@ -502,9 +502,13 @@ function toIssue(i: ApiIssue, verifications: ApiVerification[] = []): Issue {
       reqId: cur?.id ?? null,
       reqVersion: cur?.version,
       repairEventId: cur?.repairEventId ?? null,
+      links: linked.map((x) => ({ inspectionId: x.inspectionId, capturedAt: x.capturedAt ? mdhm(x.capturedAt) : '', media: x.media ?? null })),
     },
   }
 }
+/** 사건 ↔ 사진 연결 해제 (FAC-06). 마지막 사진은 서버가 거절한다 */
+export const unlinkInspection = (i: Issue, inspectionId: string, reason: string) =>
+  api('DELETE', `/admin/issues/${i.id}/inspection-links/${inspectionId}`, { reason, version: i.real!.version })
 
 export async function loadIssues(): Promise<Issue[]> {
   const list = await api<{ items: { id: string }[] }>('GET', '/admin/issues?size=100')
@@ -716,6 +720,8 @@ export type ReinspectionCandidate = {
   stopName: string
   patrolVersion: number
   freeSlotId: string | null
+  /** 재점검 구도 맞추기용 지난 사진 (같은 시설, 개인정보 검사 통과) */
+  referenceMediaId: string | null
 }
 /** 처리 중(OPEN)인 재점검 요청 */
 export const loadReinspections = async () => (await api<{ items: ReinspectionItem[] }>('GET', '/admin/reinspection-requests?status=OPEN&size=100')).items
@@ -729,7 +735,7 @@ export async function assignReinspection(r: ReinspectionItem, c: ReinspectionCan
     const s = await api<{ captureSlotId: string; patrolVersion: number }>(
       'POST',
       `/admin/patrols/${c.patrolId}/stops/${c.stopId}/capture-slots`,
-      { purpose: 'REINSPECTION', label, instruction: instruction || undefined, required: true, version: c.patrolVersion },
+      { purpose: 'REINSPECTION', label, instruction: instruction || undefined, required: true, referenceMediaId: c.referenceMediaId ?? undefined, version: c.patrolVersion },
       { idempotent: true },
     )
     slotId = s.captureSlotId

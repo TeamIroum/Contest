@@ -52,7 +52,7 @@ public class AdminPatrolAssignmentController {
     }
 
     public record NewSlot(@NotBlank String purpose, @NotBlank @Size(max = 50) String label, @Size(max = 500) String instruction, Boolean required,
-            @NotNull @PositiveOrZero Long version) {
+            UUID referenceMediaId, @NotNull @PositiveOrZero Long version) {
     }
 
     @GetMapping("/api/v1/admin/reinspection-requests/{requestId}/candidates")
@@ -64,7 +64,7 @@ public class AdminPatrolAssignmentController {
     ResponseEntity<ReinspectionSlotService.SlotResult> addSlot(Authentication auth, @PathVariable UUID patrolId, @PathVariable UUID stopId,
             @RequestHeader("Idempotency-Key") UUID key, @Valid @RequestBody NewSlot body) {
         var outcome = slots.addSlot(CurrentUser.of(auth), patrolId, stopId, body.purpose(), body.label(), body.instruction(),
-                body.required() == null || body.required(), body.version(), key);
+                body.required() == null || body.required(), body.referenceMediaId(), body.version(), key);
         return ResponseEntity.status(outcome.status()).body(outcome.body());
     }
 

@@ -408,6 +408,8 @@ export type Issue = {
     reqId?: string | null
     reqVersion?: number
     repairEventId?: string | null
+    /** 연결된 점검 사진 (FAC-06 연결 해제용) */
+    links?: { inspectionId: string; capturedAt: string; media: import('./media').MediaRef | null }[]
   }
 }
 

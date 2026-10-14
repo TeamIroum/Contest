@@ -578,7 +578,10 @@ function ReinspectModal({ req, onClose }: { req: real.ReinspectionItem; onClose:
           <input value={instruction} onChange={(e) => setInstruction(e.target.value)} className={inputCls} maxLength={500} placeholder="예: 고친 곳이 잘 보이게" />
         </Field>
       </div>
-      <p className="m-0 text-xs text-mute">어르신 앱의 그 장소에 '재점검' 사진 칸이 하나 더 생깁니다. 출발 전까지는 다른 순회로 옮기거나 취소할 수 있습니다.</p>
+      <p className="m-0 text-xs text-mute">
+        어르신 앱의 그 장소에 '재점검' 사진 칸이 하나 더 생깁니다.
+        {list?.[0]?.referenceMediaId ? ' 지난 사진을 반투명하게 겹쳐 보여 주어 같은 구도로 찍게 돕습니다.' : ' 겹쳐 볼 지난 사진이 없어 그림으로 안내합니다.'} 출발 전까지는 다른 순회로 옮기거나 취소할 수 있습니다.
+      </p>
     </Modal>
   )
 }
