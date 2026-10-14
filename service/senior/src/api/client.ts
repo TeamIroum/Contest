@@ -67,6 +67,8 @@ export async function api<T>(method: 'GET' | 'POST' | 'PUT', path: string, body?
   if (r.status === 401 && token && (await refreshSession())) r = await call()
   const b = await r.json().catch(() => ({}))
   if (!r.ok) throw new ApiError(r.status, b.code, b.message)
+  // 로그인한 채로 요청이 성공하면 '이 휴대폰에서 로그인 중' 표시를 남긴다 (고치기 전에 로그인해 둔 휴대폰도 새로 고침 때 되살리게)
+  if (token) markSignedIn(true)
   return b as T
 }
 export class ApiError extends Error {

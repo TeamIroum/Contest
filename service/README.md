@@ -89,7 +89,7 @@ wsl -d Ubuntu-24.04 -- bash /mnt/c/Contest/service/scripts/backend-it.sh      # 
 ```bash
 cd service/ui-test
 npm install && npm run install-browser          # 처음 한 번
-powershell -ExecutionPolicy Bypass -File run-all.ps1   # 전체: 초기화 → 순회를 오늘로 → 시험 17개 → 다시 초기화 (약 3분, 실제 데이터를 바꿈)
+powershell -ExecutionPolicy Bypass -File run-all.ps1   # 전체: 초기화 → 순회를 오늘로 → 시험 18개 → 다시 초기화 (약 3분, 실제 데이터를 바꿈)
 node admin.mjs https://<PC>.ts.net:10000         # 관리자 웹: 로그인·검토 목록·사건·오늘 활동 현황
 node admin-accounts.mjs <관리자 주소>              # 시연 관리자 6개 계정 로그인·역할별 메뉴 (데이터 안 바꿈)
 node admin-reload.mjs <관리자 주소>               # 로그인 화면에 시연 계정 목록 없음, 새로 고침해도 로그인 유지 (데이터 안 바꿈)
@@ -98,6 +98,7 @@ node admin-decide.mjs https://<PC>.ts.net:10000  # 관리자 웹에서 판정 �
 node senior.mjs https://<PC>.ts.net --shoot      # 시니어 앱: 로그인 → 출석 → 전체 화면 촬영 → 보내기
 node senior-tour.mjs https://<PC>.ts.net        # 시니어 앱 화면 둘러보기 (shots/tour/index.html, 데이터 안 바꿈)
 node pause-check.mjs <시니어 주소> <관리자 주소>   # 잠깐 쉬기 ↔ 관리자 화면 '쉬는 중'
+node senior-normal-end.mjs <시니어 주소> <관리자 주소>  # 장소를 모두 건너뛰고 정상 종료 → 통계에 순회 1회 · 중도 종료 0회
 node admin-participants.mjs <관리자 주소> <시니어 주소>  # 참여자 등록 → 같은 번호 거절 → 일시 중지 → 그 번호로 로그인 안 됨
 node admin-teams.mjs <관리자 주소>                 # 조 만들기 → 1명 남는 편성 거절 → 배정된 순회 조원은 그대로
 node admin-assign.mjs <관리자 주소>                # 코스 만들기 → 순회 배정 → 시간 겹침 거절 → 출발 전 바꾸기(코스·조원) → 코스 v2 공개

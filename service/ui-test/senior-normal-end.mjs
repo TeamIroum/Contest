@@ -1,0 +1,76 @@
+// 정상 종료: 시니어 앱에서 장소를 모두 건너뛰고 "센터에 도착했어요" → 담당자가 두 분 복귀 확인 → 순회가 중도 종료가 아닌 정상 종료인지,
+// 통계(demo-program)에 "순회 1회 · 중도 종료 0회"로 잡히는지. 실제 데이터를 바꾼다 (오늘 순회 필요, 끝나면 초기화)
+//   node senior-normal-end.mjs [시니어 주소] [관리자 주소]
+import { chromium } from 'playwright'
+import path from 'node:path'
+import { report, serviceEnv, confirmAttendanceAndDeparture, SHOTS } from './common.mjs'
+
+const SENIOR = process.argv[2] || 'http://127.0.0.1:8180'
+const ADMIN = process.argv[3] || 'http://127.0.0.1:8181'
+const env = serviceEnv()
+const problems = []
+const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] })
+try {
+  const s = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'ko-KR' })).newPage()
+  const tap = (name) => s.getByRole('button', { name }).first().click()
+  await s.goto(SENIOR, { waitUntil: 'load' })
+  await tap('휴대폰 번호로 시작하기')
+  for (const d of '01000000001') await s.getByRole('button', { name: d, exact: true }).click()
+  await tap('인증번호 받기')
+  await s.getByText('문자로 받은 숫자 6개를 넣어 주세요').waitFor({ timeout: 15000 })
+  for (const d of env.DEMO_OTP_CODE) await s.getByRole('button', { name: d, exact: true }).click()
+  await s.getByRole('button', { name: '센터에 도착했어요' }).waitFor({ timeout: 20000 })
+  await tap('센터에 도착했어요')
+  if (await s.getByRole('button', { name: '출석 요청하기' }).count()) await tap('출석 요청하기')
+  await confirmAttendanceAndDeparture(browser, ADMIN)
+  await s.getByRole('button', { name: '활동 시작하기' }).waitFor({ timeout: 20000 })
+  await tap('활동 시작하기')
+  console.log('▶ 장소 3곳 모두 건너뛰기')
+  for (let i = 0; i < 3; i++) {
+    await s.getByRole('button', { name: '이곳은 찍을 수 없어요' }).first().waitFor({ timeout: 10000 })
+    await tap('이곳은 찍을 수 없어요')
+    await s.getByRole('button', { name: '위험해서 못 찍겠어요' }).click()
+    await s.waitForTimeout(1200)
+  }
+  await s.getByRole('button', { name: '센터에 도착했어요' }).waitFor({ timeout: 10000 })
+  await s.screenshot({ path: path.join(SHOTS, 'normal-1-센터로.png') })
+  await tap('센터에 도착했어요')
+  await s.getByText('복귀를 확인하면 끝나요').waitFor({ timeout: 10000 })
+  console.log('▶ 담당자: 두 분 복귀 확인')
+  const a = await (await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'ko-KR' })).newPage()
+  await a.goto(ADMIN, { waitUntil: 'load' })
+  await a.getByLabel('아이디').fill('demo-activity')
+  await a.getByLabel('비밀번호').fill(env.ADMIN_PASSWORD)
+  await a.getByRole('button', { name: '로그인', exact: true }).click()
+  await a.getByRole('navigation', { name: '주 메뉴' }).waitFor({ timeout: 15000 })
+  for (const name of ['김○○', '박○○']) {
+    await a.waitForTimeout(5500)
+    const btn = a.locator(`xpath=//main//*[normalize-space(text())='${name}']/following::button[normalize-space()='복귀 확인'][1]`)
+    await btn.click()
+    const d = a.getByRole('dialog', { name: `${name} 복귀 확인` })
+    await d.waitFor({ timeout: 5000 })
+    await d.getByRole('button', { name: '복귀 확인', exact: true }).click()
+    await a.waitForLoadState('networkidle')
+    console.log(`  ${name} 복귀 확인`)
+  }
+  await s.getByText('복귀를 확인하면 끝나요').waitFor({ state: 'detached', timeout: 15000 }).catch(() => problems.push('시니어 앱이 끝 화면으로 넘어가지 않음'))
+  console.log('▶ 통계 (demo-program)')
+  const p = await (await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'ko-KR' })).newPage()
+  await p.goto(ADMIN, { waitUntil: 'load' })
+  await p.getByLabel('아이디').fill('demo-program')
+  await p.getByLabel('비밀번호').fill(env.ADMIN_PASSWORD)
+  await p.getByRole('button', { name: '로그인', exact: true }).click()
+  await p.getByRole('navigation', { name: '주 메뉴' }).getByRole('button', { name: /통계·보고/ }).click()
+  const text = await p.getByTestId('report-sentence').innerText({ timeout: 15000 })
+  console.log(`  ${text}`)
+  if (!/1회 순회/.test(text)) problems.push('통계에 순회 1회가 잡히지 않음')
+  const aborted = await p.getByText('중도 종료 0회').count()
+  console.log(`  중도 종료 0회 표시: ${aborted ? '예' : '아니오'}`)
+  if (!aborted) problems.push('정상 종료인데 중도 종료로 잡힘')
+  await p.screenshot({ path: path.join(SHOTS, 'normal-2-통계.png') })
+} catch (e) {
+  problems.push(`시험 중단: ${e.message.split('\n')[0]}`)
+} finally {
+  await browser.close()
+  report(problems)
+}
