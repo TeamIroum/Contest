@@ -170,7 +170,7 @@ export function Today({
   const today = patrols.filter((p) => p.date === TODAY)
   const todayLabel = REAL_BACKEND ? (() => {
     const d = real.todayKst()
-    return `${Number(d.slice(0, 4))}년 ${Number(d.slice(5, 7))}월 ${Number(d.slice(8, 10))}일 (${'일월화수목금토'[new Date(`${d}T00:00:00+09:00`).getUTCDay()]})`
+    return `${Number(d.slice(0, 4))}년 ${Number(d.slice(5, 7))}월 ${Number(d.slice(8, 10))}일 (${'일월화수목금토'[new Date(`${d}T12:00:00Z`).getUTCDay()]})`
   })() : '2026년 10월 12일 (월)'
   // 할 일이 있는 조를 위로, 끝난 조를 아래로 (표시 순서만 바꿈)
   const rank = (p: Patrol) => (todoOf(p).length ? 0 : isActive(p) ? 1 : p.status === 'ASSIGNED' ? 2 : 3)

@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { Photo, KIND_NAME } from './Photo'
+import { Scenery } from './Scenery'
+import { lookAt, nowHour, type SkyLook } from './sky'
 import { LiveCamera, type CameraHandle } from './camera/LiveCamera'
 import * as quality from './camera/quality.js'
 import * as masking from './masking/masking.js'
@@ -107,8 +109,12 @@ export default function App() {
   /** 효과음 켜기/끄기 (촬영음은 늘 재생) */
   const [sound, setSound] = useState(true)
 
-  // 위쪽 막대 색 (그림 배경 없이 앱 바탕색)
-  const BAR = '#f4f6fa'
+  // 화면 위쪽 풍경의 하늘: 휴대폰 시계를 따라 시간대별 색·해 위치가 바뀐다 (sky.ts)
+  const look = lookAt(useSkyHour())
+  // 브라우저 위쪽 막대 색도 하늘에 맞춘다
+  useEffect(() => {
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', look.bar)
+  }, [look.bar])
 
   // ---------------- 실제 촬영 준비 (docs/시니어앱_촬영기능_적용요청.md)
   // https(또는 localhost)이면 실제 촬영: 가림 모델을 받아 두고, 셋 다 준비되기 전에는 찍기 버튼을 끈다.
@@ -556,19 +562,47 @@ export default function App() {
     setScreen('home')
   }
 
+  // 풍경이 끝나는 위치: 화면의 첫 카드(또는 data-scene-end 표시)가 시작하는 곳 + 조금 겹침.
+  // 글씨를 키워 내용이 길어지면 풍경도 그만큼 아래로 내려가 땅 부분이 늘 첫 카드 바로 위에 온다.
+  const mainRef = useRef<HTMLElement>(null)
+  const [sceneEnd, setSceneEnd] = useState<number | null>(null)
+  useLayoutEffect(() => {
+    const main = mainRef.current
+    const frame = main?.parentElement
+    if (!main || !frame) return
+    const measure = () => {
+      const el = main.querySelector<HTMLElement>('section, [data-scene-end]')
+      setSceneEnd(el ? Math.round(el.getBoundingClientRect().top - frame.getBoundingClientRect().top + 48) : null)
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(main)
+    return () => ro.disconnect()
+  }, [screen, size, paused])
+
   const loggedIn = !['start', 'phone', 'code'].includes(screen)
   const inActivity = ['route', 'retake', 'sent'].includes(screen)
 
   return (
     <div className="min-h-dvh bg-bg">
       <div
-        data-sky="light"
-        data-bar="light"
+        // data-sky="dark": 해 질 녘·밤처럼 하늘이 어두우면 풍경 위 글씨를 밝게 바꾼다 (index.css)
+        data-sky={look.dark && !['camera', 'phone', 'code'].includes(screen) ? 'dark' : 'light'}
+        data-bar={look.dark ? 'dark' : 'light'}
         className="relative mx-auto flex min-h-dvh max-w-[440px] flex-col overflow-x-clip bg-bg sm:my-6 sm:min-h-[880px] sm:overflow-hidden sm:rounded-[32px] sm:border sm:border-line sm:shadow-pop"
       >
-        {loggedIn && <TopBar bar={BAR} showTeam={!REAL_BACKEND || patrolState === 'ok'} size={size} onSize={() => setSize(((size + 1) % 3) as 0 | 1 | 2)} sound={sound} onSound={() => setSound(!sound)} onHelp={() => setSheet('help')} />}
+        {!['camera', 'phone', 'code'].includes(screen) && (
+          <SkyBackdrop
+            look={look}
+            tall={['start', 'home', 'done'].includes(screen)}
+            end={sceneEnd}
+            ground={!(['sent', 'retake'].includes(screen) && !paused)}
+            village={!(['home', 'ready', 'route', 'return'].includes(screen) && !paused)}
+          />
+        )}
+        {loggedIn && <TopBar bar={look.bar} showTeam={!REAL_BACKEND || patrolState === 'ok'} size={size} onSize={() => setSize(((size + 1) % 3) as 0 | 1 | 2)} sound={sound} onSound={() => setSound(!sound)} onHelp={() => setSheet('help')} />}
         {/* 화면마다 새로 그려 살짝 올라오며 나타나게 한다 (screen-in) */}
-        <main key={paused ? 'paused' : screen} className="screen-in relative flex flex-1 flex-col gap-4 px-5 pt-3 pb-6">
+        <main key={paused ? 'paused' : screen} ref={mainRef} className="screen-in relative flex flex-1 flex-col gap-4 px-5 pt-3 pb-6">
           {paused ? (
             <Paused onResume={() => pause(false)} />
           ) : (
@@ -727,6 +761,78 @@ export default function App() {
 }
 
 /* ---------------- 공용 조각 ---------------- */
+
+// 화면 위쪽의 풍경 배경 (내용 뒤에 깔림)
+// 높이는 첫 카드 위치(end)에 맞춘다. 재기 전이거나 카드가 없는 화면은 글씨 크기(rem)에 비례한 높이를 쓴다.
+// 그림은 확대하지 않고 폭에 맞춰 아래에 붙이며, 위쪽 남는 부분은 하늘 위쪽 색으로 이어 칠한다.
+// 최소 높이는 그림이 폭에 맞을 때의 높이(폭 × 320/440)라서 옆이 비지 않는다.
+// ground=false: 큰 결과 카드가 풍경을 덮어 산·구름 조각만 삐져나오는 화면은 그림 없이 하늘색만 아래로 흐리게 사라지게 한다.
+function SkyBackdrop({ tall, end, look, ground = true, village = true }: { tall: boolean; end: number | null; look: SkyLook; ground?: boolean; village?: boolean }) {
+  const fade = 'linear-gradient(#000 45%, transparent 85%)'
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-x-0 top-0 overflow-hidden"
+      style={{
+        height: `max(${end ? `${end}px` : `${tall ? 21 : 15}rem`}, calc(min(100vw, 440px) * 0.7273))`,
+        // 하늘색은 시간에 맞춰 바뀐다 (sky.ts)
+        background: `linear-gradient(${look.sky[0]} 0%, ${look.sky[1]} 32%, ${look.sky[2]} 68%, ${look.sky[3]} 100%)`,
+        ...(ground ? {} : { maskImage: fade, WebkitMaskImage: fade }),
+      }}
+    >
+      {/* 하늘 층: 위쪽 막대 바로 아래에 고정 (막대가 두 줄이 되면 그만큼 아래) */}
+      {ground && (
+        <div className="absolute inset-x-0 top-[60px] big:top-[96px] max-[429px]:top-[96px]">
+          <Scenery part="sky" look={look} className="block h-auto w-full" />
+        </div>
+      )}
+      {/* 땅 층: 첫 카드 바로 위에 고정 */}
+      {ground && <Scenery part="ground" look={look} village={village} className="absolute inset-x-0 bottom-0 block h-auto w-full" />}
+    </div>
+  )
+}
+
+/**
+ * 하늘 시각: 휴대폰 시계를 따른다(1분마다 갱신).
+ * 시각이 바뀔 때는 1.2초 동안 서서히 넘어가 해·하늘색이 툭 바뀌지 않는다.
+ */
+function useSkyHour() {
+  const [now, setNow] = useState(nowHour)
+  useEffect(() => {
+    const t = setInterval(() => setNow(nowHour()), 60_000)
+    return () => clearInterval(t)
+  }, [])
+  const target = now
+  const [shown, setShown] = useState(target)
+  const from = useRef(target)
+  useEffect(() => {
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    // 24시간이 이어진 원이라 가까운 쪽으로 돈다 (23시 → 1시는 2시간 앞으로)
+    let d = target - from.current
+    if (d > 12) d -= 24
+    if (d < -12) d += 24
+    if (reduce || Math.abs(d) < 0.02) {
+      from.current = target
+      setShown(target)
+      return
+    }
+    const start = from.current
+    const t0 = performance.now()
+    let raf = 0
+    const step = (t: number) => {
+      const p = Math.min(1, (t - t0) / 1200)
+      const e = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2
+      const h = (start + d * e + 24) % 24
+      from.current = h
+      setShown(h)
+      if (p < 1) raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [target])
+  return shown
+}
+
 
 const SIZE_NAME = ['기본', '크게', '아주 크게'] as const
 

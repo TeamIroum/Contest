@@ -82,7 +82,7 @@ const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토']
 const TODAY_LABEL = REAL_BACKEND
   ? (() => {
       const d = todayKst()
-      return `${d.split('-').join('.')} (${WEEKDAY[new Date(`${d}T00:00:00+09:00`).getUTCDay()]})`
+      return `${d.split('-').join('.')} (${WEEKDAY[new Date(`${d}T12:00:00Z`).getUTCDay()]})`
     })()
   : '2026.10.12 (월)'
 
@@ -324,7 +324,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-bg lg:flex">
-      <aside className="relative z-30 flex flex-col bg-surface shadow-card lg:z-10 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:flex-none">
+      <aside className="relative z-30 flex flex-col bg-surface shadow-card lg:z-10 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:flex-none lg:overflow-y-auto">
         <div className="flex items-center gap-2.5 px-5 py-4 lg:py-5">
           <Logo />
           <div className="flex-1 leading-tight">
