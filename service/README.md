@@ -79,9 +79,11 @@
 ```bash
 cd service/ui-test
 npm install && npm run install-browser          # 처음 한 번
-powershell -ExecutionPolicy Bypass -File run-all.ps1   # 전체: 초기화 → 순회를 오늘로 → 시험 15개 → 다시 초기화 (약 3분, 실제 데이터를 바꿈)
+powershell -ExecutionPolicy Bypass -File run-all.ps1   # 전체: 초기화 → 순회를 오늘로 → 시험 17개 → 다시 초기화 (약 3분, 실제 데이터를 바꿈)
 node admin.mjs https://<PC>.ts.net:10000         # 관리자 웹: 로그인·검토 목록·사건·오늘 활동 현황
 node admin-accounts.mjs <관리자 주소>              # 시연 관리자 6개 계정 로그인·역할별 메뉴 (데이터 안 바꿈)
+node admin-reload.mjs <관리자 주소>               # 로그인 화면에 시연 계정 목록 없음, 새로 고침해도 로그인 유지 (데이터 안 바꿈)
+node senior-reload.mjs <시니어 주소>              # 시니어 앱 새로 고침해도 시작 화면으로 돌아가지 않음 (데이터 안 바꿈)
 node admin-decide.mjs https://<PC>.ts.net:10000  # 관리자 웹에서 판정 저장 → 사건 생성 (LOGIN=demo-road 등으로 계정 선택)
 node senior.mjs https://<PC>.ts.net --shoot      # 시니어 앱: 로그인 → 출석 → 전체 화면 촬영 → 보내기
 node senior-tour.mjs https://<PC>.ts.net        # 시니어 앱 화면 둘러보기 (shots/tour/index.html, 데이터 안 바꿈)

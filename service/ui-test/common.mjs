@@ -34,10 +34,12 @@ export async function open({ mobile = false, video } = {}) {
   const page = await context.newPage()
   const problems = []
   // TensorFlow Lite가 오류 채널로 남기는 안내(INFO: Created TensorFlow Lite XNNPACK delegate)는 오류가 아니다
-  page.on('console', (m) => m.type() === 'error' && !m.text().startsWith('INFO:') && problems.push(`콘솔: ${m.text().slice(0, 200)}`))
+  // 로그인 되살리기(새로 고침·계정 바꾸기) 때 갱신 쿠키가 없으면 /auth/token/refresh가 401이다. 정상 동작이라 세지 않는다
+  const refresh401 = (url) => url.includes('/auth/token/refresh')
+  page.on('console', (m) => m.type() === 'error' && !m.text().startsWith('INFO:') && !refresh401(m.location()?.url ?? '') && problems.push(`콘솔: ${m.text().slice(0, 200)}`))
   page.on('pageerror', (e) => problems.push(`화면 오류: ${e.message.slice(0, 200)}`))
   page.on('response', async (r) => {
-    if (r.url().includes('/api/') && r.status() >= 400) {
+    if (r.url().includes('/api/') && r.status() >= 400 && !(r.status() === 401 && refresh401(r.url()))) {
       const body = await r.text().catch(() => '')
       problems.push(`API ${r.request().method()} ${new URL(r.url()).pathname} → ${r.status()} ${body.slice(0, 160)}`)
     }

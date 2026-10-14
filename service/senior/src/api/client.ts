@@ -40,7 +40,10 @@ export async function refreshSession(): Promise<boolean> {
   try {
     await ensureCsrf()
     const r = await fetch(`${API_BASE}/auth/token/refresh`, { method: 'POST', cache: 'no-store', credentials: 'include', headers: authHeaders() })
-    if (!r.ok) return false
+    if (!r.ok) {
+      await r.text().catch(() => '') // 본문을 읽어 요청을 끝낸다 (안 읽으면 연결이 열린 채 남음)
+      return false
+    }
     const b = await r.json()
     setAccessToken(b.accessToken)
     return true
@@ -98,7 +101,43 @@ export async function verifyOtp(challengeId: string, code: string): Promise<Logi
     deviceLabel: '시니어 앱',
   })
   setAccessToken(b.accessToken)
+  markSignedIn(true)
   return b.user
+}
+
+/** 이 휴대폰에서 로그인 중인지 표시 (비밀 값 아님. 실제 로그인은 HttpOnly 갱신 쿠키로 확인) */
+function markSignedIn(on: boolean) {
+  try {
+    if (on) localStorage.setItem('senior-signed-in', '1')
+    else localStorage.removeItem('senior-signed-in')
+  } catch {
+    // 저장소를 못 쓰면 새로 고침 때 다시 로그인한다
+  }
+}
+/** 새로 고침했을 때 되살릴 로그인이 있을 수 있는지 (있으면 시작 화면 대신 잠깐 기다림 화면) */
+export function maybeSignedIn() {
+  try {
+    return REAL_BACKEND && localStorage.getItem('senior-signed-in') === '1'
+  } catch {
+    return false
+  }
+}
+/**
+ * 새로 고침 뒤 로그인 되살리기: 액세스 토큰은 메모리에만 두므로 새로 고침하면 사라진다.
+ * 이 휴대폰에서 로그인한 적이 있고 갱신 쿠키(7일)가 살아 있으면 새 토큰을 받고 이름을 돌려준다. 아니면 null
+ */
+export async function restoreSession(): Promise<{ name: string } | null> {
+  if (!maybeSignedIn() || !(await refreshSession())) {
+    markSignedIn(false)
+    return null
+  }
+  try {
+    return await api<{ name: string }>('GET', '/me')
+  } catch {
+    markSignedIn(false)
+    setAccessToken(null)
+    return null
+  }
 }
 
 // ---------------- 오늘 순회 (응답 JSON 명세 7절: GET /me/patrols, GET /patrols/{id})

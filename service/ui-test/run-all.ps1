@@ -53,9 +53,11 @@ Reset-Today
 if (Test-Path $video) { $env:VIDEO = $video }
 Run 'senior (촬영)' @('senior.mjs', $senior, '--shoot')
 Run 'senior-tour' @('senior-tour.mjs', $senior)
+Run 'senior-reload' @('senior-reload.mjs', $senior)
 Remove-Item env:VIDEO -ErrorAction SilentlyContinue
 Run 'pause-check' @('pause-check.mjs', $senior, $admin)
 Run 'admin-accounts' @('admin-accounts.mjs', $admin)
+Run 'admin-reload' @('admin-reload.mjs', $admin)
 Run 'admin' @('admin.mjs', $admin)
 $env:LOGIN = 'demo-road'
 Run 'admin-decide' @('admin-decide.mjs', $admin)

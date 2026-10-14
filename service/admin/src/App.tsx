@@ -27,7 +27,7 @@ import { Stats } from './Stats'
 import { Admins } from './Admins'
 import { Button, Pill, Toast, inputCls } from './ui'
 import { nowAt } from './util'
-import { REAL_BACKEND, ApiError, changePassword, fetchMe, login, logout, setSessionEndedHandler } from './api/client'
+import { REAL_BACKEND, ApiError, changePassword, fetchMe, login, logout, markSignedIn, restoreSession, setSessionEndedHandler } from './api/client'
 import { RealAdmins } from './RealAdmins'
 import { NotificationMenu, RealAudit, RealOrgs } from './RealOps'
 import { RealAssign } from './RealAssign'
@@ -90,7 +90,8 @@ const P3_REVIEW: Record<string, string> = { f1: 'rv-1012-01', f2: 'rv-1012-02', 
 const P3_IDS = Object.values(P3_REVIEW)
 
 export default function App() {
-  const [stage, setStage] = useState<'login' | 'password' | 'in'>('login')
+  // 실제 백엔드: 처음에는 갱신 쿠키로 로그인을 되살려 보고(checking), 안 되면 로그인 화면
+  const [stage, setStage] = useState<'checking' | 'login' | 'password' | 'in'>(REAL_BACKEND ? 'checking' : 'login')
   const [view, setView] = useState<View>('today')
   // 실제 백엔드: 검토·사건·오늘 순회는 서버 값으로 채운다. 나머지 메뉴(예시)는 아래 demo* 값을 쓴다
   const [reviews, setReviews] = useState<ReviewTask[]>(() => (REAL_BACKEND ? [] : REVIEWS.filter((r) => !P3_IDS.includes(r.id))))
@@ -167,7 +168,24 @@ export default function App() {
   }, [stage])
   useEffect(() => onRealError(setRealError), [])
   useEffect(() => {
-    setSessionEndedHandler(() => setStage('login'))
+    setSessionEndedHandler(() => {
+      markSignedIn(false)
+      setStage('login')
+    })
+  }, [])
+  useEffect(() => {
+    if (!REAL_BACKEND) return
+    let alive = true
+    restoreSession().then(async (me) => {
+      if (!alive) return
+      if (me && !me.passwordChangeRequired) {
+        await applyMe(savedLoginId(), me)
+        if (alive) setStage('in')
+      } else setStage('login')
+    })
+    return () => {
+      alive = false
+    }
   }, [])
 
   // 시연: 로그인 뒤 잠시 있으면 박영자 어르신의 출석 요청이 들어온다
@@ -247,6 +265,12 @@ export default function App() {
     return () => clearTimeout(t)
   }, [p3?.status, p3Done]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  if (stage === 'checking')
+    return (
+      <Shell>
+        <p className="m-0 text-sm text-sub">로그인 확인 중…</p>
+      </Shell>
+    )
   if (stage === 'login')
     return (
       <Login
@@ -577,7 +601,21 @@ function Shell({ children }: { children: ReactNode }) {
 }
 
 /** 실제 백엔드: 로그인한 계정의 이름·역할·소속을 화면에 반영한다 */
+/** 새로 고침 뒤에도 아이디를 보여 주려고 이 탭에만 둔다 (비밀 값 아님. /me 응답에는 아이디가 없다) */
+function savedLoginId() {
+  try {
+    return sessionStorage.getItem('admin-login-id') ?? ''
+  } catch {
+    return ''
+  }
+}
 async function applyMe(loginId: string, user: { name: string; roles: string[] }) {
+  markSignedIn(true)
+  try {
+    if (loginId) sessionStorage.setItem('admin-login-id', loginId)
+  } catch {
+    // 저장 못 해도 로그인은 그대로
+  }
   ME.loginId = loginId
   ME.name = user.name
   ME.roles = user.roles.filter((r): r is Role => r in ROLE_NAME)
@@ -637,28 +675,8 @@ function Login({ onLogin }: { onLogin: (first: boolean, creds?: { loginId: strin
         </Button>
         <p className="m-0 text-xs leading-relaxed text-mute">계정은 직접 만들 수 없습니다. 시스템 관리자가 발급한 계정을 사용하세요. 비밀번호를 5번 연속 틀리면 10분 동안 잠기며, 시스템 관리자에게 초기화나 잠금 해제를 요청할 수 있습니다.</p>
       </form>
-      {REAL_BACKEND ? (
-        <div className="mt-4 rounded-[18px] border border-dashed border-line-strong bg-surface/70 p-3">
-          <p className="m-0 mb-2 text-xs font-semibold text-mute">시연 계정 (누르면 아이디가 입력됩니다. 비밀번호는 담당자에게 받으세요)</p>
-          <div className="grid gap-1.5">
-            {[
-              ['demo-activity', '활동 담당자 · 출석·출발·복귀 확인'],
-              ['demo-road', '시설 담당자(도로) · 검토·판정·사건'],
-              ['demo-sewer', '시설 담당자(하수) · 검토·판정·사건'],
-            ].map(([lid, label]) => (
-              <button
-                key={lid}
-                type="button"
-                onClick={() => setId(lid)}
-                aria-pressed={id === lid}
-                className="rounded-xl border border-line bg-surface px-3 py-2.5 text-left text-[14px] font-semibold text-sub aria-pressed:border-brand aria-pressed:bg-brand-50 aria-pressed:text-brand"
-              >
-                {lid} <span className="font-normal text-mute">· {label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : (
+      {/* 실제 백엔드: 시연 계정 목록을 보여 주지 않는다 (아이디는 담당자가 따로 알려 줌) */}
+      {!REAL_BACKEND && (
       <div className="mt-4 rounded-[18px] border border-dashed border-line-strong bg-surface/70 p-3">
         <p className="m-0 mb-2 text-xs font-semibold text-mute">시연용 계정 (누르면 입력됩니다)</p>
         <div className="grid gap-1.5">

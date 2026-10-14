@@ -37,7 +37,10 @@ async function refreshSession(): Promise<boolean> {
   try {
     await ensureCsrf()
     const r = await fetch(`${API_BASE}/auth/token/refresh`, { method: 'POST', cache: 'no-store', credentials: 'include', headers: authHeaders() })
-    if (!r.ok) return false
+    if (!r.ok) {
+      await r.text().catch(() => '') // 본문을 읽어 요청을 끝낸다 (안 읽으면 연결이 열린 채 남음)
+      return false
+    }
     setAccessToken((await r.json()).accessToken)
     return true
   } catch {
@@ -119,6 +122,23 @@ function clientId() {
   }
 }
 
+/** 이 브라우저에서 로그인 중인지 표시 (비밀 값 아님. 실제 로그인은 HttpOnly 갱신 쿠키로 확인) */
+function signedInHere() {
+  try {
+    return localStorage.getItem('admin-signed-in') === '1'
+  } catch {
+    return false
+  }
+}
+export function markSignedIn(on: boolean) {
+  try {
+    if (on) localStorage.setItem('admin-signed-in', '1')
+    else localStorage.removeItem('admin-signed-in')
+  } catch {
+    // 저장소를 못 쓰면 새로 고침 때 다시 로그인한다
+  }
+}
+
 export async function login(loginId: string, password: string): Promise<LoginResult> {
   const b = await api<{ accessToken?: string; user?: LoginUser; passwordChangeRequired?: boolean }>('POST', '/auth/admin/sessions', {
     loginId,
@@ -145,7 +165,26 @@ export async function logout() {
   }
   setAccessToken(null)
   csrf = null
+  markSignedIn(false)
 }
 
-export type Me = { id: string; name: string; roles: string[]; scopes?: { organizationId?: string; organizationName?: string; role?: string }[] }
+export type Me = { id: string; name: string; roles: string[]; passwordChangeRequired?: boolean; scopes?: { organizationId?: string; organizationName?: string; role?: string }[] }
 export const fetchMe = () => api<Me>('GET', '/me')
+
+/**
+ * 새로 고침 뒤 로그인 되살리기: 액세스 토큰은 메모리에만 두므로 새로 고침하면 사라진다.
+ * 갱신 쿠키(__Host-itda-refresh, HttpOnly)가 살아 있으면 새 토큰을 받고 계정 정보를 돌려준다. 없거나 끝났으면 null
+ */
+export async function restoreSession(): Promise<Me | null> {
+  // 이 브라우저에서 로그인한 적이 없으면 묻지 않는다 (처음 온 사람에게 401을 만들지 않음)
+  if (!REAL_BACKEND || !signedInHere() || !(await refreshSession())) {
+    markSignedIn(false)
+    return null
+  }
+  try {
+    return await fetchMe()
+  } catch {
+    setAccessToken(null)
+    return null
+  }
+}
