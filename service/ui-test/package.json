@@ -9,6 +9,6 @@
     "senior": "node senior.mjs"
   },
   "devDependencies": {
-    "playwright": "1.55.0"
+    "playwright": "1.55.1"
   }
 }
