@@ -17,7 +17,7 @@
 
 - CSRF 쿠키 버그 수정(`common/security/SecurityConfig.java`): Bearer 인증이 될 때마다 Spring Security가 `__Host-itda-csrf` 쿠키를 지워, 로그인 뒤 조회 한 번이면 다음 변경 요청(출석 요청·판정 등)이 403이 되던 문제. 회귀 시험 `auth/CsrfCookieKeptRegressionTest.java`
 - 검토 응답의 사진(`review/ReviewViews.Media`)에 기록 `version` 추가: 개인정보 검토 API(`/admin/media/{id}/privacy-reviews`)가 요구하는 값인데 응답에 없어 화면이 판정을 보낼 수 없었다. 계약 명세(`src/test/resources/contract/openapi.yaml`)에 선택 칸으로 추가
-- 출발 확인·활동 시작 규칙을 기능정의서(SEN-13·ACT-07·ACC-02)대로 (`patrol/command/StartDepartureService.java`): 출발 확인은 출석 확정(PRESENT) 2명 이상일 때만, 활동 시작은 출발 확인 뒤에만, 조원 누구든 누르면 출석한 조원 전원이 같은 시각으로 시작. 원본은 개인 시작(D-02: 출발 확인을 기다리지 않고 누른 사람만 시작)이었다. 원본의 `StartDepartureIntegrationTest`는 개인 시작을 전제로 해서 이 규칙과 맞지 않는다(Docker가 없어 고치지 않음)
+- 출발 확인·활동 시작 규칙을 기능정의서(SEN-13·ACT-07·ACC-02)대로 (`patrol/command/StartDepartureService.java`, 설정 `inspection.activity.team-start=true`): 출발 확인은 출석 확정(PRESENT) 2명 이상일 때만, 활동 시작은 출발 확인 뒤에만, 조원 누구든 누르면 출석한 조원 전원이 같은 시각으로 시작. 서비스(local 프로필, `docker/docker-compose.yml`)는 켜고, 기본값 false는 원본 개인 시작(D-02)이라 원본 통합 시험이 그대로 돈다. 새 규칙 시험은 `TeamStartIntegrationTest`
 - 시연(local 프로필, `application-local.yml`): AI가 이상 없다고 본 사진도 모두 검토 목록에 올린다(`inspection.review.no-issue-sample-rate: 1`, 운영 기본값 0). 시연에서 담당자 판정을 늘 보여 주기 위함
 - 참여자 계정 API 추가(기능정의서 ACT-01, `participant/`): `GET·POST /admin/participants`, `GET·PATCH /admin/participants/{id}`, `POST /admin/participants/{id}/status-changes`, `GET /admin/participants/organizations`. 활동 담당자 관할 기관만, 번호는 암호문·검색용 HMAC으로만 저장하고 응답에는 가린 번호(`010-****-1234`), 같은 번호는 거절, 일시 중지·종료하면 인증 버전을 올리고 로그인 세션을 모두 끊는다. 번호 변경은 새 번호 확인 절차가 필요해 받지 않는다
 - 평소 조 편성 API 추가(기능정의서 ACT-02, `team/`): `GET·POST /admin/teams`, `PATCH /admin/teams/{id}`. 한 조 2~3명(자리 1~3), 조원은 적용 시작일(`effectiveFrom`, 오늘 이후)부터 바뀌고 이전 구성은 이력(`team_memberships`)으로 남는다. 이미 배정된 순회는 조원을 따로 복사해 두므로 바뀌지 않는다. 다른 조에서 데려오면 그 조에서 빠지며, 그 조가 1명이 되면 거절, 0명이면 그 조를 닫는다
@@ -71,6 +71,16 @@
 - 깃페이지 입구: https://teamiroum.github.io/service/ (바로가기 /service/senior, /service/admin). 올리기는 `web/pages/deploy_pages.py`
 - PC가 켜져 있고 인터넷이 연결되어 있어야 열린다. 다 쓰면 `stop.ps1`로 공개 주소를 닫는다
 - 시연 데이터의 순회는 2026-10-15 10:00~12:00(한국 시간) 하나다. 다른 날 시험하려면 `tools/e2e/move_demo_date.sql`
+
+## 백엔드 통합 시험 (Docker)
+
+WSL(Ubuntu-24.04)의 Docker로 원본 통합 시험(Testcontainers)을 돌린다. Windows 쪽 파일은 바꾸지 않고 WSL 사용자 폴더의 복사본에서 돈다.
+
+```bash
+wsl -d Ubuntu-24.04 -- bash /mnt/c/Contest/service/scripts/backend-it.sh      # 전체 약 2~4분 (처음은 내려받기로 더 걸림)
+```
+
+2026-10-14 결과: 254개 중 253개 통과. `AbsoluteExpiryIntegrationTest`(세션 절대 만료)는 화면 시험과 동시에 돌릴 때 한 번 실패했고 단독으로는 세 번 모두 통과(시간에 민감한 시험)
 
 ## 화면 시험 (`ui-test/`)
 
