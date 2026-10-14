@@ -80,7 +80,7 @@ WSL(Ubuntu-24.04)의 Docker로 원본 통합 시험(Testcontainers)을 돌린다
 wsl -d Ubuntu-24.04 -- bash /mnt/c/Contest/service/scripts/backend-it.sh      # 전체 약 2~4분 (처음은 내려받기로 더 걸림)
 ```
 
-2026-10-14 결과: 254개 중 253개 통과. `AbsoluteExpiryIntegrationTest`(세션 절대 만료)는 화면 시험과 동시에 돌릴 때 한 번 실패했고 단독으로는 세 번 모두 통과(시간에 민감한 시험)
+2026-10-14 결과: 254개 모두 통과. `AbsoluteExpiryIntegrationTest`(세션 절대 만료)는 PC가 바쁠 때 WSL 시계가 뒤로 다시 맞춰지면 한 번 잠든 것만으로 만료가 안 지나 실패할 수 있어, 실제로 만료가 지날 때까지 다시 확인하며 기다리게 고쳤다(시험 코드만)
 
 ## 화면 시험 (`ui-test/`)
 

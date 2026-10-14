@@ -55,6 +55,10 @@ class AbsoluteExpiryIntegrationTest {
         // 절대 만료 시각이 지날 때까지 기다린다(시계 차이를 고려해 1초 여유).
         long waitMillis = java.time.Duration.between(java.time.Instant.now(), first.refreshTokenExpiresAt()).toMillis() + 1_000;
         Thread.sleep(Math.max(0, waitMillis));
+        // service/: WSL2 등에서 바쁠 때 시계가 뒤로 다시 맞춰지면 한 번 잠든 것만으로는 만료가 안 지났을 수 있다. 실제로 지날 때까지 다시 확인한다
+        while (java.time.Instant.now().isBefore(first.refreshTokenExpiresAt().plusSeconds(1))) {
+            Thread.sleep(200);
+        }
         AuthTestSupport.Csrf csrf = AuthTestSupport.csrf(mvc);
         mvc.perform(csrf.apply(post("/api/v1/auth/token/refresh")).cookie(new Cookie("__Host-itda-refresh", rotated.refreshToken())))
                 .andExpect(status().isUnauthorized());
