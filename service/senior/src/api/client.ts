@@ -1,5 +1,6 @@
 // 업무 API 호출 (명세: openapi.yaml servers /api/v1, bearerAuth)
 import { setMediaToken } from '../media'
+import { keepUntil, retryable } from '../offline/outbox.js'
 
 /** API 서버 주소 (.env의 VITE_API_ORIGIN). 비우면 화면과 같은 주소의 /api/v1 */
 export const API_BASE = `${import.meta.env.VITE_API_ORIGIN ?? ''}/api/v1`
@@ -249,8 +250,15 @@ function saveEvents(q: QueuedEvent[]) {
     // 저장 공간을 못 쓰면 아래 sendEvent가 오류로 알린다
   }
 }
-/** 연결 문제·서버 일시 장애인지 (다시 보내면 되는 실패) */
-const transient = (e: unknown) => !(e instanceof ApiError) || e.status >= 500 || e.status === 0
+/** 연결 문제·서버 일시 장애·로그인 만료인지 (다시 보내면 되는 실패. 사진 대기함과 같은 기준) */
+const transient = (e: unknown) => !(e instanceof ApiError) || retryable(e.status, e.code)
+/** 정리 (SYN-06): 보관 기한(활동일 +2일 00:00 KST)이 지난 대기 이벤트를 지운다. 지운 수를 돌려준다 */
+export function pruneEvents(now = Date.now()): number {
+  const q = loadEvents()
+  const kept = q.filter((e) => now < keepUntil(e.queuedAt))
+  if (kept.length !== q.length) saveEvents(kept)
+  return q.length - kept.length
+}
 /** 대기 중인 이벤트 수 */
 export const pendingEvents = () => loadEvents().length
 /** 이벤트 보내기. 저장만 하고 넘어갔으면 queued=true */

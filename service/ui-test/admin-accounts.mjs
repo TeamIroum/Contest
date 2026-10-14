@@ -34,6 +34,11 @@ try {
     const ok = await nav.getByRole('button', { name: new RegExp(menu) }).count()
     console.log(`  ${login}: ${ok ? `'${menu}' 메뉴 보임` : `'${menu}' 메뉴 없음`}`)
     if (!ok) problems.push(`${login}에 '${menu}' 메뉴가 없음`)
+    // 첫 화면은 그 계정의 첫 메뉴여야 한다 (다른 역할 화면이 먼저 보이면 안 됨)
+    await page.waitForTimeout(800)
+    const heading = (await page.locator('main h1').first().innerText().catch(() => '')).trim()
+    console.log(`    첫 화면: ${heading}`)
+    if (!heading.includes(menu)) problems.push(`${login} 첫 화면이 '${menu}'가 아니라 '${heading}'`)
     await page.screenshot({ path: path.join(SHOTS, `계정-${login}.png`) })
     await ctx.close()
   }

@@ -69,9 +69,13 @@ public class PatrolReassignmentService {
             throw new ApiException(ErrorCode.ACTIVITY_ALREADY_RECORDED, "출발한 순회는 조원·코스를 바꿀 수 없어요.");
         }
         boolean routeChanged = false;
+        UUID base = (UUID) p.get("base_organization_id");
         if (routeVersionId != null && !routeVersionId.equals(p.get("route_version_id"))) {
             changeRoute(program, patrolId, routeVersionId);
             routeChanged = true;
+            // 코스를 바꾸면 출발 거점도 새 코스의 거점으로 바뀐다. 조원 교체는 바뀐 거점의 편성 단위에서 한다
+            // (예전 거점으로 찾으면 순회가 그 단위에 없어 404가 났다)
+            base = jdbc.queryForObject("SELECT base_organization_id FROM patrols WHERE id = ?", UUID.class, patrolId);
         }
         boolean membersChanged = false;
         if (participantIds != null) {
@@ -92,7 +96,7 @@ public class PatrolReassignmentService {
             }
             if (!new java.util.HashSet<>(before).equals(new java.util.HashSet<>(next))) {
                 TeamFormationService.UnitKey unit = new TeamFormationService.UnitKey(program, (UUID) p.get("organization_id"),
-                        (UUID) p.get("base_organization_id"), ((java.sql.Date) p.get("activity_date")).toLocalDate(),
+                        base, ((java.sql.Date) p.get("activity_date")).toLocalDate(),
                         ((java.sql.Timestamp) p.get("scheduled_start_at")).toInstant());
                 // 원본 재편성: 버전 확인·잠금·편성 규칙·이력·감사·version 올리기를 한다
                 formation.reassign(user, unit, Map.of(patrolId, next), Map.of(patrolId, current), why);

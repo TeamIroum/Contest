@@ -266,6 +266,12 @@ export default function App() {
     return () => clearTimeout(t)
   }, [p3?.status, p3Done]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // (훅은 아래 이른 반환보다 앞에 둔다)
+  // 로그인(또는 되살림)한 계정의 메뉴에 없는 화면이면 그 계정의 첫 메뉴로 연다 (예: 시설 담당자는 검토 목록)
+  const allowed = NAV.filter((g) => ME.roles.includes(g.role)).flatMap((g) => g.items.map((it) => it.v))
+  useEffect(() => {
+    if (stage === 'in' && allowed.length && !allowed.includes(view)) setView(allowed[0])
+  }, [stage, view, allowed.join()]) // eslint-disable-line react-hooks/exhaustive-deps
   if (stage === 'checking')
     return (
       <Shell>

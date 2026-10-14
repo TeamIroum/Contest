@@ -528,7 +528,7 @@ function FacilityModal({ facility, depts, onClose }: { facility: real.RealFacili
           <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} maxLength={100} placeholder="예: 시장 앞 보도블록" />
         </Field>
         <Field label="구역">
-          <input value={area} onChange={(e) => setArea(e.target.value)} className={inputCls} maxLength={100} placeholder="예: ○○동 1구역" />
+          <input value={area} onChange={(e) => setArea(e.target.value)} className={inputCls} maxLength={100} placeholder="예: 옥정1동 1구역" />
         </Field>
         <Field label="위도">
           <input value={lat} onChange={(e) => setLat(e.target.value)} className={inputCls} inputMode="decimal" placeholder="37.000100" />

@@ -28,6 +28,8 @@ try {
     await d.getByLabel('이름').fill(name)
     await d.getByLabel('휴대폰').fill(`010-0000-8${stamp}`.slice(0, 12) + i)
     await d.getByRole('button', { name: '화', exact: true }).click()
+    // 시연 어르신과 같은 수행기관으로 (목록 첫 항목은 앞선 시험이 만든 기관일 수 있다)
+    if (await d.getByLabel('소속 기관').count()) await d.getByLabel('소속 기관').selectOption({ label: '옥정동 노인복지관' })
     await d.getByRole('button', { name: '등록', exact: true }).click()
     await page.locator('main tr').filter({ hasText: name }).first().waitFor({ timeout: 10000 })
   }

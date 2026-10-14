@@ -41,6 +41,23 @@ async function tx(store, mode, fn) {
   });
 }
 
+// 휴대폰 자료 정리 규칙 (기능정의서 SYN-06)
+//   - 보관 기한: 서버 전송 기한(활동일 다음 날 00:00 KST)에 휴대폰 시계 오차 하루를 더한 '활동일 +2일 00:00 KST'.
+//     기한이 지난 대기 사진은 서버도 받지 않으므로 지운다 (미방문·건너뛰기 확정은 서버가 처리)
+//   - 서버가 최종 거절한 사진(4xx)은 다시 보내도 같으므로 바로 지운다. 로그인 만료(401)·로그인 전 권한 없음(403 FORBIDDEN, 이유 코드 없음)·
+//     처리 중(409)·잠시 많음(429)·5xx·연결 끊김은 남겨 다시 보낸다
+//   - 보낸 기록(results)은 7일 뒤 지운다
+const DAY = 24 * 60 * 60 * 1000;
+const KST = 9 * 60 * 60 * 1000;
+const kstDay = (t) => Math.floor((t + KST) / DAY);
+/** 활동 시각(ISO)의 자료를 휴대폰에 둘 수 있는 마지막 시각(ms): 활동일(KST) +2일 00:00 KST */
+export const keepUntil = (iso) => (kstDay(Date.parse(iso)) + 2) * DAY - KST;
+export const SENT_RECORD_DAYS = 7;
+/** 다시 보내면 되는 실패인지 */
+export const retryable = (status, code) =>
+  !status || status === 401 || (status === 403 && (!code || code === "FORBIDDEN")) || status === 408 || status === 429 ||
+  status >= 500 || code === "SUBMISSION_PROCESSING";
+
 // 사진은 Blob이 아니라 바이트(ArrayBuffer)로 넣는다. 아이폰 사파리는 IndexedDB에 Blob을 넣다 실패하는 경우가 있다
 export async function put(item) {
   const { blob, ...rest } = item;
@@ -97,9 +114,15 @@ async function sendOnce(item, { apiBase, headers = {}, onUploaded }) {
     await remove(item.clientSubmissionId);
     return { done: true, http: resp.status, body };
   }
-  // 그 밖(503, 409 처리 중, 4xx 형식 오류)은 남겨 두고 이유를 적는다. 4xx 형식 오류는 자동으로 다시 보내지 않음(지우기 가능)
-  const permanent = resp.status >= 400 && resp.status < 500 && body.code !== "SUBMISSION_PROCESSING";
-  await keep(item, { lastError: `${resp.status} ${body.code || ""} ${body.message || body.detail || ""}`.trim(), permanent });
+  // 서버가 최종 거절한 사진(4xx: 기한 지남·참여 중지·형식 오류 등)은 다시 보내도 같으므로 기록만 남기고 지운다 (SYN-06)
+  if (!retryable(resp.status, body.code)) {
+    await logResult({ clientSubmissionId: item.clientSubmissionId, stopId: item.stopId, stopName: item.stopName,
+      capturedAt: item.capturedAt, http: resp.status, body, at: new Date().toISOString() });
+    await remove(item.clientSubmissionId);
+    return { done: false, rejected: true, http: resp.status, body };
+  }
+  // 그 밖(5xx, 409 처리 중, 401 로그인 만료)은 남겨 두고 이유를 적는다
+  await keep(item, { lastError: `${resp.status} ${body.code || ""} ${body.message || body.detail || ""}`.trim() });
   return { done: false, http: resp.status, body };
 }
 
@@ -129,13 +152,36 @@ async function keep(item, patch) {
   await tx(STORE, "readwrite", (s) => s.put({ ...cur, ...patch, tries: (cur.tries || 0) + 1 }));
 }
 
+/** 정리 (SYN-06): 보관 기한이 지난 대기 사진·예전 방식의 거절 표시(permanent)·7일 지난 보낸 기록을 지운다. 지운 수를 돌려준다 */
+export async function prune(now = Date.now()) {
+  let removed = 0;
+  for (const item of await all()) {
+    if (item.permanent || !(now < keepUntil(item.capturedAt))) {
+      if (inflight.has(item.clientSubmissionId)) continue;
+      await remove(item.clientSubmissionId);
+      removed++;
+    }
+  }
+  for (const r of await results()) {
+    if (!(now - Date.parse(r.at) < SENT_RECORD_DAYS * DAY)) {
+      await tx(LOG, "readwrite", (s) => s.delete(r.clientSubmissionId));
+      removed++;
+    }
+  }
+  return removed;
+}
+
 let flushing = null;
 export function flush(opts) {
   if (!flushing) {
     flushing = (async () => {
       const out = [];
       for (const item of await all()) {
-        if (item.permanent) continue;
+        // 보관 기한이 지났거나 예전 방식의 거절 표시면 보내지 않고 지운다 (정리와 재전송이 동시에 시작돼도 같은 결과)
+        if (item.permanent || !(Date.now() < keepUntil(item.capturedAt))) {
+          await remove(item.clientSubmissionId);
+          continue;
+        }
         const r = await send(item, opts);
         out.push({ item, ...r });
         if (r.offline) break;    // 연결이 없으면 나머지도 실패하므로 멈춤

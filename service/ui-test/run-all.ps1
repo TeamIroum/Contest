@@ -58,6 +58,9 @@ if (Test-Path $video) { $env:VIDEO = $video }
 Run 'senior-offline' @('senior-offline.mjs', $senior, $admin)
 Remove-Item env:VIDEO -ErrorAction SilentlyContinue
 
+Write-Host '― 1-4. 휴대폰 자료 정리: 보관 기한 지난 대기 자료·7일 지난 보낸 기록 삭제 (SYN-06, 서버 데이터 안 바꿈)'
+Run 'senior-cleanup' @('senior-cleanup.mjs', $senior)
+
 Write-Host '― 2. 촬영 · 화면 둘러보기 · 쉬기 · 관리자 화면 · 판정 · 개인정보 검토 · 참여자 계정 · 조 편성 · 코스·순회 배정 · 재점검 배정 · 통계 · 운영(알림·기관·감사) · 공무원 계정'
 Reset-Today
 if (Test-Path $video) { $env:VIDEO = $video }

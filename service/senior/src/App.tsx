@@ -6,7 +6,7 @@ import * as quality from './camera/quality.js'
 import * as masking from './masking/masking.js'
 import * as outbox from './offline/outbox.js'
 import type { OutboxItem, SubmitBody } from './offline/outbox.js'
-import { ApiError, NoPatrolError, REAL_BACKEND, fetchPatrol, flushEvents, kstClock, maybeSignedIn, pendingEvents, restoreSession, sendPause, sendReturn, sendSkip, fetchTodayPatrol, memberStates, requestAttendance, requestOtp, sendOpts, startActivity, verifyOtp, type ApiPatrol, type OtpChallenge } from './api/client'
+import { ApiError, NoPatrolError, REAL_BACKEND, fetchPatrol, flushEvents, pruneEvents, kstClock, maybeSignedIn, pendingEvents, restoreSession, sendPause, sendReturn, sendSkip, fetchTodayPatrol, memberStates, requestAttendance, requestOtp, sendOpts, startActivity, verifyOtp, type ApiPatrol, type OtpChallenge } from './api/client'
 import { playNotify, playRetake, playShutter, playSuccess, setSoundEnabled, unlockAudio } from './sounds'
 import { ABORT_REASONS, MAX_ATTEMPTS, ME, PARTNER, SKIP_REASONS, STAFF, STOPS, TEAM, applyPatrol, slotDone, stopDone, type Stop } from './data'
 
@@ -226,6 +226,9 @@ export default function App() {
   const updatePending = () => outbox.count().then((n) => setPending(n + pendingEvents()), () => setPending(pendingEvents()))
   // 대기 사진은 앱을 다시 볼 때, 연결이 돌아올 때 다시 보낸다
   useEffect(() => {
+    // 휴대폰 자료 정리 (SYN-06): 보관 기한(활동일 +2일 00:00 KST)이 지난 대기 자료·7일 지난 보낸 기록을 앱을 열 때 지운다
+    pruneEvents()
+    outbox.prune().catch(() => 0).finally(updatePending)
     const retry = () => {
       if (!navigator.onLine) return
       // 건너뛰기·쉬기·복귀 기록과 사진을 함께 다시 보낸다 (SYN-05)
@@ -426,7 +429,7 @@ export default function App() {
     setNext({ nextAction: b.nextAction, nextStopId: b.nextStopId })
     if (!r.done) {
       // 연결 끊김·5xx·처리 중은 접수가 아니다 → 전송 대기 (성공으로 안내하지 않음). 그 밖의 4xx는 보내지 못함
-      const later = r.offline || (r.http ?? 0) >= 500 || b.code === 'SUBMISSION_PROCESSING'
+      const later = r.offline || outbox.retryable(r.http, b.code)
       setOutcome(later ? 'queued' : 'error')
       playNotify()
       return setScreen('sent')

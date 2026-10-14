@@ -22,7 +22,7 @@ try {
   const d = page.getByRole('dialog', { name: '시설 등록' })
   await d.getByLabel('시설 코드').fill(CODE)
   await d.getByLabel('이름').fill('시험 보도블록')
-  await d.getByLabel('구역').fill('○○동 2구역')
+  await d.getByLabel('구역').fill('옥정1동 2구역')
   await d.getByLabel('위도').fill('37.000500')
   await d.getByLabel('경도').fill('127.000500')
   await shot('시설-등록창')

@@ -39,13 +39,13 @@ export type AdminAccount = {
 export const ADMINS: AdminAccount[] = [
   { id: 'a1', name: '이수진', org: '양주시니어클럽', loginId: 'demo.admin', roles: ['ACTIVITY_MANAGER', 'FACILITY_MANAGER', 'PROGRAM_MANAGER', 'SYSTEM_ADMIN'], status: 'ACTIVE', temp: false, locked: false },
   { id: 'a2', name: '최민호', org: '양주시 도로관리과', loginId: 'road.choi', roles: ['FACILITY_MANAGER'], status: 'ACTIVE', temp: false, locked: false },
-  { id: 'a3', name: '한지은', org: '양주시 공원녹지과', loginId: 'park.han', roles: ['FACILITY_MANAGER'], status: 'ACTIVE', temp: true, locked: false },
+  { id: 'a3', name: '한지은', org: '양주시 공원사업과', loginId: 'park.han', roles: ['FACILITY_MANAGER'], status: 'ACTIVE', temp: true, locked: false },
   { id: 'a4', name: '오세훈', org: '양주시 하수과', loginId: 'sewer.oh', roles: ['FACILITY_MANAGER'], status: 'ACTIVE', temp: false, locked: true },
   { id: 'a5', name: '정다은', org: '양주시니어클럽', loginId: 'club.jung', roles: ['ACTIVITY_MANAGER'], status: 'ACTIVE', temp: false, locked: false },
   { id: 'a6', name: '김태윤', org: '양주시 복지정책과', loginId: 'welfare.kim', roles: ['PROGRAM_MANAGER'], status: 'SUSPENDED', temp: false, locked: false },
 ]
 
-export const ORGS = ['양주시니어클럽', '양주시 도로관리과', '양주시 공원녹지과', '양주시 하수과', '양주시 안전총괄과', '양주시 복지정책과']
+export const ORGS = ['양주시니어클럽', '양주시 도로관리과', '양주시 공원사업과', '양주시 하수과', '양주시 시민안전과', '양주시 복지정책과']
 
 /* ---------------- 시설 ---------------- */
 
@@ -65,16 +65,16 @@ export const AI_SUPPORTED: Kind[] = ['sidewalk', 'drain', 'bench', 'fence', 'exe
 /** 계절 시설: 해당 계절 코스에만 넣는다 */
 export const SEASONAL: Partial<Record<Kind, string>> = { snowbox: '겨울(11~3월)', shade: '여름(5~9월)' }
 
-export const DEPTS = ['도로관리과', '하수과', '공원녹지과', '안전총괄과']
+export const DEPTS = ['도로관리과', '하수과', '공원사업과', '시민안전과']
 export const DEPT_OF: Record<Kind, string> = {
   sidewalk: '도로관리과',
   drain: '하수과',
-  bench: '공원녹지과',
-  fence: '안전총괄과',
-  exercise: '공원녹지과',
-  playground: '공원녹지과',
+  bench: '공원사업과',
+  fence: '시민안전과',
+  exercise: '공원사업과',
+  playground: '공원사업과',
   snowbox: '도로관리과',
-  shade: '공원녹지과',
+  shade: '공원사업과',
 }
 
 /** dept·deptId: 실제 백엔드의 관리 부서 (예시 데이터는 DEPT_OF로 정함) */
@@ -416,11 +416,11 @@ export type Issue = {
 export const ISSUES: Issue[] = [
   {
     id: 'IS-1003-01', facilityId: 'f3', title: '놀이터 그네 줄 끊어짐', status: 'AWAITING_VERIFICATION', priority: 'URGENT', createdAt: '10/03 10:20',
-    repairs: [{ round: 1, dept: '공원녹지과', memo: '그네 줄 교체', requestedAt: '10/03 14:00', startedAt: '10/06 09:00', completedAt: '10/08 16:30', description: '그네 줄 2개 교체', evidence: true }],
+    repairs: [{ round: 1, dept: '공원사업과', memo: '그네 줄 교체', requestedAt: '10/03 14:00', startedAt: '10/06 09:00', completedAt: '10/08 16:30', description: '그네 줄 2개 교체', evidence: true }],
     verification: {},
     logs: [
       { at: '10/03 10:20', who: '이수진', text: '이상 확인 → 사건 접수' },
-      { at: '10/03 14:00', who: '이수진', text: '공원녹지과에 보수 요청' },
+      { at: '10/03 14:00', who: '이수진', text: '공원사업과에 보수 요청' },
       { at: '10/06 09:00', who: '한지은', text: '보수 시작' },
       { at: '10/08 16:30', who: '한지은', text: '보수 완료 · 재점검 요청 생성' },
       { at: '10/09 11:00', who: '이수진', text: '재점검을 10/12 3조 순회에 배정' },
@@ -428,23 +428,23 @@ export const ISSUES: Issue[] = [
   },
   {
     id: 'IS-1002-01', facilityId: 'f6', title: '하천 산책로 펜스 기울어짐', status: 'AWAITING_VERIFICATION', priority: 'NORMAL', createdAt: '10/02 11:05',
-    repairs: [{ round: 1, dept: '안전총괄과', memo: '기둥 재고정', requestedAt: '10/02 15:00', startedAt: '10/05 10:00', completedAt: '10/07 15:00', description: '기둥 고정 작업' }],
+    repairs: [{ round: 1, dept: '시민안전과', memo: '기둥 재고정', requestedAt: '10/02 15:00', startedAt: '10/05 10:00', completedAt: '10/07 15:00', description: '기둥 고정 작업' }],
     verification: {},
     logs: [
       { at: '10/02 11:05', who: '이수진', text: '이상 확인 → 사건 접수' },
-      { at: '10/02 15:00', who: '이수진', text: '안전총괄과에 보수 요청' },
-      { at: '10/07 15:00', who: '안전총괄과', text: '보수 완료 · 재점검 요청 생성' },
+      { at: '10/02 15:00', who: '이수진', text: '시민안전과에 보수 요청' },
+      { at: '10/07 15:00', who: '시민안전과', text: '보수 완료 · 재점검 요청 생성' },
       { at: '10/09 11:02', who: '이수진', text: '재점검을 10/12 3조 순회에 배정' },
     ],
   },
   {
     id: 'IS-1008-01', facilityId: 'f12', title: '중학교 옆 펜스 기울어짐', status: 'IN_REPAIR', priority: 'NORMAL', createdAt: '10/08 15:20', reviewId: 'rv-1008-01',
-    repairs: [{ round: 1, dept: '안전총괄과', memo: '기둥 1개 기울어짐', requestedAt: '10/08 15:25', startedAt: '10/10 09:30' }],
+    repairs: [{ round: 1, dept: '시민안전과', memo: '기둥 1개 기울어짐', requestedAt: '10/08 15:25', startedAt: '10/10 09:30' }],
     verification: {},
     logs: [
       { at: '10/08 15:20', who: '이수진', text: '이상 확인 → 사건 접수' },
-      { at: '10/08 15:25', who: '이수진', text: '안전총괄과에 보수 요청' },
-      { at: '10/10 09:30', who: '안전총괄과', text: '보수 시작' },
+      { at: '10/08 15:25', who: '이수진', text: '시민안전과에 보수 요청' },
+      { at: '10/10 09:30', who: '시민안전과', text: '보수 시작' },
     ],
   },
   {
@@ -458,22 +458,22 @@ export const ISSUES: Issue[] = [
   },
   {
     id: 'IS-1009-02', facilityId: 'f11', title: '체육공원 허리돌리기 고정볼트 풀림', status: 'AWAITING_VERIFICATION', priority: 'NORMAL', createdAt: '10/09 11:10',
-    repairs: [{ round: 1, dept: '공원녹지과', memo: '볼트 조임', requestedAt: '10/09 14:00', startedAt: '10/10 10:00', completedAt: '10/10 11:30', description: '볼트 4개 조임' }],
+    repairs: [{ round: 1, dept: '공원사업과', memo: '볼트 조임', requestedAt: '10/09 14:00', startedAt: '10/10 10:00', completedAt: '10/10 11:30', description: '볼트 4개 조임' }],
     verification: { after: { at: '10/12 09:52', team: '2조', bad: false } },
     logs: [
       { at: '10/09 11:10', who: '이수진', text: '이상 확인 → 사건 접수' },
-      { at: '10/10 11:30', who: '공원녹지과', text: '보수 완료 · 재점검 요청 생성' },
+      { at: '10/10 11:30', who: '공원사업과', text: '보수 완료 · 재점검 요청 생성' },
       { at: '10/10 14:00', who: '이수진', text: '재점검을 10/12 2조 순회에 배정' },
       { at: '10/12 09:52', who: '시스템', text: '재점검 사진 접수 (2조)' },
     ],
   },
   {
     id: 'IS-1006-01', facilityId: 'f9', title: '주민센터 앞 벤치 앉는 판 파손', status: 'AWAITING_VERIFICATION', priority: 'NORMAL', createdAt: '10/01 10:40',
-    repairs: [{ round: 1, dept: '공원녹지과', memo: '앉는 판 교체', requestedAt: '10/01 14:00', startedAt: '10/05 09:00', completedAt: '10/06 17:00', description: '앉는 판 1장 교체' }],
+    repairs: [{ round: 1, dept: '공원사업과', memo: '앉는 판 교체', requestedAt: '10/01 14:00', startedAt: '10/05 09:00', completedAt: '10/06 17:00', description: '앉는 판 1장 교체' }],
     verification: { after: { at: '10/12 09:35', team: '1조', bad: true } },
     logs: [
       { at: '10/01 10:40', who: '이수진', text: '이상 확인 → 사건 접수' },
-      { at: '10/06 17:00', who: '공원녹지과', text: '보수 완료 · 재점검 요청 생성' },
+      { at: '10/06 17:00', who: '공원사업과', text: '보수 완료 · 재점검 요청 생성' },
       { at: '10/07 10:00', who: '이수진', text: '재점검을 10/12 1조 순회에 배정' },
       { at: '10/12 09:35', who: '시스템', text: '재점검 사진 접수 (1조)' },
     ],
