@@ -360,7 +360,18 @@ export const ISSUE_STATUS_NAME: Record<IssueStatus, string> = {
 }
 export const ISSUE_FLOW: IssueStatus[] = ['OPEN', 'REPAIR_REQUESTED', 'IN_REPAIR', 'AWAITING_VERIFICATION', 'CLOSED']
 
-export type Repair = { round: number; dept: string; memo: string; requestedAt: string; startedAt?: string; completedAt?: string; description?: string; evidence?: boolean }
+export type Repair = {
+  round: number
+  dept: string
+  memo: string
+  requestedAt: string
+  startedAt?: string
+  completedAt?: string
+  description?: string
+  evidence?: boolean
+  /** 보수 증빙 사진 (실제 업무 서버. 기기에서 가린 뒤 서버 개인정보 검사를 거친 사진) */
+  evidenceMedia?: import('./media').MediaRef[]
+}
 
 export type Verification = {
   /** 재점검 사진이 들어왔는지, 그림에 이상이 남아 있는지 */

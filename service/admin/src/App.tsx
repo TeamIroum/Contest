@@ -27,8 +27,9 @@ import { Stats } from './Stats'
 import { Admins } from './Admins'
 import { Button, Pill, Toast, inputCls } from './ui'
 import { nowAt } from './util'
-import { REAL_BACKEND, ApiError, changePassword, fetchMe, login, logout, setSessionEndedHandler } from './api/client'
+import { REAL_BACKEND, ApiError, changePassword, fetchMe, login, logout, markSignedIn, restoreSession, setSessionEndedHandler } from './api/client'
 import { RealAdmins } from './RealAdmins'
+import { NotificationMenu, RealAudit, RealOrgs } from './RealOps'
 import { RealAssign } from './RealAssign'
 import { RealStats } from './RealStats'
 import { applyServerDefectCodes, loadIssues, loadReviews, loadTodayPatrols, onRealChanged, onRealError, todayKst } from './api/real'
@@ -36,7 +37,7 @@ import { ALERT_LABEL, loadAlertSettings, playAlert, saveAlertSettings, unlockAle
 
 // 시니어 동네 점검단 · 관리자 웹
 // 시연: 관리자 계정 하나에 세 역할(활동 담당자 · 시설 담당자 · 사업 총괄). 역할별로 메뉴를 나눈다.
-type View = 'today' | 'teams' | 'assign' | 'participants' | 'review' | 'issues' | 'stats' | 'admins'
+type View = 'today' | 'teams' | 'assign' | 'participants' | 'review' | 'issues' | 'stats' | 'orgs' | 'audit' | 'admins'
 
 const NAV: { role: Role; items: { v: View; label: string }[] }[] = [
   {
@@ -57,12 +58,19 @@ const NAV: { role: Role; items: { v: View; label: string }[] }[] = [
   },
   {
     role: 'PROGRAM_MANAGER',
-    items: [{ v: 'stats', label: '통계·보고' }],
+    items: [
+      { v: 'stats', label: '통계·보고' },
+      { v: 'orgs', label: '기관·거점' },
+      { v: 'audit', label: '감사 이력' },
+    ],
   },
   {
     // 공무원 계정 발급·초기화·잠금 해제는 시스템 관리자만 (D-04)
     role: 'SYSTEM_ADMIN',
-    items: [{ v: 'admins', label: '공무원 계정' }],
+    items: [
+      { v: 'admins', label: '공무원 계정' },
+      { v: 'audit', label: '감사 이력' },
+    ],
   },
 ]
 
@@ -82,7 +90,8 @@ const P3_REVIEW: Record<string, string> = { f1: 'rv-1012-01', f2: 'rv-1012-02', 
 const P3_IDS = Object.values(P3_REVIEW)
 
 export default function App() {
-  const [stage, setStage] = useState<'login' | 'password' | 'in'>('login')
+  // 실제 백엔드: 처음에는 갱신 쿠키로 로그인을 되살려 보고(checking), 안 되면 로그인 화면
+  const [stage, setStage] = useState<'checking' | 'login' | 'password' | 'in'>(REAL_BACKEND ? 'checking' : 'login')
   const [view, setView] = useState<View>('today')
   // 실제 백엔드: 검토·사건·오늘 순회는 서버 값으로 채운다. 나머지 메뉴(예시)는 아래 demo* 값을 쓴다
   const [reviews, setReviews] = useState<ReviewTask[]>(() => (REAL_BACKEND ? [] : REVIEWS.filter((r) => !P3_IDS.includes(r.id))))
@@ -159,7 +168,24 @@ export default function App() {
   }, [stage])
   useEffect(() => onRealError(setRealError), [])
   useEffect(() => {
-    setSessionEndedHandler(() => setStage('login'))
+    setSessionEndedHandler(() => {
+      markSignedIn(false)
+      setStage('login')
+    })
+  }, [])
+  useEffect(() => {
+    if (!REAL_BACKEND) return
+    let alive = true
+    restoreSession().then(async (me) => {
+      if (!alive) return
+      if (me && !me.passwordChangeRequired) {
+        await applyMe(savedLoginId(), me)
+        if (alive) setStage('in')
+      } else setStage('login')
+    })
+    return () => {
+      alive = false
+    }
   }, [])
 
   // 시연: 로그인 뒤 잠시 있으면 박영자 어르신의 출석 요청이 들어온다
@@ -239,6 +265,12 @@ export default function App() {
     return () => clearTimeout(t)
   }, [p3?.status, p3Done]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  if (stage === 'checking')
+    return (
+      <Shell>
+        <p className="m-0 text-sm text-sub">로그인 확인 중…</p>
+      </Shell>
+    )
   if (stage === 'login')
     return (
       <Login
@@ -374,6 +406,7 @@ export default function App() {
           </p>
           <div className="flex flex-none items-center gap-2">
             <p className="m-0 hidden text-sm font-semibold text-sub sm:block">{TODAY_LABEL}</p>
+            {REAL_BACKEND && <NotificationMenu onGo={(v) => go(v as View)} />}
             <AlertSoundMenu value={alerts} onChange={setAlerts} />
           </div>
         </div>
@@ -416,6 +449,8 @@ export default function App() {
           {view === 'issues' && <Issues issues={issues} setIssues={setIssues} reqs={reqs} setReqs={setReqs} patrols={patrols} selected={selIssue} onSelect={setSelIssue} onGoAssign={() => go('assign')} />}
           {view === 'stats' && (REAL_BACKEND ? <RealStats /> : <Stats reviews={reviews} issues={issues} patrols={patrols} teams={teams} />)}
           {view === 'admins' && (REAL_BACKEND ? <RealAdmins me={ME.loginId} /> : <Admins />)}
+          {view === 'orgs' && (REAL_BACKEND ? <RealOrgs /> : <p className="m-0 text-sm text-sub">기관·거점 관리는 실제 업무 서버에 연결했을 때만 씁니다.</p>)}
+          {view === 'audit' && (REAL_BACKEND ? <RealAudit /> : <p className="m-0 text-sm text-sub">감사 이력은 실제 업무 서버에 연결했을 때만 볼 수 있습니다.</p>)}
           <p className="mt-8 text-center text-xs text-mute">
             {REAL_BACKEND
               ? '업무 서버에 연결되어 있습니다. AI 판독 결과는 판단 지원이며 판정은 담당자가 확정합니다.'
@@ -465,6 +500,8 @@ const ICON: Record<View, string> = {
   issues: 'M14.5 6.5a4 4 0 0 0-5.3 5.3L4 17l3 3 5.2-5.2a4 4 0 0 0 5.3-5.3l-2.5 2.5-2.5-.5-.5-2.5Z',
   stats: 'M5 20V10M12 20V4M19 20v-7',
   admins: 'M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6Z',
+  orgs: 'M4 20V8l8-4 8 4v12M9 20v-6h6v6',
+  audit: 'M7 4h10v16H7ZM10 8h4M10 12h4M10 16h2',
 }
 
 function NavIcon({ v }: { v: View }) {
@@ -564,7 +601,21 @@ function Shell({ children }: { children: ReactNode }) {
 }
 
 /** 실제 백엔드: 로그인한 계정의 이름·역할·소속을 화면에 반영한다 */
+/** 새로 고침 뒤에도 아이디를 보여 주려고 이 탭에만 둔다 (비밀 값 아님. /me 응답에는 아이디가 없다) */
+function savedLoginId() {
+  try {
+    return sessionStorage.getItem('admin-login-id') ?? ''
+  } catch {
+    return ''
+  }
+}
 async function applyMe(loginId: string, user: { name: string; roles: string[] }) {
+  markSignedIn(true)
+  try {
+    if (loginId) sessionStorage.setItem('admin-login-id', loginId)
+  } catch {
+    // 저장 못 해도 로그인은 그대로
+  }
   ME.loginId = loginId
   ME.name = user.name
   ME.roles = user.roles.filter((r): r is Role => r in ROLE_NAME)
@@ -624,28 +675,8 @@ function Login({ onLogin }: { onLogin: (first: boolean, creds?: { loginId: strin
         </Button>
         <p className="m-0 text-xs leading-relaxed text-mute">계정은 직접 만들 수 없습니다. 시스템 관리자가 발급한 계정을 사용하세요. 비밀번호를 5번 연속 틀리면 10분 동안 잠기며, 시스템 관리자에게 초기화나 잠금 해제를 요청할 수 있습니다.</p>
       </form>
-      {REAL_BACKEND ? (
-        <div className="mt-4 rounded-[18px] border border-dashed border-line-strong bg-surface/70 p-3">
-          <p className="m-0 mb-2 text-xs font-semibold text-mute">시연 계정 (누르면 아이디가 입력됩니다. 비밀번호는 담당자에게 받으세요)</p>
-          <div className="grid gap-1.5">
-            {[
-              ['demo-activity', '활동 담당자 · 출석·출발·복귀 확인'],
-              ['demo-road', '시설 담당자(도로) · 검토·판정·사건'],
-              ['demo-sewer', '시설 담당자(하수) · 검토·판정·사건'],
-            ].map(([lid, label]) => (
-              <button
-                key={lid}
-                type="button"
-                onClick={() => setId(lid)}
-                aria-pressed={id === lid}
-                className="rounded-xl border border-line bg-surface px-3 py-2.5 text-left text-[14px] font-semibold text-sub aria-pressed:border-brand aria-pressed:bg-brand-50 aria-pressed:text-brand"
-              >
-                {lid} <span className="font-normal text-mute">· {label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : (
+      {/* 실제 백엔드: 시연 계정 목록을 보여 주지 않는다 (아이디는 담당자가 따로 알려 줌) */}
+      {!REAL_BACKEND && (
       <div className="mt-4 rounded-[18px] border border-dashed border-line-strong bg-surface/70 p-3">
         <p className="m-0 mb-2 text-xs font-semibold text-mute">시연용 계정 (누르면 입력됩니다)</p>
         <div className="grid gap-1.5">

@@ -6,7 +6,7 @@ import * as quality from './camera/quality.js'
 import * as masking from './masking/masking.js'
 import * as outbox from './offline/outbox.js'
 import type { OutboxItem, SubmitBody } from './offline/outbox.js'
-import { ApiError, NoPatrolError, REAL_BACKEND, fetchPatrol, kstClock, sendPause, sendReturn, sendSkip, fetchTodayPatrol, memberStates, requestAttendance, requestOtp, sendOpts, startActivity, verifyOtp, type ApiPatrol, type OtpChallenge } from './api/client'
+import { ApiError, NoPatrolError, REAL_BACKEND, fetchPatrol, kstClock, maybeSignedIn, restoreSession, sendPause, sendReturn, sendSkip, fetchTodayPatrol, memberStates, requestAttendance, requestOtp, sendOpts, startActivity, verifyOtp, type ApiPatrol, type OtpChallenge } from './api/client'
 import { playNotify, playRetake, playShutter, playSuccess, setSoundEnabled, unlockAudio } from './sounds'
 import { ABORT_REASONS, MAX_ATTEMPTS, ME, PARTNER, SKIP_REASONS, STAFF, STOPS, TEAM, applyPatrol, slotDone, stopDone, type Stop } from './data'
 
@@ -38,6 +38,19 @@ type Attend = 'none' | 'requested' | 'present'
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('start')
+  // 실제 백엔드: 새로 고침하면 갱신 쿠키로 로그인을 되살려 홈으로 (되살리는 동안은 기다림 화면)
+  const [restoring, setRestoring] = useState(maybeSignedIn)
+  useEffect(() => {
+    if (!restoring) return
+    restoreSession().then((u) => {
+      if (u) {
+        ME.name = u.name
+        setScreen('home')
+      }
+      setRestoring(false)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   /** 글씨 크기: 0 기본(큰 글씨) · 1 크게 · 2 아주 크게 */
   const [size, setSize] = useState<0 | 1 | 2>(0)
   const [sheet, setSheet] = useState<Sheet>(null)
@@ -540,7 +553,14 @@ export default function App() {
             <Paused onResume={() => pause(false)} />
           ) : (
             <>
-              {screen === 'start' && <Start onNext={() => setScreen('phone')} />}
+              {screen === 'start' &&
+                (restoring ? (
+                  <div className="grid min-h-[60vh] place-items-center text-center">
+                    <p className="m-0 text-[1.2rem] font-bold text-sub">불러오는 중이에요…</p>
+                  </div>
+                ) : (
+                  <Start onNext={() => setScreen('phone')} />
+                ))}
               {notice && (
                 <p className="m-0 rounded-xl bg-g3-soft p-3 text-[0.95rem] text-g3-ink" role="alert">
                   {notice}

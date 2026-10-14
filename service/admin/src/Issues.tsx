@@ -24,6 +24,7 @@ import {
 import { Button, Card, DetailPane, Empty, PickHint, PageHead, Pill, StatusBadge, Tabs, inputCls } from './ui'
 import { nowAt } from './util'
 import * as real from './api/real'
+import { EvidencePicker, type Evidence } from './EvidencePicker'
 
 // 시설 담당자 · 사건·보수 (API 10절)
 // 접수 → 보수 요청 → 보수 중 → 확인 대기 → 종결. 수리 확인은 사람이 최종 판정한다.
@@ -169,6 +170,7 @@ function IssueDetail({
   const [memo, setMemo] = useState('')
   const [desc, setDesc] = useState('')
   const [evidence, setEvidence] = useState(false)
+  const [evidencePhotos, setEvidencePhotos] = useState<Evidence[]>([])
   const [saving, setSaving] = useState(false)
   /** 실제 백엔드: 서버에 저장하고 다시 불러온다 (입력 칸은 성공했을 때만 비운다) */
   const save = (action: () => Promise<unknown>, clear: () => void) => {
@@ -196,7 +198,14 @@ function IssueDetail({
     patch({ status: 'IN_REPAIR', repairs: issue.repairs.map((r, i) => (i === issue.repairs.length - 1 ? { ...r, startedAt: at } : r)) }, '보수 시작')
   }
   function completeRepair() {
-    if (issue.real) return save(() => real.completeRepair(issue, desc.trim()), () => setDesc(''))
+    if (issue.real)
+      return save(
+        () => real.completeRepair(issue, desc.trim(), evidencePhotos.map((x) => x.mediaId)),
+        () => {
+          setDesc('')
+          setEvidencePhotos([])
+        },
+      )
     const at = nowAt()
     // 보수 완료와 재점검 요청 생성은 한 번에 기록한다 (API 10절)
     const rqId = `RQ-${at.slice(0, 5).replace('/', '')}-${issue.id.slice(-2)}${issue.repairs.length}`
@@ -262,6 +271,13 @@ function IssueDetail({
                       {r.evidence && ' · 증빙 사진 있음'}
                     </p>
                   )}
+                  {!!r.evidenceMedia?.length && (
+                    <div className="mt-1 grid max-w-md grid-cols-3 gap-2">
+                      {r.evidenceMedia.map((m) => (
+                        <Photo key={m.id} kind={f.kind} bad={false} media={m} className="aspect-[4/3] rounded-lg" label="보수 증빙" />
+                      ))}
+                    </div>
+                  )}
                 </li>
               ))}
             </ol>
@@ -310,6 +326,7 @@ function IssueDetail({
               <span className="font-semibold">완료 내용</span>
               <input value={desc} onChange={(e) => setDesc(e.target.value)} className={inputCls} placeholder="예: 블록 3장 교체" />
             </label>
+            {issue.real && <EvidencePicker issue={issue} value={evidencePhotos} onChange={setEvidencePhotos} disabled={saving} />}
             {!issue.real && (
             <label className="flex items-start gap-2 text-sm">
               <input type="checkbox" checked={evidence} onChange={(e) => setEvidence(e.target.checked)} className="mt-1" />
@@ -461,11 +478,9 @@ function Verify({
             <div className="grid aspect-[4/3] place-items-center rounded-[10px] border border-dashed border-line-strong bg-surface p-2 text-[14px] text-sub">
               {issue.real ? (
                 <span>
-                  재점검 촬영 배정은
+                  재점검 사진이 아직 없어요
                   <br />
-                  아직 준비 중이에요
-                  <br />
-                  <span className="text-xs text-mute">현장 확인으로 판정해 주세요</span>
+                  <span className="text-xs text-mute">활동 담당자가 다음 순회에 재점검을 배정하면 어르신이 찍어 옵니다. 급하면 현장 확인으로 판정해 주세요</span>
                 </span>
               ) : req?.status === 'ASSIGNED' ? (
                 <span>

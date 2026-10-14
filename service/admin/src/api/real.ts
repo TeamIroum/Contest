@@ -30,7 +30,7 @@ import {
   type Team,
   type TriggerReason,
 } from '../data'
-import { ApiError, api } from './client'
+import { ApiError, api, apiForm } from './client'
 
 /* ---------------- 처리 결과 알림 (App이 다시 불러오고, 실패하면 알림을 띄운다) ---------------- */
 
@@ -465,7 +465,7 @@ function toIssue(i: ApiIssue, verifications: ApiVerification[] = []): Issue {
     const cur = repairs.at(-1)
     if (!cur) continue
     if (e.type === 'STARTED') cur.startedAt = at
-    if (e.type === 'COMPLETED') Object.assign(cur, { completedAt: at, description: e.description ?? '', evidence: !!e.evidenceMedia?.length })
+    if (e.type === 'COMPLETED') Object.assign(cur, { completedAt: at, description: e.description ?? '', evidence: !!e.evidenceMedia?.length, evidenceMedia: e.evidenceMedia ?? [] })
   }
   const linked = i.inspections.filter((x) => !x.unlinkedAt)
   const before = linked[0]
@@ -519,8 +519,19 @@ export async function loadIssues(): Promise<Issue[]> {
 export const requestRepair = (i: Issue, memo: string) =>
   api('POST', `/admin/issues/${i.id}/repair-requests`, { assignedDepartmentId: i.real!.deptId, memo: memo || null, version: i.real!.version }, { idempotent: true })
 export const startRepair = (i: Issue) => api('POST', `/admin/issues/${i.id}/repair-starts`, { version: i.real!.version }, { idempotent: true })
-export const completeRepair = (i: Issue, description: string) =>
-  api('POST', `/admin/issues/${i.id}/repair-completions`, { description, completedAt: new Date().toISOString(), evidenceMediaIds: [], version: i.real!.version }, { idempotent: true })
+export const completeRepair = (i: Issue, description: string, evidenceMediaIds: string[] = []) =>
+  api('POST', `/admin/issues/${i.id}/repair-completions`, { description, completedAt: new Date().toISOString(), evidenceMediaIds, version: i.real!.version }, { idempotent: true })
+/** 보수 증빙 사진 올리기 (POST /admin/media, purpose=REPAIR_EVIDENCE). 기기에서 얼굴·번호판을 가린 사진만 받는다 */
+export function uploadEvidence(i: Issue, jpeg: Blob, report: unknown, maskingVersion: string) {
+  const form = new FormData()
+  form.append('purpose', 'REPAIR_EVIDENCE')
+  form.append('issueId', i.id)
+  form.append('deviceMasked', 'true')
+  form.append('deviceMaskReport', JSON.stringify(report))
+  form.append('maskingVersion', maskingVersion)
+  form.append('file', jpeg, 'evidence.jpg')
+  return apiForm<{ mediaId: string; privacyStatus: string }>('/admin/media', form)
+}
 
 /** 수리 확인(현장 확인): 준비(SITE_VISIT, 확인 내용) → 판정. 재점검 사진 판정은 재점검 촬영 칸 API가 생기면 연결 */
 export type VerifyInput = { decision: 'CLOSE' | 'REPAIR_AGAIN' | 'FOLLOW_UP_REQUIRED'; followUp?: 'REPHOTO' | 'SITE_VISIT'; fieldNote: string; reason: string }
@@ -655,7 +666,13 @@ export type ScheduledPatrol = {
   stops: number
   reinspectionSlots: number
   version: number
+  memberIds: string[]
+  routeVersionId: string
+  departureConfirmed: boolean
 }
+/** 출발 전 재배정(ACT-05): 바꿀 것만 보낸다 (조원 2~3명, 코스 현재 버전) */
+export const reassignPatrol = (p: ScheduledPatrol, next: { participantIds?: string[]; routeVersionId?: string; reason: string }) =>
+  api<ScheduledPatrol>('POST', `/admin/patrols/${p.id}/reassignments`, { ...next, version: p.version })
 export const hhmm = (iso: string) => kst(iso).slice(11, 16)
 /** 오늘부터 2주 순회 일정 (취소한 순회 제외) */
 export const loadSchedule = () => api<ScheduledPatrol[]>('GET', '/admin/patrol-schedule')
@@ -778,3 +795,30 @@ export type StatsReport = {
 }
 /** from·to: YYYY-MM-DD (한국 시간). 비우면 오늘까지 최근 14일 */
 export const loadStats = (from?: string, to?: string) => api<StatsReport>('GET', `/admin/stats?${new URLSearchParams({ ...(from ? { from } : {}), ...(to ? { to } : {}) })}`)
+
+/* ---------------- 보고 문장·엑셀 기록 (OPS-04·09), 감사 이력 (OPS-06), 기관·거점 (OPS-01), 알림 (OPS-05) ---------------- */
+
+export type Narrative = { id: string; from: string; to: string; text: string; source: 'llm' | 'template'; note: string | null; generatedAt: string; revision: number }
+/** 확정 집계값만 AI에 넘겨 보고 문장을 만든다. 숫자가 다르거나 AI가 안 되면 고정 문장 */
+export const makeNarrative = (from: string, to: string) => api<Narrative>('POST', '/admin/reports/narratives', { from, to })
+/** 엑셀을 내려받았다는 기록 (감사 이력) */
+export const recordExport = (from: string, to: string, sheets: string[]) => api('POST', '/admin/exports/records', { from, to, sheets })
+
+export type AuditEvent = { id: string; at: string; actorName: string | null; action: string; resourceType: string; resourceId: string; reason: string | null; before: unknown; after: unknown }
+export const loadAudit = (q: { action?: string; from?: string; to?: string; page?: number }) =>
+  api<{ items: AuditEvent[]; totalElements: number; page: number; size: number }>(
+    'GET',
+    `/admin/audit-events?${new URLSearchParams(Object.fromEntries(Object.entries({ ...q, size: 30 }).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)])))}`,
+  )
+export const loadAuditActions = () => api<{ action: string; resourceType: string; count: number }[]>('GET', '/admin/audit-events/actions')
+
+export type Org = { id: string; type: 'AGENCY' | 'DEPARTMENT' | 'MEETING_POINT'; name: string; parentId: string | null; parentName: string | null; status: 'ACTIVE' | 'INACTIVE'; people: number; version: number }
+export const loadOrgs = () => api<Org[]>('GET', '/admin/organizations')
+export const createOrg = (o: { type: Org['type']; name: string; parentId: string | null }) => api<Org>('POST', '/admin/organizations', o)
+export const updateOrg = (o: Org, next: { name?: string; status?: Org['status']; parentId?: string | null; changeParent?: boolean }) =>
+  api<Org>('PATCH', `/admin/organizations/${o.id}`, { ...next, version: o.version })
+
+export type AppNotification = { id: string; type: string; resourceType: string; resourceId: string; message: string; createdAt: string; readAt: string | null }
+export const loadNotifications = () => api<{ items: AppNotification[]; unread: number }>('GET', '/admin/notifications')
+export const readNotification = (id: string) => api('PUT', `/admin/notifications/${id}/read`)
+export const readAllNotifications = () => api('PUT', '/admin/notifications/read')

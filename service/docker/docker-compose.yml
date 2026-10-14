@@ -11,6 +11,8 @@ services:
       # 앞단 프록시(Caddy·nginx) 뒤에서 실제 클라이언트 IP를 X-Forwarded-For로 받는다. 그 프록시 주소만 믿는다.
       SERVER_FORWARD_HEADERS_STRATEGY: native
       SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES: ${WEB_PROXY_IP_REGEX}
+      # 기능정의서 출발 규칙: 출석 2명 확정·담당자 출발 확인 뒤 조 전체 시작 (false면 원본 개인 시작)
+      INSPECTION_ACTIVITY_TEAM_START: "true"
     ports:
       - "8080:8080"
     volumes:

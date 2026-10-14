@@ -40,7 +40,8 @@ class DemoAccountBootstrapTest {
     @Test
     void demoAdminsStartWithTemporaryPasswordAndSeniorsWithVirtualPhones() throws Exception {
         assertThat(jdbc.queryForList("SELECT login_id FROM users WHERE password_change_required ORDER BY login_id", String.class))
-                .containsExactly("demo-activity", "demo-road", "demo-sewer");
+                // service/: 공원녹지과(demo-park)·사업 총괄(demo-program)·시스템 관리자(demo-admin)를 더했다
+                .containsExactly("demo-activity", "demo-admin", "demo-park", "demo-program", "demo-road", "demo-sewer");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM users WHERE phone_lookup_hmac IS NOT NULL", Long.class)).isEqualTo(2);
 
         AuthTestSupport.Csrf csrf = AuthTestSupport.csrf(mvc);

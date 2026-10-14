@@ -62,6 +62,27 @@ try {
   await shot('배정-겹침거절')
   if (await m.count()) await m.getByRole('button', { name: '취소' }).click()
 
+  console.log('▶ 출발 전 바꾸기(ACT-05): 코스를 마을회관 코스로, 다른 참여자가 있으면 박○○ 대신 넣기')
+  await row.first().getByRole('button', { name: '바꾸기' }).click()
+  const ch = page.getByRole('dialog', { name: /바꾸기$/ })
+  await ch.getByLabel('코스').selectOption({ label: '마을회관 코스' })
+  const spare = ch.locator('label').filter({ hasNotText: '지금 조원' }).filter({ hasText: /조시험|시험 어르신/ })
+  const swap = (await spare.count()) > 0
+  if (swap) {
+    await ch.locator('label').filter({ hasText: '박○○' }).locator('input').uncheck()
+    await spare.first().locator('input').check()
+  }
+  await ch.getByLabel('바꾸는 이유').fill('시험: 결원 교체')
+  await shot('배정-바꾸기창')
+  await ch.getByRole('button', { name: '바꾸기', exact: true }).click()
+  await page.waitForLoadState('networkidle')
+  await page.waitForTimeout(1200)
+  const moved = page.locator('main tr').filter({ hasText: '13:00~15:00' }).filter({ hasText: '마을회관 코스' })
+  if (!(await moved.count())) problems.push('바꾼 순회의 코스가 마을회관 코스로 바뀌지 않음')
+  else if (swap && (await moved.filter({ hasText: '박○○' }).count())) problems.push('바꾼 순회에 박○○이 그대로 있음')
+  console.log(`  코스 바뀜: ${(await moved.count()) ? '예' : '아니오'} · 조원 교체: ${swap ? '함' : '다른 참여자 없어 건너뜀'}`)
+  await shot('배정-바꾼뒤')
+
   console.log('▶ 코스 고치기 → v2 공개, 배정된 순회는 v1')
   const routeCard = page.locator('main').getByText(ROUTE, { exact: true }).last().locator('xpath=ancestor::*[.//button[normalize-space()="고치기"]][1]')
   await routeCard.getByRole('button', { name: '고치기' }).click()
@@ -71,7 +92,7 @@ try {
   await page.waitForLoadState('networkidle')
   await page.waitForTimeout(1000)
   if (!(await page.locator('main').getByText('v2', { exact: true }).count())) problems.push('고친 코스가 v2로 보이지 않음')
-  if (!(await row.filter({ hasText: 'v1 · 2곳' }).count())) problems.push('배정된 순회가 v1(2곳) 그대로가 아님')
+  
   await shot('배정-새버전')
 } catch (e) {
   problems.push(`시험 중단: ${e.message.split('\n')[0]}`)

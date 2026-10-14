@@ -3,10 +3,14 @@
 // 배정 취소 → 다시 배정(남은 재점검 칸을 다시 씀, 여전히 1장)
 //   node admin-reinspect.mjs [관리자 웹 주소]
 // 실제 데이터를 바꾼다. 접수(OPEN) 사건이 있어야 함(admin-decide.mjs 뒤에 돌림). 끝나면 시연 데이터 초기화 필요
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { open, report, serviceEnv } from './common.mjs'
 
 const ADMIN = process.argv[2] || 'http://127.0.0.1:8181'
 const env = serviceEnv()
+// 보수 증빙 사진(브라우저에서 가린 뒤 올림)
+const PHOTO = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'ai', 'eval', 'photos', 'internet', 'sidewalk_011.jpg')
 const { browser, page, problems, shot } = await open()
 const menu = (label) => page.getByRole('navigation', { name: '주 메뉴' }).getByRole('button', { name: label }).click()
 const login = async (id) => {
@@ -36,7 +40,14 @@ try {
   await save('보수 요청')
   await save('보수 시작으로 변경')
   await page.getByPlaceholder('예: 블록 3장 교체').fill('시험: 블록 교체')
+  console.log('  증빙 사진 첨부 (가림 모델 준비를 기다림)')
+  await page.getByRole('button', { name: '사진 고르기' }).and(page.locator(':enabled')).waitFor({ timeout: 90000 })
+  await page.getByLabel('보수 증빙 사진 파일').setInputFiles(PHOTO)
+  await page.getByAltText('보수 증빙 사진(가린 사진)').waitFor({ timeout: 60000 }).catch(() => problems.push('증빙 사진이 올라가지 않음'))
+  await shot('재점검-증빙첨부')
   await save('보수 완료')
+  await page.getByText('증빙 사진 있음').first().waitFor({ timeout: 10000 }).catch(() => problems.push("보수 이력에 '증빙 사진 있음'이 없음"))
+  await page.waitForTimeout(1500)
   await shot('재점검-보수완료')
 
   console.log('▶ 활동 담당자: 내일 순회 배정 → 재점검 요청을 그 순회에 배정')

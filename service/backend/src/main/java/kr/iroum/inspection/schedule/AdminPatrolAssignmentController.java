@@ -25,7 +25,7 @@ import jakarta.validation.constraints.Size;
 import kr.iroum.inspection.common.web.CurrentUser;
 import kr.iroum.inspection.schedule.PatrolAssignmentService.ScheduledPatrol;
 
-/** 활동 담당자 날짜별 순회 배정(기능정의서 ACT-04)·순회 일정과 재점검 구도·후보(ACT-10). service/: 원본에 없던 API다. */
+/** 활동 담당자 날짜별 순회 배정(기능정의서 ACT-04)·순회 일정, 출발 전 재배정(ACT-05), 재점검 구도·후보(ACT-10). service/: 원본에 없던 API다. */
 @RestController
 public class AdminPatrolAssignmentController {
 
@@ -33,9 +33,22 @@ public class AdminPatrolAssignmentController {
 
     private final ReinspectionSlotService slots;
 
-    public AdminPatrolAssignmentController(PatrolAssignmentService assignments, ReinspectionSlotService slots) {
+    private final PatrolReassignmentService reassignments;
+
+    public AdminPatrolAssignmentController(PatrolAssignmentService assignments, ReinspectionSlotService slots, PatrolReassignmentService reassignments) {
         this.assignments = assignments;
         this.slots = slots;
+        this.reassignments = reassignments;
+    }
+
+    /** 출발 전 재배정(ACT-05): participantIds·routeVersionId 중 바꿀 것만 보낸다 */
+    public record Reassignment(@Size(min = 2, max = 3) List<UUID> participantIds, UUID routeVersionId, @NotBlank @Size(max = 500) String reason,
+            @NotNull @PositiveOrZero Long version) {
+    }
+
+    @PostMapping("/api/v1/admin/patrols/{patrolId}/reassignments")
+    ScheduledPatrol reassign(Authentication auth, @PathVariable UUID patrolId, @Valid @RequestBody Reassignment body) {
+        return reassignments.reassign(CurrentUser.of(auth), patrolId, body.participantIds(), body.routeVersionId(), body.reason(), body.version());
     }
 
     public record NewSlot(@NotBlank String purpose, @NotBlank @Size(max = 50) String label, @Size(max = 500) String instruction, Boolean required,
