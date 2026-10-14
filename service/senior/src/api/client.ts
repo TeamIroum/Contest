@@ -35,8 +35,18 @@ export async function ensureCsrf() {
 }
 
 /** 액세스 토큰(15분)이 끝나면 갱신 쿠키로 새로 받는다. 성공하면 true */
-export async function refreshSession(): Promise<boolean> {
+/** 갱신은 한 번에 하나만: 같은 갱신 쿠키로 두 번 요청하면 서버가 '재사용'(쿠키 도난)으로 보고 세션을 끊는다.
+ * 동시에 여러 요청이 401을 받아도 진행 중인 갱신 하나를 함께 기다린다 */
+let refreshing: Promise<boolean> | null = null
+export function refreshSession(): Promise<boolean> {
+  if (!refreshing) refreshing = refreshOnce().finally(() => (refreshing = null))
+  return refreshing
+}
+/** 마지막 갱신이 연결 문제로 실패했는지 (로그인 만료와 구분: 연결 문제면 로그인 표시를 지우지 않고 다시 시도) */
+let refreshNetworkError = false
+async function refreshOnce(): Promise<boolean> {
   if (!REAL_BACKEND) return false
+  refreshNetworkError = false
   try {
     await ensureCsrf()
     const r = await fetch(`${API_BASE}/auth/token/refresh`, { method: 'POST', cache: 'no-store', credentials: 'include', headers: authHeaders() })
@@ -48,6 +58,7 @@ export async function refreshSession(): Promise<boolean> {
     setAccessToken(b.accessToken)
     return true
   } catch {
+    refreshNetworkError = true
     return false
   }
 }
@@ -128,8 +139,11 @@ export function maybeSignedIn() {
  * 새로 고침 뒤 로그인 되살리기: 액세스 토큰은 메모리에만 두므로 새로 고침하면 사라진다.
  * 이 휴대폰에서 로그인한 적이 있고 갱신 쿠키(7일)가 살아 있으면 새 토큰을 받고 이름을 돌려준다. 아니면 null
  */
-export async function restoreSession(): Promise<{ name: string } | null> {
-  if (!maybeSignedIn() || !(await refreshSession())) {
+export async function restoreSession(): Promise<{ name: string } | null | 'offline'> {
+  // 연결이 없으면 로그인 표시를 지우지 않고 기다린다 (연결되면 다시 되살림)
+  if (maybeSignedIn() && !navigator.onLine) return 'offline'
+  if (maybeSignedIn() && !(await refreshSession()) && refreshNetworkError) return 'offline'
+  if (!maybeSignedIn() || !(token || (await refreshSession()))) {
     markSignedIn(false)
     return null
   }
@@ -173,9 +187,15 @@ export function kstClock(iso: string) {
 export const todayKst = () => new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)
 
 export async function fetchTodayPatrol(): Promise<ApiPatrol> {
-  const list = await api<{ items?: { id: string }[] }>('GET', REAL_BACKEND ? `/me/patrols?date=${todayKst()}` : '/me/patrols')
-  if (!list.items?.length) throw new NoPatrolError()
-  return api<ApiPatrol>('GET', `/patrols/${list.items[0].id}`)
+  const list = await api<{ items?: { id: string; activityStatus?: string }[] }>('GET', REAL_BACKEND ? `/me/patrols?date=${todayKst()}` : '/me/patrols')
+  // 같은 날 순회가 여러 개면(시각 순): 진행 중 → 아직 시작 전인 다음 순회 → 모두 끝났으면 마지막 순회. 취소된 순회는 빼고
+  const items = (list.items ?? []).filter((x) => x.activityStatus !== 'CANCELLED')
+  if (!items.length) throw new NoPatrolError()
+  const pick =
+    items.find((x) => x.activityStatus === 'IN_PROGRESS' || x.activityStatus === 'RETURNING') ??
+    items.find((x) => !x.activityStatus || x.activityStatus === 'ASSIGNED') ??
+    items[items.length - 1]
+  return api<ApiPatrol>('GET', `/patrols/${pick.id}`)
 }
 /** 오늘 배정된 순회가 없음 (오류가 아니라 안내할 상태) */
 export class NoPatrolError extends Error {
@@ -200,10 +220,76 @@ export const requestAttendance = (patrolId: string, p: ApiPatrol | null) => api(
 export const startActivity = (patrolId: string, p: ApiPatrol | null) => api('POST', `/patrols/${patrolId}/activity-starts`, event(p))
 /** 잠깐 쉬기 시작·끝. 담당자 화면(오늘 활동 현황)에 '쉬는 중'으로 보인다 */
 export const sendPause = (patrolId: string, p: ApiPatrol | null, on: boolean) =>
-  api('POST', `/patrols/${patrolId}/pause-events`, { ...event(p), type: on ? 'PAUSE_STARTED' : 'PAUSE_ENDED' })
+  sendEvent(`/patrols/${patrolId}/pause-events`, { ...event(p), type: on ? 'PAUSE_STARTED' : 'PAUSE_ENDED' })
 /** 이곳은 찍을 수 없어요: 장소를 건너뜀으로 기록한다. reason = UNSAFE / NOT_FOUND / FACILITY_REMOVED / OTHER */
 export const sendSkip = (patrolId: string, p: ApiPatrol | null, stopId: string, reason: string) =>
-  api('POST', `/patrols/${patrolId}/stops/${stopId}/skip-events`, { ...event(p), reason })
+  sendEvent(`/patrols/${patrolId}/stops/${stopId}/skip-events`, { ...event(p), reason })
 /** 복귀 요청. abortReason(HEALTH / DEVICE / OTHER)이 있으면 중도 종료, 없으면 정상 복귀. 담당자가 복귀 확인을 하면 끝난다 */
 export const sendReturn = (patrolId: string, p: ApiPatrol | null, abortReason?: string) =>
-  api('POST', `/patrols/${patrolId}/return-requests`, { ...event(p), returnReason: abortReason ? 'ABORT' : 'NORMAL', abortReason: abortReason ?? null })
+  sendEvent(`/patrols/${patrolId}/return-requests`, { ...event(p), returnReason: abortReason ? 'ABORT' : 'NORMAL', abortReason: abortReason ?? null })
+
+/* ---------------- 이벤트 대기함 (기능정의서 SYN-04·05, ACC-06) ----------------
+ * 건너뛰기·쉬기·복귀는 연결이 끊겼거나 서버가 잠시 안 될 때(5xx) 휴대폰(localStorage)에 저장하고 진행한다.
+ * 연결되면 저장한 순서대로 같은 clientEventId로 다시 보낸다(서버가 같은 이벤트는 한 번만 처리). 서버가 거절한 요청(4xx)은 오류로 알린다.
+ * 대기 중인 이벤트가 있으면 새 이벤트도 뒤에 줄을 세운다(순서 유지). 활동 시작·출석 요청은 담당자 확인이 필요해 연결된 상태에서만 한다. */
+type QueuedEvent = { path: string; body: unknown; queuedAt: string }
+const EVENT_QUEUE = 'senior-event-queue'
+function loadEvents(): QueuedEvent[] {
+  try {
+    return JSON.parse(localStorage.getItem(EVENT_QUEUE) ?? '[]')
+  } catch {
+    return []
+  }
+}
+function saveEvents(q: QueuedEvent[]) {
+  try {
+    if (q.length) localStorage.setItem(EVENT_QUEUE, JSON.stringify(q))
+    else localStorage.removeItem(EVENT_QUEUE)
+  } catch {
+    // 저장 공간을 못 쓰면 아래 sendEvent가 오류로 알린다
+  }
+}
+/** 연결 문제·서버 일시 장애인지 (다시 보내면 되는 실패) */
+const transient = (e: unknown) => !(e instanceof ApiError) || e.status >= 500 || e.status === 0
+/** 대기 중인 이벤트 수 */
+export const pendingEvents = () => loadEvents().length
+/** 이벤트 보내기. 저장만 하고 넘어갔으면 queued=true */
+export async function sendEvent(path: string, body: unknown): Promise<{ queued: boolean }> {
+  const q = loadEvents()
+  if (q.length) {
+    saveEvents([...q, { path, body, queuedAt: new Date().toISOString() }])
+    if (loadEvents().length !== q.length + 1) throw new Error('휴대폰에 저장하지 못했어요')
+    void flushEvents()
+    return { queued: true }
+  }
+  try {
+    await api('POST', path, body)
+    return { queued: false }
+  } catch (e) {
+    if (!transient(e)) throw e
+    saveEvents([{ path, body, queuedAt: new Date().toISOString() }])
+    if (!loadEvents().length) throw e // 저장도 못 했으면 성공으로 넘기지 않는다
+    return { queued: true }
+  }
+}
+let flushing: Promise<number> | null = null
+/** 대기 이벤트를 순서대로 보낸다. 연결 문제면 거기서 멈추고, 서버가 거절한 것(4xx)은 다시 보내도 같으므로 버린다. 보낸 수를 돌려준다 */
+export function flushEvents(): Promise<number> {
+  if (flushing) return flushing
+  flushing = (async () => {
+    let sent = 0
+    for (;;) {
+      const q = loadEvents()
+      if (!q.length) break
+      try {
+        await api('POST', q[0].path, q[0].body)
+        sent++
+      } catch (e) {
+        if (transient(e)) break
+      }
+      saveEvents(loadEvents().slice(1))
+    }
+    return sent
+  })().finally(() => (flushing = null))
+  return flushing
+}

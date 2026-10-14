@@ -122,6 +122,15 @@ public class PatrolCommandSupport {
      * (service/: 원본은 '결석이 아닌 조원 2명'만 보아 출석 확인 전에도 출발 확인이 됐다)
      */
     public void requirePresentPair(PatrolRow patrol, List<MemberRow> members) {
+        // ACC-02: 출석 뒤 참여가 중지·종료된 조원이 있으면 출발을 확인하지 않는다(결석 처리하거나 조원을 바꾼 뒤 다시)
+        List<String> stopped = jdbc.queryForList("""
+                SELECT m.name_snapshot FROM patrol_members m JOIN participants pa ON pa.id = m.participant_id
+                WHERE m.patrol_id = ? AND m.assignment_active AND m.attendance = 'PRESENT' AND pa.status <> 'ACTIVE' ORDER BY m.seat_no""",
+                String.class, patrol.id());
+        if (!stopped.isEmpty()) {
+            throw stateConflict("PARTICIPANT_SUSPENDED", patrol,
+                    String.join(", ", stopped) + " 님의 참여가 중지돼 있어요. 결석으로 바꾸거나 조원을 바꾼 뒤 출발을 확인해 주세요.");
+        }
         if (members.stream().filter(m -> "PRESENT".equals(m.attendance())).count() < 2) {
             throw stateConflict("ATTENDANCE_SHORT", patrol, "출석이 확인된 조원이 2명 이상이어야 출발을 확인할 수 있어요.");
         }

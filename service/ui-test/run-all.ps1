@@ -52,6 +52,12 @@ Write-Host '― 1-2. 장소를 모두 건너뛰고 정상 종료 → 통계에 �
 Reset-Today
 Run 'senior-normal-end' @('senior-normal-end.mjs', $senior, $admin)
 
+Write-Host '― 1-3. 연결이 끊긴 채 촬영 → 전송 대기 → 재연결 자동 전송 (ACC-06)'
+Reset-Today
+if (Test-Path $video) { $env:VIDEO = $video }
+Run 'senior-offline' @('senior-offline.mjs', $senior, $admin)
+Remove-Item env:VIDEO -ErrorAction SilentlyContinue
+
 Write-Host '― 2. 촬영 · 화면 둘러보기 · 쉬기 · 관리자 화면 · 판정 · 개인정보 검토 · 참여자 계정 · 조 편성 · 코스·순회 배정 · 재점검 배정 · 통계 · 운영(알림·기관·감사) · 공무원 계정'
 Reset-Today
 if (Test-Path $video) { $env:VIDEO = $video }

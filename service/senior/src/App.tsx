@@ -6,7 +6,7 @@ import * as quality from './camera/quality.js'
 import * as masking from './masking/masking.js'
 import * as outbox from './offline/outbox.js'
 import type { OutboxItem, SubmitBody } from './offline/outbox.js'
-import { ApiError, NoPatrolError, REAL_BACKEND, fetchPatrol, kstClock, maybeSignedIn, restoreSession, sendPause, sendReturn, sendSkip, fetchTodayPatrol, memberStates, requestAttendance, requestOtp, sendOpts, startActivity, verifyOtp, type ApiPatrol, type OtpChallenge } from './api/client'
+import { ApiError, NoPatrolError, REAL_BACKEND, fetchPatrol, flushEvents, kstClock, maybeSignedIn, pendingEvents, restoreSession, sendPause, sendReturn, sendSkip, fetchTodayPatrol, memberStates, requestAttendance, requestOtp, sendOpts, startActivity, verifyOtp, type ApiPatrol, type OtpChallenge } from './api/client'
 import { playNotify, playRetake, playShutter, playSuccess, setSoundEnabled, unlockAudio } from './sounds'
 import { ABORT_REASONS, MAX_ATTEMPTS, ME, PARTNER, SKIP_REASONS, STAFF, STOPS, TEAM, applyPatrol, slotDone, stopDone, type Stop } from './data'
 
@@ -40,15 +40,33 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('start')
   // 실제 백엔드: 새로 고침하면 갱신 쿠키로 로그인을 되살려 홈으로 (되살리는 동안은 기다림 화면)
   const [restoring, setRestoring] = useState(maybeSignedIn)
+  const [offlineWait, setOfflineWait] = useState(false)
   useEffect(() => {
     if (!restoring) return
-    restoreSession().then((u) => {
-      if (u) {
-        ME.name = u.name
-        setScreen('home')
-      }
-      setRestoring(false)
-    })
+    let done = false // 한 번 끝나면(로그인 되살림 또는 시작 화면) 연결이 다시 돌아와도 되살리기를 또 하지 않는다
+    let running = false // 갱신을 두 번 겹쳐 보내면 서버가 '재사용'으로 보고 세션을 끊는다 → 한 번에 하나만
+    const attempt = () =>
+      !done &&
+      !running &&
+      (running = true) &&
+      restoreSession().finally(() => (running = false)).then((u) => {
+        if (u === 'offline') {
+          // 연결이 돌아오면(online) 다시, 연결 직후 첫 요청이 실패한 경우를 위해 3초 뒤에도 다시
+          setOfflineWait(true)
+          setTimeout(attempt, 3000)
+          return
+        }
+        done = true
+        setOfflineWait(false)
+        if (u) {
+          ME.name = u.name
+          setScreen('home')
+        }
+        setRestoring(false)
+      })
+    attempt()
+    window.addEventListener('online', attempt)
+    return () => window.removeEventListener('online', attempt)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   /** 글씨 크기: 0 기본(큰 글씨) · 1 크게 · 2 아주 크게 */
@@ -182,7 +200,7 @@ export default function App() {
         setServer(true)
         setPatrolState('ok')
         // 로그인 전에 쌓인 대기 사진을 이제 보낸다 (실제 백엔드는 로그인 토큰이 있어야 받음)
-        if (REAL_BACKEND) outbox.flush(sendOpts()).catch(() => {}).finally(updatePending)
+        if (REAL_BACKEND) Promise.all([flushEvents().catch(() => 0), outbox.flush(sendOpts()).catch(() => {})]).finally(updatePending)
       },
       (e) => {
         setServer(false)
@@ -204,15 +222,14 @@ export default function App() {
     return () => clearInterval(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [server, screen, myAtt, partnerAtt, departed])
-  const updatePending = () => outbox.count().then(setPending, () => {})
+  // 전송 대기: 사진(IndexedDB) + 건너뛰기·쉬기·복귀 기록(SYN-04)
+  const updatePending = () => outbox.count().then((n) => setPending(n + pendingEvents()), () => setPending(pendingEvents()))
   // 대기 사진은 앱을 다시 볼 때, 연결이 돌아올 때 다시 보낸다
   useEffect(() => {
     const retry = () => {
       if (!navigator.onLine) return
-      outbox
-        .flush(sendOpts())
-        .catch(() => {})
-        .finally(updatePending)
+      // 건너뛰기·쉬기·복귀 기록과 사진을 함께 다시 보낸다 (SYN-05)
+      Promise.all([REAL_BACKEND ? flushEvents().catch(() => 0) : 0, outbox.flush(sendOpts()).catch(() => {})]).finally(updatePending)
     }
     retry()
     const vis = () => document.visibilityState === 'visible' && retry()
@@ -556,7 +573,7 @@ export default function App() {
               {screen === 'start' &&
                 (restoring ? (
                   <div className="grid min-h-[60vh] place-items-center text-center">
-                    <p className="m-0 text-[1.2rem] font-bold text-sub">불러오는 중이에요…</p>
+                    <p className="m-0 text-[1.2rem] font-bold text-sub">{offlineWait ? '인터넷 연결이 끊겨 있어요. 연결되면 이어서 할게요.' : '불러오는 중이에요…'}</p>
                   </div>
                 ) : (
                   <Start onNext={() => setScreen('phone')} />
@@ -1068,7 +1085,7 @@ function Home({ onGo, pending }: { onGo: () => void; pending: number }) {
         {pending > 0 && (
           <p className="m-0 mb-2 inline-flex items-center gap-2 rounded-full bg-g2-soft px-3.5 py-1.5 text-[0.95rem] font-bold text-g2-ink shadow-card" role="status">
             <i className="pulse-dot size-2 rounded-full bg-g2" aria-hidden />
-            전송 대기 {pending}장 · 연결되면 자동으로 보내요
+            전송 대기 {pending}건 · 연결되면 자동으로 보내요
           </p>
         )}
         <div className="flex flex-wrap items-center justify-between gap-2">

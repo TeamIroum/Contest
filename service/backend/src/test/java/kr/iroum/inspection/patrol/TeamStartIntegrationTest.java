@@ -82,6 +82,19 @@ class TeamStartIntegrationTest {
                 Integer.class, p.id())).isEqualTo(1);
     }
 
+    @Test
+    void departureIsRefusedWhenAPresentMemberWasSuspended() throws Exception {
+        PatrolFixture.Patrol p = f.patrol(2);
+        present(p, 0);
+        present(p, 1);
+        // 출석 뒤 참여 중지(ACC-02): 출발 확인 거절, 상태를 되돌리면 다시 된다
+        jdbc.update("UPDATE participants SET status = 'SUSPENDED' WHERE id = ?", p.participants().get(1));
+        api.post(f.manager, departure(p), "{\"version\":" + version(p) + "}", UUID.randomUUID()).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.details.reason").value("PARTICIPANT_SUSPENDED"));
+        jdbc.update("UPDATE participants SET status = 'ACTIVE' WHERE id = ?", p.participants().get(1));
+        api.post(f.manager, departure(p), "{\"version\":" + version(p) + "}", UUID.randomUUID()).andExpect(status().isOk());
+    }
+
     private void present(PatrolFixture.Patrol p, int index) throws Exception {
         api.put(f.manager, "/api/v1/admin/patrols/" + p.id() + "/attendance/" + p.participants().get(index),
                 "{\"attendance\":\"PRESENT\",\"proxyReason\":\"시험: 센터에서 직접 확인\",\"version\":" + version(p) + "}").andExpect(status().isOk());
