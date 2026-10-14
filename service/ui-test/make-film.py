@@ -1,15 +1,13 @@
-"""시연 영상 합치기: demo-film.mjs가 녹화한 휴대폰(phone.webm)·관리자(admin.webm) 화면을 1920x1080 한 화면에 놓는다.
-- 시작 표지(공모전·서비스 이름) → 본편 → 끝 화면(흐름 요약), 장면 사이는 부드럽게 넘김
-- 왼쪽: 김○○ 휴대폰(둥근 모서리 본체 안에 시니어 앱 화면. 박○○ 휴대폰은 화면 밖) / 오른쪽 위: 관리자 웹
-- 단계마다 움직이는 쪽(휴대폰·관리자)에 빛나는 테두리, 다른 쪽은 살짝 어둡게
-- 오른쪽 아래: 단계 자막(서서히 나타남, 폭을 재서 줄바꿈) + 단계 진행 막대
+"""시연 영상 합치기: demo-film.mjs가 녹화한 화면으로 1920x1080 영상 두 개를 만든다.
+- 이로움_시연_시니어앱.mp4: 어르신 휴대폰(둥근 모서리 본체 그림)을 크게, 오른쪽에 단계 자막·진행 막대. 휴대폰이 움직이는 단계만
+- 이로움_시연_관리자웹.mp4: 관리자 웹(1600x900 녹화)을 크게, 아래에 단계 자막·진행 막대. 관리자 화면이 움직이는 단계만
+- 둘 다 시작 표지(공모전·서비스 이름) → 본편 → 끝 화면(흐름 요약), 장면 사이는 부드럽게 넘김
 - 화면이 멈춰 기다리는 구간(steps.json idles)은 4배속으로 넘기고 '빠르게 감기' 표시
-단계 캡처를 모아 보는 index.html도 만든다.
 
-  python make-film.py            # 결과: shots/film/이로움_시연.mp4, shots/film/index.html
+  python make-film.py                # 두 개 모두
+  python make-film.py senior         # 시니어 앱만 (admin: 관리자 웹만)
 필요: pip install imageio-ffmpeg pillow (ffmpeg 실행 파일 포함)
 """
-import html
 import json
 import os
 import subprocess
@@ -25,23 +23,10 @@ FONTS = r"C:\Windows\Fonts"
 BOLD = os.path.join(FONTS, "malgunbd.ttf") if os.path.exists(os.path.join(FONTS, "malgunbd.ttf")) else os.path.join(FONTS, "malgun.ttf")
 REGULAR = os.path.join(FONTS, "malgun.ttf")
 FONT = BOLD.replace("\\", "/").replace(":", "\\:")
-OUT = "이로움_시연.mp4"
 W, H = 1920, 1080
 ACCENT = (79, 140, 255)
 SPEED = 4                 # 기다리는 구간 배속
 INTRO, OUTRO, XF = 4.0, 5.0, 0.7   # 표지·끝 화면 길이, 넘김 길이 (초)
-
-# 배치
-SCREEN_W, SCREEN_H = 420, 909            # 휴대폰 화면 (390:844 비율)
-BEZEL = 16                               # 본체 테두리 두께
-BODY_W, BODY_H = SCREEN_W + BEZEL * 2, SCREEN_H + BEZEL * 2 + 24
-BODY_R, SCREEN_R = 58, 40                # 본체·화면 모서리 둥글기
-BODY_Y = (H - BODY_H) // 4 * 2          # 짝수로: 영상(yuv420)은 짝수 좌표에 놓여서, 홀수면 화면 맨 윗줄이 가리개 위로 1px 삐져나와 회색 줄이 보였다
-PHONES = [(70, "")]                      # 본체 x, 이름표 (김○○ 휴대폰 한 대)
-SCREEN_DX, SCREEN_Y = BEZEL, BODY_Y + BEZEL + 24
-ADMIN_X, ADMIN_Y, ADMIN_W, ADMIN_H = 580, 40, 1280, 800   # 1440x900 비율
-CAP_X, CAP_Y, CAP_W = ADMIN_X, ADMIN_Y + ADMIN_H + 26, ADMIN_W
-BAR_Y = H - 34
 
 data = json.load(open(os.path.join(FILM, "steps.json"), encoding="utf-8"))
 steps = [s for s in data["steps"] if s["text"] != "끝"]
@@ -151,135 +136,25 @@ def chips(img, labels, y):
     return img
 
 
-# ---------- 그림 재료 ----------
-# 입력 그림을 많이 넣으면 ffmpeg가 프레임을 쌓아 메모리가 모자란다. 그래서 두 장으로 미리 합친다:
-#   바탕(_base.png: 배경·휴대폰 본체·이름표)  ← 그 위에 휴대폰·관리자 영상 ←  단계별 덮개(_decor_NN.png: 화면 모서리·관리자 테두리·강조·어둡게·진행 막대)
-base = gradient(W, H, (12, 22, 40), (18, 36, 70)).convert("RGBA")
-body = Image.new("RGBA", (BODY_W, BODY_H), (0, 0, 0, 0))
-d = ImageDraw.Draw(body)
-d.rounded_rectangle([0, 0, BODY_W - 1, BODY_H - 1], radius=BODY_R, fill=(20, 22, 26, 255), outline=(70, 76, 88, 255), width=3)
-d.rounded_rectangle([BODY_W // 2 - 44, 14, BODY_W // 2 + 44, 22], radius=4, fill=(55, 58, 66, 255))  # 스피커
-label_font = font(26)
-d = ImageDraw.Draw(base)
-for x, label in PHONES:
-    base.alpha_composite(body, (x, BODY_Y))
-    d.text((x + (BODY_W - label_font.getlength(label)) // 2, BODY_Y - 46), label, font=label_font, fill=(190, 208, 235))
-save(base.convert("RGB"), "_base.png")
-corners = Image.new("RGBA", (SCREEN_W, SCREEN_H), (20, 22, 26, 255))
-# 화면 가장자리 3px도 본체 색으로 덮는다 (녹화 영상 맨 윗줄이 밝게 남아 화면 위에 가로줄처럼 보였음)
-ImageDraw.Draw(corners).rounded_rectangle([0, 0, SCREEN_W - 1, SCREEN_H - 1], radius=SCREEN_R, fill=(0, 0, 0, 0), outline=(20, 22, 26, 255), width=3)
-frame = Image.new("RGBA", (ADMIN_W + 12, ADMIN_H + 12), (0, 0, 0, 0))
-ImageDraw.Draw(frame).rounded_rectangle([0, 0, ADMIN_W + 11, ADMIN_H + 11], radius=14, outline=(70, 76, 88, 255), width=6)
-ring_phone, ring_admin = ring(BODY_W, BODY_H, BODY_R), ring(ADMIN_W + 12, ADMIN_H + 12, 14)
-dim_phone, dim_admin = dim(BODY_W, BODY_H, BODY_R), dim(ADMIN_W + 12, ADMIN_H + 12, 14)
-n = len(steps)
-gap = 8
-seg = (CAP_W - gap * (n - 1)) / n
+# ---------- 공통 재료: 표지·끝 화면 ----------
+CREDIT = [("이로움", 46, (255, 255, 255), True), ("   이소미 · 이승재 · 황상진", 34, (190, 208, 238), False)]
 
 
-def decor(i):
-    """단계 i의 덮개 (i = -1: 첫 단계 전)"""
-    img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    img.alpha_composite(frame, (ADMIN_X - 6, ADMIN_Y - 6))
-    focus = FOCUS[i] if i >= 0 else None   # 첫 단계 전에는 강조·어둡게 없음
-    for k, (x, _) in enumerate(PHONES):
-        img.alpha_composite(corners, (x + SCREEN_DX, SCREEN_Y))
-        if focus is not None and f"p{k + 1}" in focus:
-            img.alpha_composite(ring_phone, (x - 10, BODY_Y - 10))
-        elif focus is not None:
-            img.alpha_composite(dim_phone, (x, BODY_Y))
-    if focus is not None and "admin" in focus:
-        img.alpha_composite(ring_admin, (ADMIN_X - 16, ADMIN_Y - 16))
-    elif focus is not None:
-        img.alpha_composite(dim_admin, (ADMIN_X - 6, ADMIN_Y - 6))
-    d = ImageDraw.Draw(img)
-    for j in range(n if i >= 0 else 0):  # 진행 막대: 지난 단계·지금 단계·남은 단계
-        x = CAP_X + round(j * (seg + gap))
-        color = (140, 185, 255, 255) if j < i else ACCENT + (255,) if j == i else (255, 255, 255, 40)
-        d.rounded_rectangle([x, BAR_Y, round(x + seg), BAR_Y + 7], radius=4, fill=color)
-    return save(img, f"_decor_{i + 1:02d}.png")
-
-
-# 덮개를 시간 순서로 잇는 목록 (ffmpeg concat)
-decors = [(decor(-1), steps[0]["t"])] + [(decor(i), (steps[i + 1]["t"] if i + 1 < n else total) - s["t"]) for i, s in enumerate(steps)]
-with open(os.path.join(FILM, "_decor.txt"), "w", encoding="utf-8", newline="") as f:
-    for name, dur in decors:
-        f.write(f"file '{name}'\nduration {max(dur, 0.04):.3f}\n")
-    f.write(f"file '{decors[-1][0]}'\n")
-
-# 표지·끝 화면
-save(card([
-    ("2026 양주시 미래인재 AI 공모전 · 함께하는 양주", 38, (200, 220, 255), True, 0),
-    ("시니어 동네 점검단", 128, (255, 255, 255), True, 36),
-    ("어르신이 찍고 AI가 판독해 현장과 행정을 잇는 생활 시설 점검 서비스", 46, (255, 255, 255), True, 80),
-    ([("이로움", 46, (255, 255, 255), True), ("   이소미 · 이승재 · 황상진", 34, (190, 208, 238), False)], 46, None, True, 90),
-]), "_intro.png")
-outro = card([
-    ("시니어 동네 점검단", 100, (255, 255, 255), True, -40),
-    ("어르신이 찍고 AI가 판독해 현장과 행정을 잇는 생활 시설 점검 서비스", 46, (255, 255, 255), True, 70),
-    (" ", 62, (0, 0, 0), False, 60),
-    ([("이로움", 46, (255, 255, 255), True), ("   이소미 · 이승재 · 황상진", 34, (190, 208, 238), False)], 46, None, True, 170),
-], rule_after=0)
-chips(outro, ["어르신 촬영", "얼굴·번호판 마스킹", "AI 판독", "담당자 판정", "보수", "재점검"], H // 2 + 50)
-save(outro, "_outro.png")
-
-# ---------- 1단계: 본편 (원래 시간 그대로) ----------
-caps = []
-for i, s in enumerate(steps):
-    end = steps[i + 1]["t"] if i + 1 < len(steps) else total
-    for size in (40, 36, 32, 28):
-        lines = wrap(s["text"], size, CAP_W - 20)
-        if len(lines) <= 2:
-            break
-    names = []
-    for j, line in enumerate(lines):  # 줄마다 파일 하나 (여러 줄을 한 번에 그리면 ffmpeg가 줄 간격을 크게 잡는다)
-        name = f"cap{i:02d}_{j}.txt"
-        with open(os.path.join(FILM, name), "w", encoding="utf-8", newline="") as f:
-            f.write(line)
-        names.append(name)
-    caps.append((names, s["t"], end, size))
-
-
-def during(ranges):
-    return "+".join(f"between(t,{a:.2f},{b:.2f})" for a, b in ranges) or "0"
-
-
-idles = [(a, b) for a, b in data.get("idles", []) if b - a > 1]
-filters = [
-    "[2:v]format=rgba[bg]",
-    f"[0:v]scale={SCREEN_W}:{SCREEN_H}:flags=lanczos,setsar=1[ph]",
-    f"[bg][ph]overlay={PHONES[0][0] + SCREEN_DX}:{SCREEN_Y}:shortest=1[s0]",
-    f"[1:v]scale={ADMIN_W}:{ADMIN_H}:flags=lanczos,setsar=1[ad]",
-    f"[s0][ad]overlay={ADMIN_X}:{ADMIN_Y}:eof_action=repeat[s2]",
-    "[3:v]format=rgba[deco]",
-    "[s2][deco]overlay=0:0:eof_action=repeat[s3]",
-    f"[s3]drawtext=fontfile='{FONT}':text='시니어 동네 점검단 · 시연':fontcolor=0x8FA3BC:fontsize=24:x={CAP_X}:y={CAP_Y}[s4]",
-]
-last = "s4"
-
-
-def add(f):
-    global last
-    nxt = f"v{len(filters)}"
-    filters.append(f"[{last}]{f}[{nxt}]")
-    last = nxt
-
-
-for i, (names, start, end, size) in enumerate(caps):
-    for j, name in enumerate(names):
-        # 자막: 0.4초 동안 서서히 나타나며 살짝 올라온다
-        y0 = CAP_Y + 44 + j * (size + 14)
-        add(f"drawtext=fontfile='{FONT}':textfile='{name}':fontcolor=white:fontsize={size}:x={CAP_X}:"
-            f"y='{y0}+max(0,10*(1-(t-{start:.2f})/0.4))':alpha='min(1,max(0,(t-{start:.2f})/0.4))':"
-            f"enable='between(t,{start:.2f},{end:.2f})'")
-if idles:
-    add(f"drawtext=fontfile='{FONT}':text='▶▶ 빠르게 감기 ×{SPEED}':fontcolor=white:fontsize=30:box=1:boxcolor=0x1E3A6E@0.85:boxborderw=14:"
-        f"x={ADMIN_X + ADMIN_W - 330}:y={ADMIN_Y + 22}:enable='{during(idles)}'")
-
-cmd = [FFMPEG, "-y", "-i", "phone.webm", "-i", "admin.webm", "-loop", "1", "-framerate", "30", "-i", "_base.png",
-       "-f", "concat", "-safe", "0", "-i", "_decor.txt",
-       "-filter_complex", ";".join(filters), "-map", f"[{last}]", "-t", f"{total:.2f}",
-       "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "medium", "-crf", "18", "-r", "30", "_main.mp4"]
+def cards(kind_name):
+    save(card([
+        ("2026 양주시 미래인재 AI 공모전 · 함께하는 양주", 38, (200, 220, 255), True, 0),
+        ("시니어 동네 점검단", 128, (255, 255, 255), True, 36),
+        (f"시연 · {kind_name}", 46, (255, 255, 255), True, 80),
+        (CREDIT, 46, None, True, 90),
+    ]), "_intro.png")
+    outro = card([
+        ("시니어 동네 점검단", 100, (255, 255, 255), True, -40),
+        ("어르신이 찍고 AI가 판독해 현장과 행정을 잇는 생활 시설 점검 서비스", 46, (255, 255, 255), True, 70),
+        (" ", 62, (0, 0, 0), False, 60),
+        (CREDIT, 46, None, True, 170),
+    ], rule_after=0)
+    chips(outro, ["어르신 촬영", "얼굴·번호판 마스킹", "AI 판독", "담당자 판정", "보수", "재점검"], H // 2 + 50)
+    save(outro, "_outro.png")
 
 
 def run(cmd, what):
@@ -290,52 +165,156 @@ def run(cmd, what):
         sys.exit(1)
 
 
-run(cmd, "1/2 본편 합치는 중…")
-
-# ---------- 2단계: 기다리는 구간 빨리 감기 + 표지·끝 화면 ----------
-pieces, t = [], 0.0
-for a, b in sorted(idles):
-    if a > t:
-        pieces.append((t, a, 1))
-    pieces.append((max(a, t), b, SPEED))
-    t = b
-pieces.append((t, total, 1))
-pieces = [p for p in pieces if p[1] - p[0] > 0.05]
+def during(ranges):
+    return "+".join(f"between(t,{a:.2f},{b:.2f})" for a, b in ranges) or "0"
 
 
-def final_time(x):
-    """본편 시각 → 완성 영상 시각"""
-    out = INTRO - XF
-    for a, b, sp in pieces:
-        if x <= a:
-            break
-        out += (min(x, b) - a) / sp
-    return out
+def bar(img, x0, y, width, n, cur):
+    """진행 막대: 지난 단계·지금 단계·남은 단계"""
+    d = ImageDraw.Draw(img)
+    gap = 8
+    seg = (width - gap * (n - 1)) / n
+    for j in range(n):
+        x = x0 + round(j * (seg + gap))
+        color = (140, 185, 255, 255) if j < cur else ACCENT + (255,) if j == cur else (255, 255, 255, 40)
+        d.rounded_rectangle([x, y, round(x + seg), y + 7], radius=4, fill=color)
 
 
-main_len = sum((b - a) / sp for a, b, sp in pieces)
-fl = []
-for k, (a, b, sp) in enumerate(pieces):
-    fl.append(f"[0:v]trim={a:.3f}:{b:.3f},setpts=(PTS-STARTPTS)/{sp}[p{k}]")
-fl.append("".join(f"[p{k}]" for k in range(len(pieces))) + f"concat=n={len(pieces)}:v=1:a=0,fps=30,format=yuv420p,settb=1/30[main]")
-fl.append(f"[1:v]fps=30,format=yuv420p,settb=1/30,fade=in:st=0:d=0.8[intro]")
-fl.append(f"[2:v]fps=30,format=yuv420p,settb=1/30,fade=out:st={OUTRO - 0.8:.2f}:d=0.8[outro]")
-fl.append(f"[intro][main]xfade=transition=fade:duration={XF}:offset={INTRO - XF:.3f}[im]")
-fl.append(f"[im][outro]xfade=transition=fade:duration={XF}:offset={INTRO - XF + main_len - XF:.3f}[out]")
-run([FFMPEG, "-y", "-i", "_main.mp4", "-loop", "1", "-t", f"{INTRO}", "-i", "_intro.png", "-loop", "1", "-t", f"{OUTRO}", "-i", "_outro.png",
-     "-filter_complex", ";".join(fl), "-map", "[out]", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "medium", "-crf", "20",
-     "-movflags", "+faststart", OUT], "2/2 빨리 감기·표지 붙이는 중…")
-os.remove(os.path.join(FILM, "_main.mp4"))
-length = INTRO + main_len + OUTRO - 2 * XF
+# ---------- 영상 두 개: 시니어 앱 / 관리자 웹 ----------
+# 시니어 앱: 휴대폰(본체 그림)을 왼쪽에 크게, 오른쪽에 단계 자막
+P_SCREEN_W, P_SCREEN_H = 444, 960          # 390:844 비율
+P_BEZEL, P_TOP = 16, 24
+P_BODY_W, P_BODY_H = P_SCREEN_W + P_BEZEL * 2, P_SCREEN_H + P_BEZEL * 2 + P_TOP
+P_BODY_X, P_BODY_Y = 300, (H - P_BODY_H) // 4 * 2    # 짝수 좌표 (yuv420)
+P_SCREEN_X, P_SCREEN_Y = P_BODY_X + P_BEZEL, P_BODY_Y + P_BEZEL + P_TOP
+P_TEXT_X, P_TEXT_W = 900, 900
+# 관리자 웹: 1600x900 녹화를 위쪽에 그대로, 아래에 단계 자막
+A_X, A_Y, A_W, A_H = 160, 20, 1600, 900
 
-# 캡처 모아 보기
-pngs = sorted(f for f in os.listdir(FILM) if f.endswith(".png") and not f.startswith("_"))
-rows = [f'<figure><img src="{html.escape(f)}" loading="lazy"><figcaption>{html.escape(f[:-4])}</figcaption></figure>' for f in pngs]
-steps_html = "".join(f"<li><b>{int(final_time(s['t']) // 60)}:{int(final_time(s['t']) % 60):02d}</b> {html.escape(s['text'])}</li>" for s in steps)
-page = f"""<!doctype html><meta charset="utf-8"><title>시연 캡처</title>
-<style>body{{font-family:'Malgun Gothic',sans-serif;margin:24px;background:#f5f7fb}}figure{{display:inline-block;margin:8px;vertical-align:top;background:#fff;padding:8px;border-radius:10px}}
-img{{max-height:420px;max-width:640px;display:block}}figcaption{{font-size:13px;color:#556}}video{{max-width:100%;border-radius:12px}}</style>
-<h1>시니어 동네 점검단 · 시연</h1><p>가상 인물·가상 번호</p><video src="{OUT}" controls></video><ol>{steps_html}</ol>{''.join(rows)}"""
-open(os.path.join(FILM, "index.html"), "w", encoding="utf-8").write(page)
-size = os.path.getsize(os.path.join(FILM, OUT)) / 1e6
-print(f"완료: {os.path.join(FILM, OUT)} ({length:.0f}초, {size:.1f}MB, 빨리 감은 구간 {len(idles)}개), 캡처 {len(pngs)}장 → index.html")
+KINDS = {
+    "senior": {"name": "어르신 휴대폰 (시니어 앱)", "out": "이로움_시연_시니어앱.mp4", "video": "phone.webm", "focus": "p1"},
+    "admin": {"name": "담당 공무원 화면 (관리자 웹)", "out": "이로움_시연_관리자웹.mp4", "video": "admin.webm", "focus": "admin"},
+}
+
+
+def make(kind):
+    k = KINDS[kind]
+    cards(k["name"])
+    picked = [i for i in range(len(steps)) if k["focus"] in FOCUS[i]]
+    ends = [steps[i + 1]["t"] if i + 1 < len(steps) else total for i in range(len(steps))]
+
+    # 바탕과 단계별 덮개 (덮개를 시간 순서로 잇는다: ffmpeg concat)
+    base = gradient(W, H, (12, 22, 40), (18, 36, 70)).convert("RGBA")
+    if kind == "senior":
+        body = Image.new("RGBA", (P_BODY_W, P_BODY_H), (0, 0, 0, 0))
+        d = ImageDraw.Draw(body)
+        d.rounded_rectangle([0, 0, P_BODY_W - 1, P_BODY_H - 1], radius=62, fill=(20, 22, 26, 255), outline=(70, 76, 88, 255), width=3)
+        d.rounded_rectangle([P_BODY_W // 2 - 46, 14, P_BODY_W // 2 + 46, 22], radius=4, fill=(55, 58, 66, 255))  # 스피커
+        base.alpha_composite(ring(P_BODY_W, P_BODY_H, 62), (P_BODY_X - 10, P_BODY_Y - 10))
+        base.alpha_composite(body, (P_BODY_X, P_BODY_Y))
+        ImageDraw.Draw(base).text((P_TEXT_X, 250), "시니어 동네 점검단 · 시연 · 어르신 휴대폰", font=font(28), fill=(143, 163, 188))
+        corners = Image.new("RGBA", (P_SCREEN_W, P_SCREEN_H), (20, 22, 26, 255))
+        ImageDraw.Draw(corners).rounded_rectangle([0, 0, P_SCREEN_W - 1, P_SCREEN_H - 1], radius=44, fill=(0, 0, 0, 0), outline=(20, 22, 26, 255), width=3)
+    else:
+        frame = Image.new("RGBA", (A_W + 12, A_H + 12), (0, 0, 0, 0))
+        ImageDraw.Draw(frame).rounded_rectangle([0, 0, A_W + 11, A_H + 11], radius=14, outline=(70, 76, 88, 255), width=6)
+    save(base.convert("RGB"), "_base.png")
+
+    def decor(cur):
+        img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        if kind == "senior":
+            img.alpha_composite(corners, (P_SCREEN_X, P_SCREEN_Y))
+            if cur >= 0:
+                bar(img, P_TEXT_X, 820, P_TEXT_W, len(picked), cur)
+        else:
+            img.alpha_composite(frame, (A_X - 6, A_Y - 6))
+            if cur >= 0:
+                bar(img, A_X, H - 22, A_W, len(picked), cur)
+        return save(img, f"_decor_{cur + 1:02d}.png")
+
+    seq = [(decor(-1), steps[0]["t"])]
+    cur = -1
+    for i, s in enumerate(steps):
+        if i in picked:
+            cur = picked.index(i)
+        seq.append((decor(cur) if i in picked else seq[-1][0], ends[i] - s["t"]))
+    with open(os.path.join(FILM, "_decor.txt"), "w", encoding="utf-8", newline="") as f:
+        for name, dur in seq:
+            f.write(f"file '{name}'\nduration {max(dur, 0.04):.3f}\n")
+        f.write(f"file '{seq[-1][0]}'\n")
+
+    # 자막 (고른 단계만): 서서히 나타나며 살짝 올라온다. 줄마다 파일 하나 (여러 줄을 한 번에 그리면 줄 간격이 커짐)
+    if kind == "senior":
+        sizes, width, x0, y0, maxl, gap = (56, 50, 44), P_TEXT_W, P_TEXT_X, 300, 5, 18
+    else:
+        sizes, width, x0, y0, maxl, gap = (38, 34, 30), A_W, A_X, 936, 2, 10
+    filters = [
+        "[1:v]format=rgba[bg]",
+        (f"[0:v]scale={P_SCREEN_W}:{P_SCREEN_H}:flags=lanczos,setsar=1[v]" if kind == "senior"
+         else f"[0:v]scale={A_W}:{A_H}:flags=lanczos,setsar=1[v]"),
+        (f"[bg][v]overlay={P_SCREEN_X}:{P_SCREEN_Y}:shortest=1[s1]" if kind == "senior"
+         else f"[bg][v]overlay={A_X}:{A_Y}:shortest=1[s1]"),
+        "[2:v]format=rgba[deco]",
+        "[s1][deco]overlay=0:0:eof_action=repeat[s2]",
+    ]
+    last = "s2"
+    for n_, i in enumerate(picked):
+        start, end = steps[i]["t"], ends[i]
+        for size in sizes:
+            lines = wrap(steps[i]["text"], size, width)
+            if len(lines) <= maxl:
+                break
+        for j, line in enumerate(lines):
+            name = f"cap{i:02d}_{j}.txt"
+            with open(os.path.join(FILM, name), "w", encoding="utf-8", newline="") as f:
+                f.write(line)
+            nxt = f"c{i}_{j}"
+            y = y0 + j * (size + gap)
+            filters.append(
+                f"[{last}]drawtext=fontfile='{FONT}':textfile='{name}':fontcolor=white:fontsize={size}:x={x0}:"
+                f"y='{y}+max(0,10*(1-(t-{start:.2f})/0.4))':alpha='min(1,max(0,(t-{start:.2f})/0.4))':"
+                f"enable='between(t,{start:.2f},{end:.2f})'[{nxt}]")
+            last = nxt
+    idles = [(a, b) for a, b in data.get("idles", []) if b - a > 1]
+    if idles:
+        bx, by = (P_TEXT_X, 160) if kind == "senior" else (A_X + A_W - 330, A_Y + 22)
+        filters.append(f"[{last}]drawtext=fontfile='{FONT}':text='▶▶ 빠르게 감기 ×{SPEED}':fontcolor=white:fontsize=30:box=1:boxcolor=0x1E3A6E@0.85:"
+                       f"boxborderw=14:x={bx}:y={by}:enable='{during(idles)}'[ff]")
+        last = "ff"
+    run([FFMPEG, "-y", "-i", k["video"], "-loop", "1", "-framerate", "30", "-i", "_base.png", "-f", "concat", "-safe", "0", "-i", "_decor.txt",
+         "-filter_complex", ";".join(filters), "-map", f"[{last}]", "-t", f"{total:.2f}",
+         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "medium", "-crf", "18", "-r", "30", "_main.mp4"],
+        f"[{k['name']}] 1/2 본편 합치는 중…")
+
+    # 고른 단계 구간만 잇고, 그 안의 기다리는 구간은 빨리 감는다
+    pieces = []
+    for i in picked:
+        t, end = steps[i]["t"], ends[i]
+        for a, b in sorted(idles):
+            if b <= t or a >= end:
+                continue
+            a, b = max(a, t), min(b, end)
+            if a > t:
+                pieces.append((t, a, 1))
+            pieces.append((a, b, SPEED))
+            t = b
+        pieces.append((t, end, 1))
+    pieces = [p for p in pieces if p[1] - p[0] > 0.05]
+    main_len = sum((b - a) / sp for a, b, sp in pieces)
+    fl = [f"[0:v]trim={a:.3f}:{b:.3f},setpts=(PTS-STARTPTS)/{sp}[p{j}]" for j, (a, b, sp) in enumerate(pieces)]
+    fl.append("".join(f"[p{j}]" for j in range(len(pieces))) + f"concat=n={len(pieces)}:v=1:a=0,fps=30,format=yuv420p,settb=1/30[main]")
+    fl.append("[1:v]fps=30,format=yuv420p,settb=1/30,fade=in:st=0:d=0.8[intro]")
+    fl.append(f"[2:v]fps=30,format=yuv420p,settb=1/30,fade=out:st={OUTRO - 0.8:.2f}:d=0.8[outro]")
+    fl.append(f"[intro][main]xfade=transition=fade:duration={XF}:offset={INTRO - XF:.3f}[im]")
+    fl.append(f"[im][outro]xfade=transition=fade:duration={XF}:offset={INTRO - XF + main_len - XF:.3f}[out]")
+    run([FFMPEG, "-y", "-i", "_main.mp4", "-loop", "1", "-t", f"{INTRO}", "-i", "_intro.png", "-loop", "1", "-t", f"{OUTRO}", "-i", "_outro.png",
+         "-filter_complex", ";".join(fl), "-map", "[out]", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "medium", "-crf", "20",
+         "-movflags", "+faststart", k["out"]], f"[{k['name']}] 2/2 빨리 감기·표지 붙이는 중…")
+    os.remove(os.path.join(FILM, "_main.mp4"))
+    length = INTRO + main_len + OUTRO - 2 * XF
+    size = os.path.getsize(os.path.join(FILM, k["out"])) / 1e6
+    print(f"완료: {os.path.join(FILM, k['out'])} ({length:.0f}초, {size:.1f}MB, 단계 {len(picked)}개)")
+
+
+for kind in (sys.argv[1:] or ["senior", "admin"]):
+    make(kind)

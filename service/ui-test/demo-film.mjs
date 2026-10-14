@@ -1,7 +1,7 @@
 // 시연 영상 촬영: 어르신 휴대폰 두 대(010-0000-0001 김○○, 010-0000-0002 박○○)와 PC(관리자 웹)를 동시에 녹화하며 전체 흐름을 진행한다.
 // 두 분 모두 자기 휴대폰으로 로그인·출석 요청을 하고(박○○ 조작은 김○○와 동시에), 촬영은 김○○ 휴대폰으로 한다. 영상에는 김○○ 휴대폰만 나온다. 카메라는 가짜 장치에 보도블록 사진(VIDEO)을 비춘다. 이름은 시연 데이터 그대로(○○).
 //   node demo-film.mjs [시니어 주소] [관리자 주소]      VIDEO=<짝수 크기 mjpeg> 필요
-// 결과: shots/film/phone.webm(김○○), phone2.webm(박○○), admin.webm, steps.json(단계 자막 시각·빨리 감을 대기 구간), NN-*.png(단계 캡처) → make-film.py가 MP4로 합친다
+// 결과: shots/film/phone.webm(김○○), phone2.webm(박○○), admin.webm(1600x900), steps.json(단계 자막 시각·빨리 감을 대기 구간), NN-*.png(단계 캡처) → make-film.py가 MP4로 합친다
 // 실제 데이터를 바꾼다 (오늘 순회 필요, 끝나면 초기화)
 import { chromium } from 'playwright'
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, renameSync } from 'node:fs'
@@ -15,26 +15,31 @@ const env = serviceEnv()
 const OUT = path.join(SHOTS, 'film')
 mkdirSync(OUT, { recursive: true })
 // 지난 촬영에서 이 스크립트·make-film.py가 만든 파일만 지운다 (사람이 이름을 바꿔 둔 영상 등은 남김)
-const MADE = /^(\d\d-.*\.png|_.*|cap\d\d_\d\.txt|phone2?\.webm|admin\.webm|steps\.json|index\.html|이로움_시연\.mp4)$/
+const MADE = /^(\d\d-.*\.png|_.*|cap\d\d_\d\.txt|phone2?\.webm|admin\.webm|steps\.json|index\.html|이로움_시연_(시니어앱|관리자웹)\.mp4)$/
 for (const f of readdirSync(OUT)) if (MADE.test(f)) rmSync(path.join(OUT, f), { force: true })
 if (!process.env.VIDEO) throw new Error('VIDEO(카메라에 비출 mjpeg)가 필요합니다')
 
 const browser = await chromium.launch({
   args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-video-capture=${process.env.VIDEO}`],
 })
+// 시니어 앱 위쪽 하늘은 휴대폰 시계를 따른다. 언제 찍어도 낮 하늘이 나오게, 지금이 오전 11시쯤인 시간대로 휴대폰을 맞춘다
+// (앱이 보여 주는 시각은 모두 한국 시각으로 따로 계산하므로 하늘만 바뀐다)
+const dayOffset = ((11 - new Date().getUTCHours() + 36) % 24) - 12 // -12 ~ +11
+const DAY_TZ = dayOffset === 0 ? 'Etc/GMT' : `Etc/GMT${dayOffset > 0 ? '-' : '+'}${Math.abs(dayOffset)}`
 const phoneOpts = {
   viewport: { width: 390, height: 844 },
   deviceScaleFactor: 2,
   isMobile: true,
   hasTouch: true,
   locale: 'ko-KR',
-  timezoneId: 'Asia/Seoul',
+  timezoneId: DAY_TZ,
   permissions: ['camera'],
   recordVideo: { dir: OUT, size: { width: 390, height: 844 } }, // 화면 크기와 같게 (크게 잡으면 귀퉁이에 작게 녹화됨). 키우기는 make-film.py가
 }
 const phoneCtx = await browser.newContext(phoneOpts)
 const phone2Ctx = await browser.newContext(phoneOpts)
-const adminCtx = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'ko-KR', timezoneId: 'Asia/Seoul', recordVideo: { dir: OUT, size: { width: 1440, height: 900 } } })
+// 관리자 웹은 영상 비율(16:9)에 맞춰 1600x900으로 녹화한다 (make-film.py가 1920x1080 영상 위쪽에 그대로 놓음)
+const adminCtx = await browser.newContext({ viewport: { width: 1600, height: 900 }, locale: 'ko-KR', timezoneId: 'Asia/Seoul', recordVideo: { dir: OUT, size: { width: 1600, height: 900 } } })
 // 누른 곳에 파란 물결 (영상에서 어디를 눌렀는지 보이게)
 const RIPPLE = `addEventListener('pointerdown', (e) => {
   const d = document.createElement('div')
