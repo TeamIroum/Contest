@@ -1,10 +1,11 @@
 // 시연 영상 촬영: 어르신 휴대폰 두 대(010-0000-0001 김○○, 010-0000-0002 박○○)와 PC(관리자 웹)를 동시에 녹화하며 전체 흐름을 진행한다.
 // 두 분 모두 자기 휴대폰으로 로그인·출석 요청을 하고(박○○ 조작은 김○○와 동시에), 촬영은 김○○ 휴대폰으로 한다. 영상에는 김○○ 휴대폰만 나온다. 카메라는 가짜 장치에 보도블록 사진(VIDEO)을 비춘다. 이름은 시연 데이터 그대로(○○).
 //   node demo-film.mjs [시니어 주소] [관리자 주소]      VIDEO=<짝수 크기 mjpeg> 필요
-// 결과: shots/film/phone.webm(김○○), phone2.webm(박○○), admin.webm(1600x900), steps.json(단계 자막 시각·빨리 감을 대기 구간), NN-*.png(단계 캡처) → make-film.py가 MP4로 합친다
+// 결과: shots/film/raw_phone/·raw_admin/ (실제 해상도 화면 프레임 + frames.json), steps.json, NN-*.png → make-film.py가 원본 MP4·컷으로 만든다
+// (예전 결과: phone.webm·admin.webm) steps.json(단계 자막 시각·빨리 감을 대기 구간), NN-*.png(단계 캡처) → make-film.py가 MP4로 합친다
 // 실제 데이터를 바꾼다 (오늘 순회 필요, 끝나면 초기화)
 import { chromium } from 'playwright'
-import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, renameSync } from 'node:fs'
+import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { SHOTS, serviceEnv } from './common.mjs'
@@ -15,8 +16,8 @@ const env = serviceEnv()
 const OUT = path.join(SHOTS, 'film')
 mkdirSync(OUT, { recursive: true })
 // 지난 촬영에서 이 스크립트·make-film.py가 만든 파일만 지운다 (사람이 이름을 바꿔 둔 영상 등은 남김)
-const MADE = /^(\d\d-.*\.png|_.*|cap\d\d_\d\.txt|phone2?\.webm|admin\.webm|steps\.json|index\.html|이로움_시연_(시니어앱|관리자웹)\.mp4)$/
-for (const f of readdirSync(OUT)) if (MADE.test(f)) rmSync(path.join(OUT, f), { force: true })
+const MADE = /^(\d\d-.*\.png|_.*|cap\d\d_\d\.txt|phone2?\.webm|admin\.webm|raw_phone|raw_admin|steps\.json|index\.html|이로움_시연_(시니어앱|관리자웹)\.mp4|이로움_원본_.*\.mp4|컷_(시니어앱|관리자웹))$/
+for (const f of readdirSync(OUT)) if (MADE.test(f)) rmSync(path.join(OUT, f), { force: true, recursive: true })
 if (!process.env.VIDEO) throw new Error('VIDEO(카메라에 비출 mjpeg)가 필요합니다')
 
 const browser = await chromium.launch({
@@ -26,20 +27,20 @@ const browser = await chromium.launch({
 // (앱이 보여 주는 시각은 모두 한국 시각으로 따로 계산하므로 하늘만 바뀐다)
 const dayOffset = ((11 - new Date().getUTCHours() + 36) % 24) - 12 // -12 ~ +11
 const DAY_TZ = dayOffset === 0 ? 'Etc/GMT' : `Etc/GMT${dayOffset > 0 ? '-' : '+'}${Math.abs(dayOffset)}`
+// 시니어 앱: 세로 9:16(405x720)을 휴대폰 실제 배율(8/3)로 → 1080x1920 원본 해상도로 녹화 (아래 screencast)
 const phoneOpts = {
-  viewport: { width: 390, height: 844 },
-  deviceScaleFactor: 2,
+  viewport: { width: 405, height: 720 },
+  deviceScaleFactor: 8 / 3,
   isMobile: true,
   hasTouch: true,
   locale: 'ko-KR',
   timezoneId: DAY_TZ,
   permissions: ['camera'],
-  recordVideo: { dir: OUT, size: { width: 390, height: 844 } }, // 화면 크기와 같게 (크게 잡으면 귀퉁이에 작게 녹화됨). 키우기는 make-film.py가
 }
 const phoneCtx = await browser.newContext(phoneOpts)
 const phone2Ctx = await browser.newContext(phoneOpts)
-// 관리자 웹은 영상 비율(16:9)에 맞춰 1600x900으로 녹화한다 (make-film.py가 1920x1080 영상 위쪽에 그대로 놓음)
-const adminCtx = await browser.newContext({ viewport: { width: 1600, height: 900 }, locale: 'ko-KR', timezoneId: 'Asia/Seoul', recordVideo: { dir: OUT, size: { width: 1600, height: 900 } } })
+// 관리자 웹: 1920x1080 화면에서 브라우저 배율 125%로 본 것과 같게 (1536x864 x 1.25)
+const adminCtx = await browser.newContext({ viewport: { width: 1536, height: 864 }, deviceScaleFactor: 1.25, locale: 'ko-KR', timezoneId: 'Asia/Seoul' })
 // 누른 곳에 파란 물결 (영상에서 어디를 눌렀는지 보이게)
 const RIPPLE = `addEventListener('pointerdown', (e) => {
   const d = document.createElement('div')
@@ -89,6 +90,25 @@ const s = await phoneCtx.newPage()
 const s2 = await phone2Ctx.newPage()
 const a = await adminCtx.newPage()
 const t0 = Date.now()
+/** 실제 해상도 녹화: Chromium 화면 전송(CDP screencast)의 프레임을 받아 둔다. 화면이 바뀔 때만 프레임이 온다 (make-film.py가 시각대로 이음) */
+async function screencast(page, dir, w, h) {
+  mkdirSync(dir, { recursive: true })
+  const cdp = await page.context().newCDPSession(page)
+  const frames = []
+  cdp.on('Page.screencastFrame', ({ data, metadata, sessionId }) => {
+    const f = `${String(frames.length).padStart(6, '0')}.jpg`
+    writeFileSync(path.join(dir, f), Buffer.from(data, 'base64'))
+    frames.push([f, metadata.timestamp])
+    cdp.send('Page.screencastFrameAck', { sessionId }).catch(() => {})
+  })
+  await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: w, maxHeight: h, everyNthFrame: 1 })
+  return async () => {
+    await cdp.send('Page.stopScreencast').catch(() => {})
+    writeFileSync(path.join(dir, 'frames.json'), JSON.stringify(frames))
+  }
+}
+const stopPhone = await screencast(s, path.join(OUT, 'raw_phone'), 1080, 1920)
+const stopAdmin = await screencast(a, path.join(OUT, 'raw_admin'), 1920, 1080)
 const steps = []
 const idles = [] // 화면이 멈춰 기다리는 구간 [시작, 끝] (초). make-film.py가 빨리 감는다
 let n = 0
@@ -379,16 +399,13 @@ try {
   process.exitCode = 1
 } finally {
   const total = (Date.now() - t0) / 1000
-  const pv = s.video()
-  const av = a.video()
-  const pv2 = s2.video()
+  await stopPhone()
+  await stopAdmin()
   await phoneCtx.close()
   await phone2Ctx.close()
   await adminCtx.close()
   await browser.close()
-  renameSync(await pv.path(), path.join(OUT, 'phone.webm'))
-  renameSync(await pv2.path(), path.join(OUT, 'phone2.webm'))
-  renameSync(await av.path(), path.join(OUT, 'admin.webm'))
-  writeFileSync(path.join(OUT, 'steps.json'), JSON.stringify({ total, steps, idles }, null, 2))
+  // t0Epoch: 단계 시각(초, 촬영 시작 기준)과 화면 프레임 시각(초, epoch)을 맞추는 기준
+  writeFileSync(path.join(OUT, 'steps.json'), JSON.stringify({ total, t0Epoch: t0 / 1000, steps, idles }, null, 2))
   console.log(`녹화 ${total.toFixed(0)}초, 단계 ${steps.length}개 → ${OUT}`)
 }
