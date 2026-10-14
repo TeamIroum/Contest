@@ -90,13 +90,13 @@ export function Review({
     ],
     [reviews, issues],
   )
-  // 우선순위 없이 접수 순 (Q-02). 처리할 것이 위
+  // 우선순위 없이 접수 순 (Q-02). 처리할 것이 위. 체험판에서 내가 찍은 사진(trial-)은 맨 위
   const rows = useMemo(
     () =>
       all
         .filter((x) => (tab === 'todo' ? x.open : tab === 'done' ? !x.open : true))
         .filter((x) => type === 'all' || x.type === type)
-        .sort((a, b) => Number(b.open) - Number(a.open) || a.at.localeCompare(b.at)),
+        .sort((a, b) => Number(b.id.startsWith('trial-')) - Number(a.id.startsWith('trial-')) || Number(b.open) - Number(a.open) || a.at.localeCompare(b.at)),
     [all, tab, type],
   )
 
@@ -285,7 +285,7 @@ function TaskDetail({
         })
       return
     }
-    const at = nowAt()
+    const at = nowAt(task.id.startsWith('trial-')) // 체험판에서 찍은 사진은 실제 시각
     const issueIds: string[] = []
     let log = `${DECISION_NAME[decision]}${decision === 'FOLLOW_UP_REQUIRED' ? ` (${FOLLOW_UP_NAME[followUp]})` : ''}${reason ? ` · ${reason}` : ''}`
 
@@ -337,7 +337,7 @@ function TaskDetail({
 
   function saveCorrection(next: { kind: Kind; issueTypes: string[] }, why: string) {
     if (task.real) return void real.run(() => real.correctClassification(task, next, why))
-    const at = nowAt()
+    const at = nowAt(task.id.startsWith('trial-')) // 체험판에서 찍은 사진은 실제 시각
     setReviews((l) =>
       l.map((t) => {
         if (t.id !== task.id) return t
@@ -449,6 +449,13 @@ function TaskDetail({
             {task.note && <p className="m-0 mt-2 rounded-md bg-g2-soft px-2.5 py-1.5 text-xs text-g2-ink">{task.note}</p>}
             {!AI_SUPPORTED.includes(f.kind) && !task.note && <p className="m-0 mt-2 text-xs text-mute">이 시설은 AI 분류 목록에 아직 없습니다.</p>}
             <p className="m-0 mt-2 text-xs text-mute">AI 결과는 판단 지원입니다. 판정 때 이 결과와 분류 버전이 근거로 함께 기록됩니다.</p>
+          </section>
+        )}
+        {/* AI 판독이 없는 사진의 안내 (예: 체험판에서 찍은 사진) */}
+        {!a && task.note && task.type === 'INSPECTION' && (
+          <section className="border-t border-line pt-4">
+            <h3 className="m-0 mb-2 text-sm font-bold">AI 판독 결과 (참고)</h3>
+            <p className="m-0 rounded-md bg-g2-soft px-2.5 py-1.5 text-xs text-g2-ink">{task.note}</p>
           </section>
         )}
 

@@ -1,6 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { Photo, KIND_NAME } from './Photo'
+import { Scenery } from './Scenery'
+import { lookAt, nowHour, type SkyLook } from './sky'
+import * as trialStore from './trial/store'
+import { TRIAL } from './trial/store'
 import { LiveCamera, type CameraHandle } from './camera/LiveCamera'
 import * as quality from './camera/quality.js'
 import * as masking from './masking/masking.js'
@@ -107,13 +111,19 @@ export default function App() {
   /** 효과음 켜기/끄기 (촬영음은 늘 재생) */
   const [sound, setSound] = useState(true)
 
-  // 위쪽 막대 색 (그림 배경 없이 앱 바탕색)
-  const BAR = '#f4f6fa'
+  // 화면 위쪽 풍경의 하늘: 휴대폰 시계를 따라 시간대별 색·해 위치가 바뀐다 (sky.ts)
+  const look = lookAt(useSkyHour())
+  // 브라우저 위쪽 막대 색도 하늘에 맞춘다
+  useEffect(() => {
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', look.bar)
+  }, [look.bar])
 
   // ---------------- 실제 촬영 준비 (docs/시니어앱_촬영기능_적용요청.md)
   // https(또는 localhost)이면 실제 촬영: 가림 모델을 받아 두고, 셋 다 준비되기 전에는 찍기 버튼을 끈다.
   // http 주소에서만 지금까지의 그림 시연으로 동작한다 (카메라가 https에서만 열리므로).
-  const live = typeof window !== 'undefined' && window.isSecureContext && !!navigator.mediaDevices?.getUserMedia
+  // 체험판: 카메라를 쓸 수 없으면(권한 거부·카메라 없음·가림 모델 못 받음) 그림 촬영으로 이어 간다
+  const [drawn, setDrawn] = useState(false)
+  const live = !drawn && typeof window !== 'undefined' && window.isSecureContext && !!navigator.mediaDevices?.getUserMedia
   const [models, setModels] = useState<'loading' | 'ready' | 'failed'>('loading')
   const [modelText, setModelText] = useState('')
   const [camError, setCamError] = useState('')
@@ -150,7 +160,10 @@ export default function App() {
     }
     masking.loadModels(show, { manifestUrl: `${import.meta.env.BASE_URL}models/model-manifest.json` }).then(
       () => setModels('ready'),
-      () => setModels('failed'),
+      () => {
+        setModels('failed')
+        if (TRIAL) setDrawn(true)
+      },
     )
   }
   useEffect(() => {
@@ -192,7 +205,7 @@ export default function App() {
   // 오늘 순회: 업무 API가 있으면 서버 순회로 바꾼다
   const [patrolTry, setPatrolTry] = useState(0)
   useEffect(() => {
-    if (!loggedIn0) return
+    if (!loggedIn0 || TRIAL) return // 체험판은 서버에 묻지 않고 예시 순회로
     setPatrolState('loading')
     fetchTodayPatrol().then(
       (p) => {
@@ -253,6 +266,13 @@ export default function App() {
     document.documentElement.classList.toggle('text-huge', size === 2)
   }, [size])
 
+  // 체험판: 센터에 도착하면 담당자 출석·출발 확인을 건너뛰고 바로 활동을 시작할 수 있다 (실제 서비스는 2인 1조 확인)
+  useEffect(() => {
+    if (!TRIAL || screen !== 'ready') return
+    setMyAtt('present')
+    setPartnerAtt('present')
+    setDeparted(true)
+  }, [screen])
   // 시연용: 담당자 출석 확인 → 짝 어르신 출석 → 담당자 출발 확인이 잠시 뒤 자동으로 이루어진다
   useEffect(() => {
     if (REAL_BACKEND || myAtt !== 'requested') return
@@ -399,6 +419,26 @@ export default function App() {
       /* 잴 수 없으면 서버 판정에 맡김 */
     }
     setShot(URL.createObjectURL(masked.blob))
+    if (TRIAL) {
+      const { faces, plates, vehicles } = masked.report
+      try {
+        await trialStore.addPhoto({ kind: stop.kind, place: stop.place, slot: stop.slots[slot] ?? '', blob: masked.blob, masked: { faces, plates, vehicles } })
+      } catch {
+        /* 저장소를 못 써도 체험은 이어 간다 (관리자 웹에만 안 보임) */
+      }
+      const hidden = faces + plates + vehicles
+      return handleResponse({
+        done: true,
+        http: 200,
+        body: {
+          receiptStatus: 'RECEIVED',
+          captureStatus: 'ACCEPTED',
+          message: hidden
+            ? `얼굴·번호판 ${hidden}곳을 가렸어요. 체험판이라 사진은 이 휴대폰에만 있어요.`
+            : '체험판이라 사진은 이 휴대폰에만 있어요. 관리자 웹에서 확인해 보세요.',
+        },
+      } as outbox.SendResult)
+    }
     const item: OutboxItem = {
       clientSubmissionId: crypto.randomUUID(),
       attemptId: crypto.randomUUID(),
@@ -556,19 +596,47 @@ export default function App() {
     setScreen('home')
   }
 
+  // 풍경이 끝나는 위치: 화면의 첫 카드(또는 data-scene-end 표시)가 시작하는 곳 + 조금 겹침.
+  // 글씨를 키워 내용이 길어지면 풍경도 그만큼 아래로 내려가 땅 부분이 늘 첫 카드 바로 위에 온다.
+  const mainRef = useRef<HTMLElement>(null)
+  const [sceneEnd, setSceneEnd] = useState<number | null>(null)
+  useLayoutEffect(() => {
+    const main = mainRef.current
+    const frame = main?.parentElement
+    if (!main || !frame) return
+    const measure = () => {
+      const el = main.querySelector<HTMLElement>('section, [data-scene-end]')
+      setSceneEnd(el ? Math.round(el.getBoundingClientRect().top - frame.getBoundingClientRect().top + 48) : null)
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(main)
+    return () => ro.disconnect()
+  }, [screen, size, paused])
+
   const loggedIn = !['start', 'phone', 'code'].includes(screen)
   const inActivity = ['route', 'retake', 'sent'].includes(screen)
 
   return (
     <div className="min-h-dvh bg-bg">
       <div
-        data-sky="light"
-        data-bar="light"
+        // data-sky="dark": 해 질 녘·밤처럼 하늘이 어두우면 풍경 위 글씨를 밝게 바꾼다 (index.css)
+        data-sky={look.dark && !['camera', 'phone', 'code'].includes(screen) ? 'dark' : 'light'}
+        data-bar={look.dark ? 'dark' : 'light'}
         className="relative mx-auto flex min-h-dvh max-w-[440px] flex-col overflow-x-clip bg-bg sm:my-6 sm:min-h-[880px] sm:overflow-hidden sm:rounded-[32px] sm:border sm:border-line sm:shadow-pop"
       >
-        {loggedIn && <TopBar bar={BAR} showTeam={!REAL_BACKEND || patrolState === 'ok'} size={size} onSize={() => setSize(((size + 1) % 3) as 0 | 1 | 2)} sound={sound} onSound={() => setSound(!sound)} onHelp={() => setSheet('help')} />}
+        {!['camera', 'phone', 'code'].includes(screen) && (
+          <SkyBackdrop
+            look={look}
+            tall={['start', 'home', 'done'].includes(screen)}
+            end={sceneEnd}
+            ground={!(['sent', 'retake'].includes(screen) && !paused)}
+            village={!(['home', 'ready', 'route', 'return'].includes(screen) && !paused)}
+          />
+        )}
+        {loggedIn && <TopBar bar={look.bar} showTeam={!REAL_BACKEND || patrolState === 'ok'} size={size} onSize={() => setSize(((size + 1) % 3) as 0 | 1 | 2)} sound={sound} onSound={() => setSound(!sound)} onHelp={() => setSheet('help')} />}
         {/* 화면마다 새로 그려 살짝 올라오며 나타나게 한다 (screen-in) */}
-        <main key={paused ? 'paused' : screen} className="screen-in relative flex flex-1 flex-col gap-4 px-5 pt-3 pb-6">
+        <main key={paused ? 'paused' : screen} ref={mainRef} className="screen-in relative flex flex-1 flex-col gap-4 px-5 pt-3 pb-6">
           {paused ? (
             <Paused onResume={() => pause(false)} />
           ) : (
@@ -579,7 +647,7 @@ export default function App() {
                     <p className="m-0 text-[1.2rem] font-bold text-sub">{offlineWait ? '인터넷 연결이 끊겨 있어요. 연결되면 이어서 할게요.' : '불러오는 중이에요…'}</p>
                   </div>
                 ) : (
-                  <Start onNext={() => setScreen('phone')} />
+                  <Start onNext={() => setScreen(TRIAL ? 'home' : 'phone')} />
                 ))}
               {notice && (
                 <p className="m-0 rounded-xl bg-g3-soft p-3 text-[0.95rem] text-g3-ink" role="alert">
@@ -693,7 +761,7 @@ export default function App() {
                   models={models}
                   modelText={modelText}
                   camError={camError}
-                  onLiveError={setCamError}
+                  onLiveError={(e) => (TRIAL ? setDrawn(true) : setCamError(e))}
                   onRetry={() => {
                     if (models === 'failed') prepareModels()
                     setCamError('')
@@ -728,6 +796,78 @@ export default function App() {
 
 /* ---------------- 공용 조각 ---------------- */
 
+// 화면 위쪽의 풍경 배경 (내용 뒤에 깔림)
+// 높이는 첫 카드 위치(end)에 맞춘다. 재기 전이거나 카드가 없는 화면은 글씨 크기(rem)에 비례한 높이를 쓴다.
+// 그림은 확대하지 않고 폭에 맞춰 아래에 붙이며, 위쪽 남는 부분은 하늘 위쪽 색으로 이어 칠한다.
+// 최소 높이는 그림이 폭에 맞을 때의 높이(폭 × 320/440)라서 옆이 비지 않는다.
+// ground=false: 큰 결과 카드가 풍경을 덮어 산·구름 조각만 삐져나오는 화면은 그림 없이 하늘색만 아래로 흐리게 사라지게 한다.
+function SkyBackdrop({ tall, end, look, ground = true, village = true }: { tall: boolean; end: number | null; look: SkyLook; ground?: boolean; village?: boolean }) {
+  const fade = 'linear-gradient(#000 45%, transparent 85%)'
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-x-0 top-0 overflow-hidden"
+      style={{
+        height: `max(${end ? `${end}px` : `${tall ? 21 : 15}rem`}, calc(min(100vw, 440px) * 0.7273))`,
+        // 하늘색은 시간에 맞춰 바뀐다 (sky.ts)
+        background: `linear-gradient(${look.sky[0]} 0%, ${look.sky[1]} 32%, ${look.sky[2]} 68%, ${look.sky[3]} 100%)`,
+        ...(ground ? {} : { maskImage: fade, WebkitMaskImage: fade }),
+      }}
+    >
+      {/* 하늘 층: 위쪽 막대 바로 아래에 고정 (막대가 두 줄이 되면 그만큼 아래) */}
+      {ground && (
+        <div className="absolute inset-x-0 top-[60px] big:top-[96px] max-[429px]:top-[96px]">
+          <Scenery part="sky" look={look} className="block h-auto w-full" />
+        </div>
+      )}
+      {/* 땅 층: 첫 카드 바로 위에 고정 */}
+      {ground && <Scenery part="ground" look={look} village={village} className="absolute inset-x-0 bottom-0 block h-auto w-full" />}
+    </div>
+  )
+}
+
+/**
+ * 하늘 시각: 휴대폰 시계를 따른다(1분마다 갱신).
+ * 시각이 바뀔 때는 1.2초 동안 서서히 넘어가 해·하늘색이 툭 바뀌지 않는다.
+ */
+function useSkyHour() {
+  const [now, setNow] = useState(nowHour)
+  useEffect(() => {
+    const t = setInterval(() => setNow(nowHour()), 60_000)
+    return () => clearInterval(t)
+  }, [])
+  const target = now
+  const [shown, setShown] = useState(target)
+  const from = useRef(target)
+  useEffect(() => {
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    // 24시간이 이어진 원이라 가까운 쪽으로 돈다 (23시 → 1시는 2시간 앞으로)
+    let d = target - from.current
+    if (d > 12) d -= 24
+    if (d < -12) d += 24
+    if (reduce || Math.abs(d) < 0.02) {
+      from.current = target
+      setShown(target)
+      return
+    }
+    const start = from.current
+    const t0 = performance.now()
+    let raf = 0
+    const step = (t: number) => {
+      const p = Math.min(1, (t - t0) / 1200)
+      const e = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2
+      const h = (start + d * e + 24) % 24
+      from.current = h
+      setShown(h)
+      if (p < 1) raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [target])
+  return shown
+}
+
+
 const SIZE_NAME = ['기본', '크게', '아주 크게'] as const
 
 function TopBar({ bar, showTeam, size, onSize, sound, onSound, onHelp }: { bar: string; showTeam: boolean; size: 0 | 1 | 2; onSize: () => void; sound: boolean; onSound: () => void; onHelp: () => void }) {
@@ -741,7 +881,9 @@ function TopBar({ bar, showTeam, size, onSize, sound, onSound, onHelp }: { bar: 
           <CameraIcon size={22} />
         </span>
         <div className="min-w-0 leading-tight max-[429px]:hidden big:hidden">
-          <p className="m-0 truncate text-[17px] font-extrabold whitespace-nowrap text-ink">동네 점검단</p>
+          <p className="m-0 truncate text-[17px] font-extrabold whitespace-nowrap text-ink">
+            동네 점검단{TRIAL && <span className="ml-1.5 rounded-full bg-brand px-2 py-0.5 align-middle text-[11px] font-bold text-white">체험판</span>}
+          </p>
           <p className="m-0 truncate text-[13px] font-semibold whitespace-nowrap text-sub">
             {showTeam ? `${TEAM.zone} · ${TEAM.no}조` : '점검원'}
           </p>
@@ -780,6 +922,7 @@ function TopBar({ bar, showTeam, size, onSize, sound, onSound, onHelp }: { bar: 
       <p className="m-0 mt-2 hidden min-w-0 text-[15px] leading-tight whitespace-nowrap max-[429px]:flex big:flex">
         <span className="min-w-0 truncate">
           <b className="font-extrabold text-ink">동네 점검단</b>
+          {TRIAL && <span className="mx-1 rounded-full bg-brand px-1.5 py-0.5 text-[11px] font-bold text-white">체험판</span>}
           <span className="font-semibold text-sub"> · {showTeam ? `${TEAM.zone} · ${TEAM.no}조` : '점검원'}</span>
         </span>
       </p>
@@ -956,8 +1099,8 @@ function Start({ onNext }: { onNext: () => void }) {
         </div>
       </div>
       <Bottom>
-        <Primary onClick={onNext}>휴대폰 번호로 시작하기</Primary>
-        <p className="m-0 text-center text-[0.85rem] text-mute">등록은 담당 선생님이 해 드려요.</p>
+        <Primary onClick={onNext}>{TRIAL ? '바로 체험하기' : '휴대폰 번호로 시작하기'}</Primary>
+        <p className="m-0 text-center text-[0.85rem] text-mute">{TRIAL ? '체험판이라 로그인 없이 예시 데이터로 들어가요.' : '등록은 담당 선생님이 해 드려요.'}</p>
       </Bottom>
     </>
   )
@@ -1727,18 +1870,30 @@ function Done({ results, aborted, onHome }: { results: Record<string, StopResult
           <p className="m-0 text-[1.7rem] font-extrabold text-brand">
             {c.captured + c.review}곳 촬영{c.skipped + c.notVisited > 0 ? ` · ${c.skipped + c.notVisited}곳 다음에` : ''}
           </p>
-          <p className="m-0 mt-1 text-[0.9rem] text-sub">출석·복귀는 선생님이 확인해서 기록했어요</p>
+          <p className="m-0 mt-1 text-[0.9rem] text-sub">{TRIAL ? '체험판이라 선생님 출석·복귀 확인은 건너뛰었어요' : '출석·복귀는 선생님이 확인해서 기록했어요'}</p>
         </Card>
         {aborted && <p className="m-0 text-[1rem] text-sub">몸이 불편하시면 꼭 {STAFF.name} 선생님께 말씀해 주세요.</p>}
         {/* 다음 활동 날짜를 알려 주는 업무 API가 없어 실제 백엔드에서는 보여 주지 않는다 (예시 날짜가 남지 않게) */}
-        {!REAL_BACKEND && (
+        {!REAL_BACKEND && !TRIAL && (
           <p className="m-0 text-[1.05rem]">
             다음 활동은 <b>10월 14일 (수)</b>이에요.
           </p>
         )}
       </div>
       <Bottom>
-        <Secondary onClick={onHome}>처음 화면으로</Secondary>
+        {TRIAL && (
+          <>
+            <Primary onClick={() => location.assign(`${import.meta.env.BASE_URL}../admin/`)}>관리자 웹에서 내 사진 보기</Primary>
+            <Secondary
+              onClick={() => {
+                void trialStore.clearPhotos().finally(() => location.reload())
+              }}
+            >
+              처음부터 다시 체험하기
+            </Secondary>
+          </>
+        )}
+        {!TRIAL && <Secondary onClick={onHome}>처음 화면으로</Secondary>}
       </Bottom>
     </>
   )

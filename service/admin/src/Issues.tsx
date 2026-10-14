@@ -182,19 +182,19 @@ function IssueDetail({
   }
 
   function patch(p: Partial<Issue>, text: string) {
-    const at = nowAt()
+    const at = nowAt(!!issue.reviewId?.startsWith('trial-')) // 체험판에서 찍은 사진으로 생긴 사건은 실제 시각
     setIssues((l) => l.map((i) => (i.id === issue.id ? { ...i, ...p, logs: [...i.logs, { at, who: ME.name, text }] } : i)))
   }
 
   function requestRepair() {
     if (issue.real) return save(() => real.requestRepair(issue, memo.trim()), () => setMemo(''))
-    const at = nowAt()
+    const at = nowAt(!!issue.reviewId?.startsWith('trial-')) // 체험판에서 찍은 사진으로 생긴 사건은 실제 시각
     patch({ status: 'REPAIR_REQUESTED', repairs: [...issue.repairs, { round: issue.repairs.length + 1, dept, memo: memo.trim(), requestedAt: at }] }, `${dept}에 보수 요청${memo ? ` · ${memo}` : ''}`)
     setMemo('')
   }
   function startRepair() {
     if (issue.real) return save(() => real.startRepair(issue), () => {})
-    const at = nowAt()
+    const at = nowAt(!!issue.reviewId?.startsWith('trial-')) // 체험판에서 찍은 사진으로 생긴 사건은 실제 시각
     patch({ status: 'IN_REPAIR', repairs: issue.repairs.map((r, i) => (i === issue.repairs.length - 1 ? { ...r, startedAt: at } : r)) }, '보수 시작')
   }
   function completeRepair() {
@@ -206,7 +206,7 @@ function IssueDetail({
           setEvidencePhotos([])
         },
       )
-    const at = nowAt()
+    const at = nowAt(!!issue.reviewId?.startsWith('trial-')) // 체험판에서 찍은 사진으로 생긴 사건은 실제 시각
     // 보수 완료와 재점검 요청 생성은 한 번에 기록한다 (API 10절)
     const rqId = `RQ-${at.slice(0, 5).replace('/', '')}-${issue.id.slice(-2)}${issue.repairs.length}`
     setReqs((l) => [{ id: rqId, facilityId: f.id, source: 'REPAIR', issueId: issue.id, reason: `보수 완료 확인 (${issue.repairs.length}회차)`, createdAt: at, status: 'WAITING' }, ...l])
@@ -436,7 +436,7 @@ function Verify({
         })
       return
     }
-    const at = nowAt()
+    const at = nowAt(!!issue.reviewId?.startsWith('trial-')) // 체험판에서 찍은 사진으로 생긴 사건은 실제 시각
     const how = method === 'PHOTO' ? '사진 확인' : `현장 확인(${fieldNote.trim()})`
     const text = `수리 확인 · ${how} → ${VERIFY_NAME[decision]}${decision === 'FOLLOW_UP_REQUIRED' ? ` (${FOLLOW_UP_NAME[followUp]})` : ''}${reason ? ` · ${reason}` : ''}`
     setIssues((l) =>

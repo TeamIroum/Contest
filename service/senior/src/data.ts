@@ -7,10 +7,10 @@ export type PhotoSource = { media?: MediaRef | null; src?: string }
 // 시연용 예시 데이터. 실제 인물·시설 정보가 아니다.
 // 기준: 팀 저장소 docs/API_명세서.md 6절 + api-alignment-checklist.md 결정
 
-export const ME = { name: '김순자', phone: '010-1234-5678' }
+export const ME = { name: '김○○', phone: '010-0000-0001' }
 // 같은 조 조원: 이름만 보여 주고 전화번호는 노출하지 않음 (체크리스트 1-8)
-export const PARTNER = { name: '박영자' }
-export const STAFF = { name: '이수진', org: '양주시니어클럽', phone: '031-000-0000' }
+export const PARTNER = { name: '박○○' }
+export const STAFF = { name: '이○○', org: '옥정동 노인복지관', phone: '031-000-0000' }
 export const TEAM = { patrolId: 'demo-patrol-3', no: 3, zone: '3구역', center: '회천2동 행정복지센터', meetAt: '오전 9시', backBy: '오전 11시 30분' }
 
 export type Stop = {
