@@ -27,6 +27,7 @@ import { Stats } from './Stats'
 import { Admins } from './Admins'
 import { Button, Pill, Toast, inputCls } from './ui'
 import { nowAt } from './util'
+import { TRIAL, trialReviews } from './trial'
 import { REAL_BACKEND, ApiError, changePassword, fetchMe, login, logout, markSignedIn, restoreSession, setSessionEndedHandler } from './api/client'
 import { RealAdmins } from './RealAdmins'
 import { NotificationMenu, RealAudit, RealFacilities, RealOrgs } from './RealOps'
@@ -92,10 +93,19 @@ const P3_IDS = Object.values(P3_REVIEW)
 
 export default function App() {
   // 실제 백엔드: 처음에는 갱신 쿠키로 로그인을 되살려 보고(checking), 안 되면 로그인 화면
-  const [stage, setStage] = useState<'checking' | 'login' | 'password' | 'in'>(REAL_BACKEND ? 'checking' : 'login')
+  const [stage, setStage] = useState<'checking' | 'login' | 'password' | 'in'>(REAL_BACKEND ? 'checking' : TRIAL ? 'in' : 'login') // 체험판: 로그인 없이 시연 관리자로
   const [view, setView] = useState<View>('today')
   // 실제 백엔드: 검토·사건·오늘 순회는 서버 값으로 채운다. 나머지 메뉴(예시)는 아래 demo* 값을 쓴다
   const [reviews, setReviews] = useState<ReviewTask[]>(() => (REAL_BACKEND ? [] : REVIEWS.filter((r) => !P3_IDS.includes(r.id))))
+  // 체험판: 같은 브라우저의 체험판 시니어 앱에서 찍은 사진을 검토 목록 맨 위에 넣는다
+  useEffect(() => {
+    if (!TRIAL) return
+    void trialReviews().then((mine) => {
+      if (!mine.length) return
+      setReviews((r) => [...mine, ...r.filter((x) => !x.id.startsWith('trial-'))])
+      setView('review') // 내가 찍은 사진이 있으면 검토 목록부터
+    })
+  }, [])
   const [issues, setIssues] = useState<Issue[]>(() => (REAL_BACKEND ? [] : ISSUES))
   const [reqs, setReqs] = useState<Reinspection[]>(REINSPECTIONS)
   const [patrols, setPatrols] = useState<Patrol[]>(() => (REAL_BACKEND ? [] : PATROLS))
@@ -189,7 +199,7 @@ export default function App() {
     }
   }, [])
 
-  // 시연: 로그인 뒤 잠시 있으면 박영자 어르신의 출석 요청이 들어온다
+  // 시연: 로그인 뒤 잠시 있으면 박○○ 어르신의 출석 요청이 들어온다
   useEffect(() => {
     if (stage !== 'in' || REAL_BACKEND) return
     const t = setTimeout(() => {
@@ -289,6 +299,8 @@ export default function App() {
     )
   if (stage === 'password') return <ChangePassword creds={creds} onDone={() => setStage('in')} />
   const signOut = () => {
+    // 체험판: 로그인이 없으므로 체험 안내(입구)로 돌아간다
+    if (TRIAL) return location.assign(`${import.meta.env.BASE_URL}../`)
     if (REAL_BACKEND) {
       logout()
       knownReviews.current = null
@@ -329,7 +341,7 @@ export default function App() {
           <Logo />
           <div className="flex-1 leading-tight">
             <p className="m-0 text-[17px] font-extrabold">시니어 동네 점검단</p>
-            <p className="m-0 text-xs text-mute">관리자 화면</p>
+            <p className="m-0 text-xs text-mute">관리자 화면{TRIAL && <span className="ml-1.5 rounded-full bg-brand px-2 py-0.5 text-[11px] font-bold text-white">체험판</span>}</p>
           </div>
           <MenuButton onClick={() => setMenuOpen(true)} />
         </div>
@@ -380,7 +392,7 @@ export default function App() {
               <b className="font-semibold">{ME.name}</b> <span className="text-mute">· {ME.org}</span>
             </span>
             <Button size="sm" onClick={signOut}>
-              로그아웃
+              {TRIAL ? '체험 안내로' : '로그아웃'}
             </Button>
           </div>
         </nav>
@@ -393,7 +405,7 @@ export default function App() {
             ))}
           </p>
           <button type="button" onClick={signOut} className="mt-2 text-xs text-mute underline underline-offset-2">
-            로그아웃
+            {TRIAL ? '체험 안내로' : '로그아웃'}
           </button>
         </div>
       </aside>
@@ -600,7 +612,7 @@ function Shell({ children }: { children: ReactNode }) {
           <Logo size={10} />
           <div className="leading-tight">
             <p className="m-0 text-lg font-bold">시니어 동네 점검단</p>
-            <p className="m-0 text-sm text-mute">관리자 화면</p>
+            <p className="m-0 text-sm text-mute">관리자 화면{TRIAL && ' · 체험판 (예시 데이터, 저장되지 않음)'}</p>
           </div>
         </div>
         {children}

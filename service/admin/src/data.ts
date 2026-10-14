@@ -17,8 +17,8 @@ export const ROLE_NAME: Record<Role, string> = {
 
 /** 시연: 관리자 계정 하나에 네 역할. SYSTEM_ADMIN은 다른 업무 권한을 자동으로 갖지 않는다 */
 export const ME = {
-  name: '이수진',
-  org: '양주시 · 양주시니어클럽',
+  name: '이○○',
+  org: '양주시 · 옥정동 노인복지관',
   loginId: 'demo.admin',
   roles: ['ACTIVITY_MANAGER', 'FACILITY_MANAGER', 'PROGRAM_MANAGER', 'SYSTEM_ADMIN'] as Role[],
 }
@@ -37,15 +37,15 @@ export type AdminAccount = {
 }
 
 export const ADMINS: AdminAccount[] = [
-  { id: 'a1', name: '이수진', org: '양주시니어클럽', loginId: 'demo.admin', roles: ['ACTIVITY_MANAGER', 'FACILITY_MANAGER', 'PROGRAM_MANAGER', 'SYSTEM_ADMIN'], status: 'ACTIVE', temp: false, locked: false },
-  { id: 'a2', name: '최민호', org: '양주시 도로관리과', loginId: 'road.choi', roles: ['FACILITY_MANAGER'], status: 'ACTIVE', temp: false, locked: false },
-  { id: 'a3', name: '한지은', org: '양주시 공원사업과', loginId: 'park.han', roles: ['FACILITY_MANAGER'], status: 'ACTIVE', temp: true, locked: false },
-  { id: 'a4', name: '오세훈', org: '양주시 하수과', loginId: 'sewer.oh', roles: ['FACILITY_MANAGER'], status: 'ACTIVE', temp: false, locked: true },
-  { id: 'a5', name: '정다은', org: '양주시니어클럽', loginId: 'club.jung', roles: ['ACTIVITY_MANAGER'], status: 'ACTIVE', temp: false, locked: false },
-  { id: 'a6', name: '김태윤', org: '양주시 복지정책과', loginId: 'welfare.kim', roles: ['PROGRAM_MANAGER'], status: 'SUSPENDED', temp: false, locked: false },
+  { id: 'a1', name: '이○○', org: '옥정동 노인복지관', loginId: 'demo.admin', roles: ['ACTIVITY_MANAGER', 'FACILITY_MANAGER', 'PROGRAM_MANAGER', 'SYSTEM_ADMIN'], status: 'ACTIVE', temp: false, locked: false },
+  { id: 'a2', name: '최○○', org: '양주시 도로관리과', loginId: 'road.choi', roles: ['FACILITY_MANAGER'], status: 'ACTIVE', temp: false, locked: false },
+  { id: 'a3', name: '한○○', org: '양주시 공원사업과', loginId: 'park.han', roles: ['FACILITY_MANAGER'], status: 'ACTIVE', temp: true, locked: false },
+  { id: 'a4', name: '오○○', org: '양주시 하수과', loginId: 'sewer.oh', roles: ['FACILITY_MANAGER'], status: 'ACTIVE', temp: false, locked: true },
+  { id: 'a5', name: '정○○', org: '옥정동 노인복지관', loginId: 'club.jung', roles: ['ACTIVITY_MANAGER'], status: 'ACTIVE', temp: false, locked: false },
+  { id: 'a6', name: '김○○', org: '양주시 복지정책과', loginId: 'welfare.kim', roles: ['PROGRAM_MANAGER'], status: 'SUSPENDED', temp: false, locked: false },
 ]
 
-export const ORGS = ['양주시니어클럽', '양주시 도로관리과', '양주시 공원사업과', '양주시 하수과', '양주시 시민안전과', '양주시 복지정책과']
+export const ORGS = ['옥정동 노인복지관', '양주시 도로관리과', '양주시 공원사업과', '양주시 하수과', '양주시 시민안전과', '양주시 복지정책과']
 
 /* ---------------- 시설 ---------------- */
 
@@ -268,9 +268,9 @@ const ai = (id: string, status: AnalysisStatus, category: ReviewCategory, kind: 
   modelVersion: 'qwen3-vl:8b-instruct',
 })
 const cls = (kind: Kind, issueTypes: string[]): Classification => ({ source: 'AI', kind, issueTypes, version: 0, correctionId: null })
-const team3 = ['김순자', '박영자']
-const team1 = ['이말순', '정복동']
-const team2 = ['최옥희', '한상철']
+const team3 = ['김○○', '박○○']
+const team1 = ['이○○', '정○○']
+const team2 = ['최○○', '한○○']
 
 export const REVIEWS: ReviewTask[] = [
   {
@@ -326,16 +326,16 @@ export const REVIEWS: ReviewTask[] = [
     photos: [{ slot: '펜스 구간 전체', bad: true }],
     analysis: ai('an-0801', 'OK', 'REVIEW_REQUIRED', 'fence', true, [{ code: 'tilted', label: '기울어짐', evidence: '가운데 기둥이 옆으로 기울어 있음', bbox: [0.39, 0.23, 0.64, 0.77] }]),
     classification: cls('fence', ['tilted']), corrections: [],
-    decision: { decision: 'ISSUE_CONFIRMED', reason: '기둥 1개 기울어짐 확인', at: '10/08 15:20', who: '이수진', analysisResultId: 'an-0801', correctionId: null, classificationVersion: 0, issueIds: ['IS-1008-01'] },
-    logs: [{ at: '10/08 15:20', who: '이수진', text: '이상 확인 → 새 문제 IS-1008-01 등록' }],
+    decision: { decision: 'ISSUE_CONFIRMED', reason: '기둥 1개 기울어짐 확인', at: '10/08 15:20', who: '이○○', analysisResultId: 'an-0801', correctionId: null, classificationVersion: 0, issueIds: ['IS-1008-01'] },
+    logs: [{ at: '10/08 15:20', who: '이○○', text: '이상 확인 → 새 문제 IS-1008-01 등록' }],
   },
   {
     id: 'rv-1008-02', type: 'INSPECTION', status: 'RESOLVED', trigger: 'ISSUE_SUSPECTED', facilityId: 'f2', at: '10/08 09:40', team: '1조', members: team1,
     photos: [{ slot: '덮개 전체', bad: false }],
     analysis: ai('an-0802', 'OK', 'REVIEW_REQUIRED', 'drain', true, [{ code: 'covered', label: '막힘', evidence: '덮개 일부에 낙엽', bbox: null }]),
     classification: cls('drain', ['covered']), corrections: [],
-    decision: { decision: 'NO_ISSUE', reason: '배수에 지장 없는 수준', at: '10/08 15:31', who: '이수진', analysisResultId: 'an-0802', correctionId: null, classificationVersion: 0, issueIds: [] },
-    logs: [{ at: '10/08 15:31', who: '이수진', text: '이상 없음(담당자 확인)' }],
+    decision: { decision: 'NO_ISSUE', reason: '배수에 지장 없는 수준', at: '10/08 15:31', who: '이○○', analysisResultId: 'an-0802', correctionId: null, classificationVersion: 0, issueIds: [] },
+    logs: [{ at: '10/08 15:31', who: '이○○', text: '이상 없음(담당자 확인)' }],
   },
 ]
 
@@ -419,11 +419,11 @@ export const ISSUES: Issue[] = [
     repairs: [{ round: 1, dept: '공원사업과', memo: '그네 줄 교체', requestedAt: '10/03 14:00', startedAt: '10/06 09:00', completedAt: '10/08 16:30', description: '그네 줄 2개 교체', evidence: true }],
     verification: {},
     logs: [
-      { at: '10/03 10:20', who: '이수진', text: '이상 확인 → 사건 접수' },
-      { at: '10/03 14:00', who: '이수진', text: '공원사업과에 보수 요청' },
-      { at: '10/06 09:00', who: '한지은', text: '보수 시작' },
-      { at: '10/08 16:30', who: '한지은', text: '보수 완료 · 재점검 요청 생성' },
-      { at: '10/09 11:00', who: '이수진', text: '재점검을 10/12 3조 순회에 배정' },
+      { at: '10/03 10:20', who: '이○○', text: '이상 확인 → 사건 접수' },
+      { at: '10/03 14:00', who: '이○○', text: '공원사업과에 보수 요청' },
+      { at: '10/06 09:00', who: '한○○', text: '보수 시작' },
+      { at: '10/08 16:30', who: '한○○', text: '보수 완료 · 재점검 요청 생성' },
+      { at: '10/09 11:00', who: '이○○', text: '재점검을 10/12 3조 순회에 배정' },
     ],
   },
   {
@@ -431,10 +431,10 @@ export const ISSUES: Issue[] = [
     repairs: [{ round: 1, dept: '시민안전과', memo: '기둥 재고정', requestedAt: '10/02 15:00', startedAt: '10/05 10:00', completedAt: '10/07 15:00', description: '기둥 고정 작업' }],
     verification: {},
     logs: [
-      { at: '10/02 11:05', who: '이수진', text: '이상 확인 → 사건 접수' },
-      { at: '10/02 15:00', who: '이수진', text: '시민안전과에 보수 요청' },
+      { at: '10/02 11:05', who: '이○○', text: '이상 확인 → 사건 접수' },
+      { at: '10/02 15:00', who: '이○○', text: '시민안전과에 보수 요청' },
       { at: '10/07 15:00', who: '시민안전과', text: '보수 완료 · 재점검 요청 생성' },
-      { at: '10/09 11:02', who: '이수진', text: '재점검을 10/12 3조 순회에 배정' },
+      { at: '10/09 11:02', who: '이○○', text: '재점검을 10/12 3조 순회에 배정' },
     ],
   },
   {
@@ -442,8 +442,8 @@ export const ISSUES: Issue[] = [
     repairs: [{ round: 1, dept: '시민안전과', memo: '기둥 1개 기울어짐', requestedAt: '10/08 15:25', startedAt: '10/10 09:30' }],
     verification: {},
     logs: [
-      { at: '10/08 15:20', who: '이수진', text: '이상 확인 → 사건 접수' },
-      { at: '10/08 15:25', who: '이수진', text: '시민안전과에 보수 요청' },
+      { at: '10/08 15:20', who: '이○○', text: '이상 확인 → 사건 접수' },
+      { at: '10/08 15:25', who: '이○○', text: '시민안전과에 보수 요청' },
       { at: '10/10 09:30', who: '시민안전과', text: '보수 시작' },
     ],
   },
@@ -452,8 +452,8 @@ export const ISSUES: Issue[] = [
     repairs: [{ round: 1, dept: '도로관리과', memo: '블록 3장 교체 필요', requestedAt: '10/09 13:00' }],
     verification: {},
     logs: [
-      { at: '10/09 10:30', who: '이수진', text: '이상 확인 → 사건 접수' },
-      { at: '10/09 13:00', who: '이수진', text: '도로관리과에 보수 요청' },
+      { at: '10/09 10:30', who: '이○○', text: '이상 확인 → 사건 접수' },
+      { at: '10/09 13:00', who: '이○○', text: '도로관리과에 보수 요청' },
     ],
   },
   {
@@ -461,9 +461,9 @@ export const ISSUES: Issue[] = [
     repairs: [{ round: 1, dept: '공원사업과', memo: '볼트 조임', requestedAt: '10/09 14:00', startedAt: '10/10 10:00', completedAt: '10/10 11:30', description: '볼트 4개 조임' }],
     verification: { after: { at: '10/12 09:52', team: '2조', bad: false } },
     logs: [
-      { at: '10/09 11:10', who: '이수진', text: '이상 확인 → 사건 접수' },
+      { at: '10/09 11:10', who: '이○○', text: '이상 확인 → 사건 접수' },
       { at: '10/10 11:30', who: '공원사업과', text: '보수 완료 · 재점검 요청 생성' },
-      { at: '10/10 14:00', who: '이수진', text: '재점검을 10/12 2조 순회에 배정' },
+      { at: '10/10 14:00', who: '이○○', text: '재점검을 10/12 2조 순회에 배정' },
       { at: '10/12 09:52', who: '시스템', text: '재점검 사진 접수 (2조)' },
     ],
   },
@@ -472,9 +472,9 @@ export const ISSUES: Issue[] = [
     repairs: [{ round: 1, dept: '공원사업과', memo: '앉는 판 교체', requestedAt: '10/01 14:00', startedAt: '10/05 09:00', completedAt: '10/06 17:00', description: '앉는 판 1장 교체' }],
     verification: { after: { at: '10/12 09:35', team: '1조', bad: true } },
     logs: [
-      { at: '10/01 10:40', who: '이수진', text: '이상 확인 → 사건 접수' },
+      { at: '10/01 10:40', who: '이○○', text: '이상 확인 → 사건 접수' },
       { at: '10/06 17:00', who: '공원사업과', text: '보수 완료 · 재점검 요청 생성' },
-      { at: '10/07 10:00', who: '이수진', text: '재점검을 10/12 1조 순회에 배정' },
+      { at: '10/07 10:00', who: '이○○', text: '재점검을 10/12 1조 순회에 배정' },
       { at: '10/12 09:35', who: '시스템', text: '재점검 사진 접수 (1조)' },
     ],
   },
@@ -486,8 +486,8 @@ export const ISSUES: Issue[] = [
     ],
     verification: { after: { at: '10/05 10:10', team: '1조', bad: false }, ai: { verdict: 'fixed', change: 'better' } },
     logs: [
-      { at: '10/01 16:00', who: '이수진', text: '수리 확인: 다시 보수 요청 (덮개 수평 불량)' },
-      { at: '10/05 16:00', who: '이수진', text: '수리 확인: 종결' },
+      { at: '10/01 16:00', who: '이○○', text: '수리 확인: 다시 보수 요청 (덮개 수평 불량)' },
+      { at: '10/05 16:00', who: '이○○', text: '수리 확인: 종결' },
     ],
   },
 ]
@@ -531,19 +531,19 @@ export type Participant = {
 }
 
 export const PARTICIPANTS: Participant[] = [
-  { id: 'u1', name: '김순자', phone: '010-1234-5678', org: '양주시니어클럽', days: ['월', '수', '금'], status: 'ACTIVE' },
-  { id: 'u2', name: '박영자', phone: '010-2345-6789', org: '양주시니어클럽', days: ['월', '수', '금'], status: 'ACTIVE' },
-  { id: 'u3', name: '이말순', phone: '010-3456-7890', org: '양주시니어클럽', days: ['월', '목'], status: 'ACTIVE' },
-  { id: 'u4', name: '정복동', phone: '010-4567-8901', org: '양주시니어클럽', days: ['월', '목'], status: 'ACTIVE' },
-  { id: 'u5', name: '최옥희', phone: '010-5678-9012', org: '양주시니어클럽', days: ['월', '화', '목'], status: 'ACTIVE' },
-  { id: 'u6', name: '한상철', phone: '010-6789-0123', org: '양주시니어클럽', days: ['월', '화'], status: 'ACTIVE' },
-  { id: 'u7', name: '윤정숙', phone: '010-7890-1234', org: '양주시니어클럽', days: ['월', '수'], status: 'ACTIVE' },
-  { id: 'u8', name: '강영수', phone: '010-8901-2345', org: '양주시니어클럽', days: ['월', '금'], status: 'ACTIVE' },
-  { id: 'u9', name: '조금례', phone: '010-9012-3456', org: '양주시니어클럽', days: ['월', '수', '금'], status: 'ACTIVE' },
-  { id: 'u10', name: '서동만', phone: '010-1122-3344', org: '양주시니어클럽', days: ['화', '목'], status: 'ACTIVE' },
-  { id: 'u11', name: '임춘자', phone: '010-2233-4455', org: '양주시니어클럽', days: ['월', '수'], status: 'ACTIVE' },
-  { id: 'u12', name: '오길남', phone: '010-3344-5566', org: '양주시니어클럽', days: ['월'], status: 'SUSPENDED' },
-  { id: 'u13', name: '문순이', phone: '010-4455-6677', org: '양주시니어클럽', days: ['수', '금'], status: 'ACTIVE' },
+  { id: 'u1', name: '김○○', phone: '010-1234-5678', org: '옥정동 노인복지관', days: ['월', '수', '금'], status: 'ACTIVE' },
+  { id: 'u2', name: '박○○', phone: '010-2345-6789', org: '옥정동 노인복지관', days: ['월', '수', '금'], status: 'ACTIVE' },
+  { id: 'u3', name: '이○○', phone: '010-3456-7890', org: '옥정동 노인복지관', days: ['월', '목'], status: 'ACTIVE' },
+  { id: 'u4', name: '정○○', phone: '010-4567-8901', org: '옥정동 노인복지관', days: ['월', '목'], status: 'ACTIVE' },
+  { id: 'u5', name: '최○○', phone: '010-5678-9012', org: '옥정동 노인복지관', days: ['월', '화', '목'], status: 'ACTIVE' },
+  { id: 'u6', name: '한○○', phone: '010-6789-0123', org: '옥정동 노인복지관', days: ['월', '화'], status: 'ACTIVE' },
+  { id: 'u7', name: '윤○○', phone: '010-7890-1234', org: '옥정동 노인복지관', days: ['월', '수'], status: 'ACTIVE' },
+  { id: 'u8', name: '강○○', phone: '010-8901-2345', org: '옥정동 노인복지관', days: ['월', '금'], status: 'ACTIVE' },
+  { id: 'u9', name: '조○○', phone: '010-9012-3456', org: '옥정동 노인복지관', days: ['월', '수', '금'], status: 'ACTIVE' },
+  { id: 'u10', name: '서○○', phone: '010-1122-3344', org: '옥정동 노인복지관', days: ['화', '목'], status: 'ACTIVE' },
+  { id: 'u11', name: '임○○', phone: '010-2233-4455', org: '옥정동 노인복지관', days: ['월', '수'], status: 'ACTIVE' },
+  { id: 'u12', name: '오○○', phone: '010-3344-5566', org: '옥정동 노인복지관', days: ['월'], status: 'SUSPENDED' },
+  { id: 'u13', name: '문○○', phone: '010-4455-6677', org: '옥정동 노인복지관', days: ['수', '금'], status: 'ACTIVE' },
 ]
 export const pName = (id: string) => PARTICIPANTS.find((p) => p.id === id)?.name ?? '-'
 
@@ -677,7 +677,7 @@ export const PATROLS: Patrol[] = [
       m('u13', 'PRESENT', started('09:03')),
     ],
     progress: { captured: 1, skipped: 0, review: 0 }, reinspect: [],
-    followUps: [{ at: '10/12 09:48', who: '이수진', text: '임춘자 어르신 통화 · 어지러움, 천천히 복귀 중' }],
+    followUps: [{ at: '10/12 09:48', who: '이○○', text: '임○○ 어르신 통화 · 어지러움, 천천히 복귀 중' }],
   },
   {
     id: 'p-1014-3', date: '10/14', teamId: 't3', courseId: 'c3', start: '09:00', expectedReturn: '11:30', status: 'ASSIGNED',
@@ -703,19 +703,19 @@ export type PastPatrol = {
 }
 
 const PAST_SEED: [string, string, string[], number, number, number, number, number, 'COMPLETED' | 'ABORTED'][] = [
-  ['09/29', '1조', ['이말순', '정복동'], 128, 5, 4, 0, 0, 'COMPLETED'],
-  ['09/29', '3조', ['김순자', '박영자'], 142, 8, 6, 0, 0, 'COMPLETED'],
-  ['10/01', '2조', ['최옥희', '한상철'], 121, 5, 4, 0, 0, 'COMPLETED'],
-  ['10/01', '3조', ['김순자', '박영자'], 150, 7, 5, 1, 0, 'COMPLETED'],
-  ['10/02', '4조', ['윤정숙', '강영수', '조금례'], 118, 4, 4, 0, 0, 'COMPLETED'],
-  ['10/03', '1조', ['이말순', '정복동'], 96, 3, 3, 0, 1, 'ABORTED'],
-  ['10/05', '5조', ['임춘자', '문순이'], 132, 5, 4, 0, 0, 'COMPLETED'],
-  ['10/06', '3조', ['김순자', '박영자'], 139, 8, 6, 0, 0, 'COMPLETED'],
-  ['10/07', '2조', ['최옥희', '한상철'], 125, 6, 4, 0, 0, 'COMPLETED'],
-  ['10/08', '1조', ['이말순', '정복동'], 131, 4, 4, 0, 0, 'COMPLETED'],
-  ['10/08', '4조', ['윤정숙', '강영수', '조금례'], 127, 5, 4, 0, 0, 'COMPLETED'],
-  ['10/09', '5조', ['임춘자', '문순이'], 119, 5, 3, 1, 0, 'COMPLETED'],
-  ['10/09', '2조', ['최옥희', '한상철'], 134, 5, 4, 0, 0, 'COMPLETED'],
+  ['09/29', '1조', ['이○○', '정○○'], 128, 5, 4, 0, 0, 'COMPLETED'],
+  ['09/29', '3조', ['김○○', '박○○'], 142, 8, 6, 0, 0, 'COMPLETED'],
+  ['10/01', '2조', ['최○○', '한○○'], 121, 5, 4, 0, 0, 'COMPLETED'],
+  ['10/01', '3조', ['김○○', '박○○'], 150, 7, 5, 1, 0, 'COMPLETED'],
+  ['10/02', '4조', ['윤○○', '강○○', '조○○'], 118, 4, 4, 0, 0, 'COMPLETED'],
+  ['10/03', '1조', ['이○○', '정○○'], 96, 3, 3, 0, 1, 'ABORTED'],
+  ['10/05', '5조', ['임○○', '문○○'], 132, 5, 4, 0, 0, 'COMPLETED'],
+  ['10/06', '3조', ['김○○', '박○○'], 139, 8, 6, 0, 0, 'COMPLETED'],
+  ['10/07', '2조', ['최○○', '한○○'], 125, 6, 4, 0, 0, 'COMPLETED'],
+  ['10/08', '1조', ['이○○', '정○○'], 131, 4, 4, 0, 0, 'COMPLETED'],
+  ['10/08', '4조', ['윤○○', '강○○', '조○○'], 127, 5, 4, 0, 0, 'COMPLETED'],
+  ['10/09', '5조', ['임○○', '문○○'], 119, 5, 3, 1, 0, 'COMPLETED'],
+  ['10/09', '2조', ['최○○', '한○○'], 134, 5, 4, 0, 0, 'COMPLETED'],
 ]
 export const PAST: PastPatrol[] = PAST_SEED.map(([date, team, members, minutes, photos, facilities, skipped, notVisited, status]) => ({
   date, team, members, minutes, photos, facilities, skipped, notVisited, status,

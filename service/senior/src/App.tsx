@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom'
 import { Photo, KIND_NAME } from './Photo'
 import { Scenery } from './Scenery'
 import { lookAt, nowHour, type SkyLook } from './sky'
+import * as trialStore from './trial/store'
+import { TRIAL } from './trial/store'
 import { LiveCamera, type CameraHandle } from './camera/LiveCamera'
 import * as quality from './camera/quality.js'
 import * as masking from './masking/masking.js'
@@ -119,7 +121,9 @@ export default function App() {
   // ---------------- 실제 촬영 준비 (docs/시니어앱_촬영기능_적용요청.md)
   // https(또는 localhost)이면 실제 촬영: 가림 모델을 받아 두고, 셋 다 준비되기 전에는 찍기 버튼을 끈다.
   // http 주소에서만 지금까지의 그림 시연으로 동작한다 (카메라가 https에서만 열리므로).
-  const live = typeof window !== 'undefined' && window.isSecureContext && !!navigator.mediaDevices?.getUserMedia
+  // 체험판: 카메라를 쓸 수 없으면(권한 거부·카메라 없음·가림 모델 못 받음) 그림 촬영으로 이어 간다
+  const [drawn, setDrawn] = useState(false)
+  const live = !drawn && typeof window !== 'undefined' && window.isSecureContext && !!navigator.mediaDevices?.getUserMedia
   const [models, setModels] = useState<'loading' | 'ready' | 'failed'>('loading')
   const [modelText, setModelText] = useState('')
   const [camError, setCamError] = useState('')
@@ -156,7 +160,10 @@ export default function App() {
     }
     masking.loadModels(show, { manifestUrl: `${import.meta.env.BASE_URL}models/model-manifest.json` }).then(
       () => setModels('ready'),
-      () => setModels('failed'),
+      () => {
+        setModels('failed')
+        if (TRIAL) setDrawn(true)
+      },
     )
   }
   useEffect(() => {
@@ -198,7 +205,7 @@ export default function App() {
   // 오늘 순회: 업무 API가 있으면 서버 순회로 바꾼다
   const [patrolTry, setPatrolTry] = useState(0)
   useEffect(() => {
-    if (!loggedIn0) return
+    if (!loggedIn0 || TRIAL) return // 체험판은 서버에 묻지 않고 예시 순회로
     setPatrolState('loading')
     fetchTodayPatrol().then(
       (p) => {
@@ -259,6 +266,13 @@ export default function App() {
     document.documentElement.classList.toggle('text-huge', size === 2)
   }, [size])
 
+  // 체험판: 센터에 도착하면 담당자 출석·출발 확인을 건너뛰고 바로 활동을 시작할 수 있다 (실제 서비스는 2인 1조 확인)
+  useEffect(() => {
+    if (!TRIAL || screen !== 'ready') return
+    setMyAtt('present')
+    setPartnerAtt('present')
+    setDeparted(true)
+  }, [screen])
   // 시연용: 담당자 출석 확인 → 짝 어르신 출석 → 담당자 출발 확인이 잠시 뒤 자동으로 이루어진다
   useEffect(() => {
     if (REAL_BACKEND || myAtt !== 'requested') return
@@ -405,6 +419,26 @@ export default function App() {
       /* 잴 수 없으면 서버 판정에 맡김 */
     }
     setShot(URL.createObjectURL(masked.blob))
+    if (TRIAL) {
+      const { faces, plates, vehicles } = masked.report
+      try {
+        await trialStore.addPhoto({ kind: stop.kind, place: stop.place, slot: stop.slots[slot] ?? '', blob: masked.blob, masked: { faces, plates, vehicles } })
+      } catch {
+        /* 저장소를 못 써도 체험은 이어 간다 (관리자 웹에만 안 보임) */
+      }
+      const hidden = faces + plates + vehicles
+      return handleResponse({
+        done: true,
+        http: 200,
+        body: {
+          receiptStatus: 'RECEIVED',
+          captureStatus: 'ACCEPTED',
+          message: hidden
+            ? `얼굴·번호판 ${hidden}곳을 가렸어요. 체험판이라 사진은 이 휴대폰에만 있어요.`
+            : '체험판이라 사진은 이 휴대폰에만 있어요. 관리자 웹에서 확인해 보세요.',
+        },
+      } as outbox.SendResult)
+    }
     const item: OutboxItem = {
       clientSubmissionId: crypto.randomUUID(),
       attemptId: crypto.randomUUID(),
@@ -613,7 +647,7 @@ export default function App() {
                     <p className="m-0 text-[1.2rem] font-bold text-sub">{offlineWait ? '인터넷 연결이 끊겨 있어요. 연결되면 이어서 할게요.' : '불러오는 중이에요…'}</p>
                   </div>
                 ) : (
-                  <Start onNext={() => setScreen('phone')} />
+                  <Start onNext={() => setScreen(TRIAL ? 'home' : 'phone')} />
                 ))}
               {notice && (
                 <p className="m-0 rounded-xl bg-g3-soft p-3 text-[0.95rem] text-g3-ink" role="alert">
@@ -727,7 +761,7 @@ export default function App() {
                   models={models}
                   modelText={modelText}
                   camError={camError}
-                  onLiveError={setCamError}
+                  onLiveError={(e) => (TRIAL ? setDrawn(true) : setCamError(e))}
                   onRetry={() => {
                     if (models === 'failed') prepareModels()
                     setCamError('')
@@ -847,7 +881,9 @@ function TopBar({ bar, showTeam, size, onSize, sound, onSound, onHelp }: { bar: 
           <CameraIcon size={22} />
         </span>
         <div className="min-w-0 leading-tight max-[429px]:hidden big:hidden">
-          <p className="m-0 truncate text-[17px] font-extrabold whitespace-nowrap text-ink">동네 점검단</p>
+          <p className="m-0 truncate text-[17px] font-extrabold whitespace-nowrap text-ink">
+            동네 점검단{TRIAL && <span className="ml-1.5 rounded-full bg-brand px-2 py-0.5 align-middle text-[11px] font-bold text-white">체험판</span>}
+          </p>
           <p className="m-0 truncate text-[13px] font-semibold whitespace-nowrap text-sub">
             {showTeam ? `${TEAM.zone} · ${TEAM.no}조` : '점검원'}
           </p>
@@ -886,6 +922,7 @@ function TopBar({ bar, showTeam, size, onSize, sound, onSound, onHelp }: { bar: 
       <p className="m-0 mt-2 hidden min-w-0 text-[15px] leading-tight whitespace-nowrap max-[429px]:flex big:flex">
         <span className="min-w-0 truncate">
           <b className="font-extrabold text-ink">동네 점검단</b>
+          {TRIAL && <span className="mx-1 rounded-full bg-brand px-1.5 py-0.5 text-[11px] font-bold text-white">체험판</span>}
           <span className="font-semibold text-sub"> · {showTeam ? `${TEAM.zone} · ${TEAM.no}조` : '점검원'}</span>
         </span>
       </p>
@@ -1062,8 +1099,8 @@ function Start({ onNext }: { onNext: () => void }) {
         </div>
       </div>
       <Bottom>
-        <Primary onClick={onNext}>휴대폰 번호로 시작하기</Primary>
-        <p className="m-0 text-center text-[0.85rem] text-mute">등록은 담당 선생님이 해 드려요.</p>
+        <Primary onClick={onNext}>{TRIAL ? '바로 체험하기' : '휴대폰 번호로 시작하기'}</Primary>
+        <p className="m-0 text-center text-[0.85rem] text-mute">{TRIAL ? '체험판이라 로그인 없이 예시 데이터로 들어가요.' : '등록은 담당 선생님이 해 드려요.'}</p>
       </Bottom>
     </>
   )
@@ -1833,18 +1870,30 @@ function Done({ results, aborted, onHome }: { results: Record<string, StopResult
           <p className="m-0 text-[1.7rem] font-extrabold text-brand">
             {c.captured + c.review}곳 촬영{c.skipped + c.notVisited > 0 ? ` · ${c.skipped + c.notVisited}곳 다음에` : ''}
           </p>
-          <p className="m-0 mt-1 text-[0.9rem] text-sub">출석·복귀는 선생님이 확인해서 기록했어요</p>
+          <p className="m-0 mt-1 text-[0.9rem] text-sub">{TRIAL ? '체험판이라 선생님 출석·복귀 확인은 건너뛰었어요' : '출석·복귀는 선생님이 확인해서 기록했어요'}</p>
         </Card>
         {aborted && <p className="m-0 text-[1rem] text-sub">몸이 불편하시면 꼭 {STAFF.name} 선생님께 말씀해 주세요.</p>}
         {/* 다음 활동 날짜를 알려 주는 업무 API가 없어 실제 백엔드에서는 보여 주지 않는다 (예시 날짜가 남지 않게) */}
-        {!REAL_BACKEND && (
+        {!REAL_BACKEND && !TRIAL && (
           <p className="m-0 text-[1.05rem]">
             다음 활동은 <b>10월 14일 (수)</b>이에요.
           </p>
         )}
       </div>
       <Bottom>
-        <Secondary onClick={onHome}>처음 화면으로</Secondary>
+        {TRIAL && (
+          <>
+            <Primary onClick={() => location.assign(`${import.meta.env.BASE_URL}../admin/`)}>관리자 웹에서 내 사진 보기</Primary>
+            <Secondary
+              onClick={() => {
+                void trialStore.clearPhotos().finally(() => location.reload())
+              }}
+            >
+              처음부터 다시 체험하기
+            </Secondary>
+          </>
+        )}
+        {!TRIAL && <Secondary onClick={onHome}>처음 화면으로</Secondary>}
       </Bottom>
     </>
   )

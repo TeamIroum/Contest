@@ -1500,7 +1500,7 @@ function NewParticipant({ onClose, onSave }: { onClose: () => void; onSave: (p: 
       footer={
         <>
           <Button onClick={onClose}>취소</Button>
-          <Button variant="primary" disabled={!ok} onClick={() => onSave({ id: `u${Date.now()}`, name: name.trim(), phone, org: '양주시니어클럽', days, status: 'ACTIVE' }, orgId)}>
+          <Button variant="primary" disabled={!ok} onClick={() => onSave({ id: `u${Date.now()}`, name: name.trim(), phone, org: '옥정동 노인복지관', days, status: 'ACTIVE' }, orgId)}>
             등록
           </Button>
         </>

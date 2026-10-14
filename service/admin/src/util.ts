@@ -12,10 +12,11 @@ export function fmtMD(d: Date) {
   return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
 }
 
-/** 시연 시계(실제 백엔드면 실제 시각): 2026-10-12 오전 10:40에서 시작해 실제 시간만큼 흐른다 (실제 컴퓨터 시각과 무관) */
+/** 시연 시계(실제 백엔드면 실제 시각): 2026-10-12 오전 10:40에서 시작해 실제 시간만큼 흐른다 (실제 컴퓨터 시각과 무관).
+ *  real=true: 체험판에서 직접 찍은 사진(과 그 사진에서 생긴 사건)을 처리할 때는 실제 시각을 쓴다 */
 const DEMO_START = Date.now()
-export function nowAt() {
-  if (REAL_BACKEND) return mdhm(new Date().toISOString()) // 실제 백엔드: 실제 한국 시각
+export function nowAt(real = false) {
+  if (REAL_BACKEND || real) return mdhm(new Date().toISOString()) // 실제 한국 시각
   const min = 10 * 60 + 40 + Math.floor((Date.now() - DEMO_START) / 60000)
   return `10/12 ${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
 }
