@@ -1,0 +1,30 @@
+services:
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    env_file:
+      - /opt/itda/secrets/app.env
+    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
+    volumes:
+      - redis-data:/data
+    networks: [internal]
+
+  backend:
+    image: itda-backend:current
+    restart: unless-stopped
+    env_file:
+      - /opt/itda/secrets/app.env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    networks: [internal]
+
+networks:
+  internal:
+
+volumes:
+  redis-data:
